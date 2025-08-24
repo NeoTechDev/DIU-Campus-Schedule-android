@@ -3,7 +3,7 @@ package com.om.diucampusschedule.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Light Theme Colors - Professional Academic Theme
-val md_theme_light_primary = Color(0xFF1E3A8A) // Deep Blue - Academic Excellence
+val md_theme_light_primary = Color(0xFF1A56DB) // Deep Blue - Academic Excellence
 val md_theme_light_onPrimary = Color(0xFFFFFFFF) // White text on primary
 val md_theme_light_primaryContainer = Color(0xFFDBE2FF) // Light Blue Container
 val md_theme_light_onPrimaryContainer = Color(0xFF001B3D) // Dark text on primary container
