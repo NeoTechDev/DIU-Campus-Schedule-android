@@ -1,3 +1,7 @@
 package com.om.diucampusschedule
 
-// Application class with Hilt, entry point, setContent, NavHost
+import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
+
+@HiltAndroidApp
+class App : Application()
