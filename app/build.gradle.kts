@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.dagger.hilt.android)
     alias(libs.plugins.kotlin.ksp)
     id("com.google.gms.google-services")
@@ -9,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.om.diucampusschedule"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.om.diucampusschedule"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -40,6 +39,9 @@ android {
     buildFeatures {
         compose = true
     }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.15"
+    }
 }
 
 dependencies {
@@ -57,7 +59,7 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
 
     // Firebase & Google
-    implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
+    implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
