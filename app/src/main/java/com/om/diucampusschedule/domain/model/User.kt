@@ -25,7 +25,10 @@ data class AuthState(
     val isAuthenticated: Boolean = false,
     val user: User? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val isEmailVerificationSent: Boolean = false,
+    val isPasswordResetSent: Boolean = false,
+    val successMessage: String? = null
 )
 
 data class SignInRequest(

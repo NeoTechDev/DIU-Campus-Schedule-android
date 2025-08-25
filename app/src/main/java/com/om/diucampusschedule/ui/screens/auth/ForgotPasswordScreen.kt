@@ -1,14 +1,9 @@
 package com.om.diucampusschedule.ui.screens.auth
 
-import android.app.Activity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -41,8 +36,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -51,10 +44,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
@@ -62,22 +51,17 @@ import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignInScreen(
+fun ForgotPasswordScreen(
     navController: NavController,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
     var isEmailFocused by remember { mutableStateOf(false) }
-    var isPasswordFocused by remember { mutableStateOf(false) }
     
-    val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val emailFocusRequester = remember { FocusRequester() }
-    val passwordFocusRequester = remember { FocusRequester() }
     
     // Animation states
     val formScale by animateFloatAsState(
@@ -91,62 +75,20 @@ fun SignInScreen(
         animationSpec = tween(300),
         label = "titleAlpha"
     )
-    
-    // Configure Google Sign-In
-    val googleSignInOptions = remember {
-        try {
-            GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(context.getString(R.string.default_web_client_id))
-                .requestEmail()
-                .build()
-        } catch (e: Exception) {
-            // Fallback configuration without ID token if default_web_client_id is not available
-            GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
-                .build()
-        }
-    }
-    
-    val googleSignInClient = remember {
-        GoogleSignIn.getClient(context, googleSignInOptions)
-    }
-    
-    // Google Sign-In launcher
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                account.idToken?.let { idToken ->
-                    viewModel.signInWithGoogle(idToken)
-                }
-            } catch (e: ApiException) {
-                // Handle Google Sign-In error
-                val errorMessage = when (e.statusCode) {
-                    12501 -> "Google Sign-In was cancelled"
-                    12502 -> "Network error. Please check your internet connection"
-                    12500 -> "Google Sign-In configuration error. Please contact support"
-                    else -> "Google Sign-In failed: ${e.message}"
-                }
-                viewModel.setError(errorMessage)
-            }
+
+    // Clear flags when leaving screen
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearFlags()
         }
     }
 
-    // Navigate based on auth state
-    LaunchedEffect(authState) {
-        if (authState.isAuthenticated && authState.user != null) {
-            if (authState.user!!.isProfileComplete) {
-                navController.navigate(Screen.Today.route) {
-                    popUpTo(Screen.SignIn.route) { inclusive = true }
-                }
-            } else {
-                navController.navigate(Screen.RegsitrationForm.route) {
-                    popUpTo(Screen.SignIn.route) { inclusive = true }
-                }
-            }
+    // Navigate back on success
+    LaunchedEffect(authState.isPasswordResetSent) {
+        if (authState.isPasswordResetSent) {
+            // Optional: Navigate back after a delay to show success message
+            kotlinx.coroutines.delay(2000)
+            navController.popBackStack()
         }
     }
 
@@ -189,7 +131,28 @@ fun SignInScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // App Logo/Icon (placeholder)
+                // Back Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Lock Icon
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -197,8 +160,8 @@ fun SignInScreen(
                         .background(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                    MaterialTheme.colorScheme.tertiary,
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
                                 )
                             )
                         )
@@ -206,8 +169,8 @@ fun SignInScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.School,
-                        contentDescription = "DIU Campus Schedule",
+                        imageVector = Icons.Default.LockReset,
+                        contentDescription = "Reset Password",
                         tint = Color.White,
                         modifier = Modifier.size(40.dp)
                     )
@@ -225,10 +188,10 @@ fun SignInScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Welcome Back!",
+                            text = "Forgot Password?",
                             style = MaterialTheme.typography.headlineLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 32.sp
+                                fontSize = 28.sp
                             ),
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.primary,
@@ -238,7 +201,7 @@ fun SignInScreen(
                         )
 
                         Text(
-                            text = "Sign in to your account",
+                            text = "Enter your email address and we'll send you a link to reset your password",
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontSize = 16.sp
                             ),
@@ -251,7 +214,7 @@ fun SignInScreen(
                     }
                 }
 
-                // Sign In Form with enhanced animation
+                // Reset Password Form with enhanced animation
                 AnimatedVisibility(
                     visible = true,
                     enter = slideInVertically(
@@ -278,7 +241,8 @@ fun SignInScreen(
                                 value = email,
                                 onValueChange = { 
                                     email = it
-                                    viewModel.clearError() // Clear error on typing
+                                    viewModel.clearError()
+                                    viewModel.clearSuccessMessage()
                                 },
                                 label = { 
                                     Text(
@@ -297,10 +261,16 @@ fun SignInScreen(
                                 },
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Email,
-                                    imeAction = ImeAction.Next
+                                    imeAction = ImeAction.Done
                                 ),
                                 keyboardActions = KeyboardActions(
-                                    onNext = { passwordFocusRequester.requestFocus() }
+                                    onDone = { 
+                                        keyboardController?.hide()
+                                        focusManager.clearFocus()
+                                        if (email.isNotBlank()) {
+                                            viewModel.resetPassword(email)
+                                        }
+                                    }
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -317,74 +287,45 @@ fun SignInScreen(
                                 )
                             )
 
-                            // Password Field with enhanced styling
-                            OutlinedTextField(
-                                value = password,
-                                onValueChange = { 
-                                    password = it
-                                    viewModel.clearError() // Clear error on typing
-                                },
-                                label = { 
-                                    Text(
-                                        "Password",
-                                        color = if (isPasswordFocused) MaterialTheme.colorScheme.primary 
-                                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                    ) 
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = if (isPasswordFocused) Icons.Filled.Lock else Icons.Outlined.Lock,
-                                        contentDescription = "Password",
-                                        tint = if (isPasswordFocused) MaterialTheme.colorScheme.primary 
-                                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                    )
-                                },
-                                trailingIcon = {
-                                    IconButton(
-                                        onClick = { passwordVisible = !passwordVisible },
-                                        modifier = Modifier.scale(
-                                            animateFloatAsState(
-                                                targetValue = if (passwordVisible) 1.1f else 1f,
-                                                animationSpec = tween(150),
-                                                label = "passwordVisibilityScale"
-                                            ).value
-                                        )
+                            // Success Message with animation
+                            AnimatedVisibility(
+                                visible = authState.successMessage != null,
+                                enter = slideInVertically(
+                                    initialOffsetY = { -20 },
+                                    animationSpec = tween(300)
+                                ) + fadeIn(animationSpec = tween(300)),
+                                exit = slideOutVertically(
+                                    targetOffsetY = { -20 },
+                                    animationSpec = tween(300)
+                                ) + fadeOut(animationSpec = tween(300))
+                            ) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                            tint = MaterialTheme.colorScheme.primary
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = "Success",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = authState.successMessage ?: "",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.weight(1f)
                                         )
                                     }
-                                },
-                                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Password,
-                                    imeAction = ImeAction.Done
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onDone = { 
-                                        keyboardController?.hide()
-                                        focusManager.clearFocus()
-                                        if (email.isNotBlank() && password.isNotBlank()) {
-                                            viewModel.signIn(email, password)
-                                        }
-                                    }
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(passwordFocusRequester)
-                                    .onFocusChanged { focusState ->
-                                        isPasswordFocused = focusState.isFocused
-                                    },
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                    focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-                                )
-                            )
+                                }
+                            }
 
                             // Error Message with animation
                             AnimatedVisibility(
@@ -426,30 +367,7 @@ fun SignInScreen(
                                 }
                             }
 
-                            // Forgot Password with enhanced styling
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(
-                                    onClick = {
-                                        keyboardController?.hide()
-                                        focusManager.clearFocus()
-                                        navController.navigate(Screen.ForgotPassword.route)
-                                    },
-                                    modifier = Modifier.padding(0.dp)
-                                ) {
-                                    Text(
-                                        text = "Forgot Password?",
-                                        color = MaterialTheme.colorScheme.primary,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    )
-                                }
-                            }
-
-                            // Enhanced Sign In Button
+                            // Enhanced Reset Password Button
                             val buttonScale by animateFloatAsState(
                                 targetValue = if (authState.isLoading) 0.98f else 1f,
                                 animationSpec = tween(150),
@@ -460,14 +378,13 @@ fun SignInScreen(
                                 onClick = {
                                     keyboardController?.hide()
                                     focusManager.clearFocus()
-                                    viewModel.clearError()
-                                    viewModel.signIn(email, password)
+                                    viewModel.resetPassword(email)
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(56.dp)
                                     .scale(buttonScale),
-                                enabled = !authState.isLoading && email.isNotBlank() && password.isNotBlank(),
+                                enabled = !authState.isLoading && email.isNotBlank(),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
@@ -491,7 +408,7 @@ fun SignInScreen(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = "Signing In...",
+                                            text = "Sending...",
                                             style = MaterialTheme.typography.labelLarge.copy(
                                                 fontSize = 16.sp,
                                                 fontWeight = FontWeight.SemiBold
@@ -505,14 +422,14 @@ fun SignInScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Login,
-                                            contentDescription = "Sign In",
+                                            imageVector = Icons.Default.Send,
+                                            contentDescription = "Send Reset Email",
                                             modifier = Modifier.size(20.dp),
                                             tint = MaterialTheme.colorScheme.onPrimary
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = "Sign In",
+                                            text = "Send Reset Email",
                                             style = MaterialTheme.typography.labelLarge.copy(
                                                 fontSize = 16.sp,
                                                 fontWeight = FontWeight.SemiBold
@@ -522,108 +439,13 @@ fun SignInScreen(
                                     }
                                 }
                             }
-
-                            // Enhanced Divider with animation
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                HorizontalDivider(
-                                    modifier = Modifier.weight(1f),
-                                    thickness = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                                )
-                                Text(
-                                    text = "OR",
-                                    modifier = Modifier.padding(horizontal = 20.dp),
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontWeight = FontWeight.Medium,
-                                        letterSpacing = 1.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                                HorizontalDivider(
-                                    modifier = Modifier.weight(1f),
-                                    thickness = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                                )
-                            }
-
-                            // Enhanced Google Sign In Button
-                            OutlinedButton(
-                                onClick = {
-                                    keyboardController?.hide()
-                                    focusManager.clearFocus()
-                                    viewModel.clearError()
-                                    val signInIntent = googleSignInClient.signInIntent
-                                    googleSignInLauncher.launch(signInIntent)
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(
-                                    1.5.dp,
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                                ),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                    contentColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                elevation = ButtonDefaults.buttonElevation(
-                                    defaultElevation = 2.dp,
-                                    pressedElevation = 4.dp
-                                )
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // Google icon placeholder (using colorful circle)
-                                    Box(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                brush = Brush.linearGradient(
-                                                    colors = listOf(
-                                                        Color(0xFF4285F4), // Google Blue
-                                                        Color(0xFF34A853), // Google Green
-                                                        Color(0xFFFBBC05), // Google Yellow
-                                                        Color(0xFFEA4335)  // Google Red
-                                                    )
-                                                )
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "G",
-                                            color = Color.White,
-                                            style = MaterialTheme.typography.labelMedium.copy(
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = "Continue with Google",
-                                        style = MaterialTheme.typography.labelLarge.copy(
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Enhanced Sign Up Link with animation
+                // Back to Sign In Link
                 AnimatedVisibility(
                     visible = true,
                     enter = slideInVertically(
@@ -639,7 +461,7 @@ fun SignInScreen(
                             ) {
                                 keyboardController?.hide()
                                 focusManager.clearFocus()
-                                navController.navigate(Screen.SignUp.route)
+                                navController.popBackStack()
                             },
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
@@ -652,24 +474,19 @@ fun SignInScreen(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Don't have an account? ",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = "Sign Up",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
                             Icon(
-                                imageVector = Icons.Default.ArrowForward,
-                                contentDescription = "Go to Sign Up",
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back to Sign In",
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Back to Sign In",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -684,10 +501,9 @@ fun SignInScreen(
     }
 }
 
-
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun SignInScreenPreview() {
+fun ForgotPasswordScreenPreview() {
     val navController = rememberNavController()
-    SignInScreen(navController = navController)
+    ForgotPasswordScreen(navController = navController)
 }

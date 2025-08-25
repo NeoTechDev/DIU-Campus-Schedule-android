@@ -4,6 +4,8 @@ sealed class Screen(val route: String) {
     object Welcome : Screen("welcome")  // initial screen for new users
     object SignIn : Screen("signin")
     object SignUp : Screen("signup")
+    object ForgotPassword : Screen("forgot_password")
+    object EmailVerification : Screen("email_verification")
     object RegsitrationForm : Screen("registration_form")
     object Today : Screen("today")  // usual start screen
     object Routine : Screen("routine")

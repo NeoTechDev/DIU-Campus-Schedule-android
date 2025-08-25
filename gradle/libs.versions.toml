@@ -41,6 +41,7 @@ threeTenAbp = "1.4.9"
 # KSP for Hilt
 ksp = "1.9.25-1.0.20"
 volley = "1.2.1"
+foundation = "1.9.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -90,6 +91,7 @@ androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx"
 # Date/Time
 threetenabp = { group = "com.jakewharton.threetenabp", name = "threetenabp", version.ref = "threeTenAbp" }
 volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
+androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

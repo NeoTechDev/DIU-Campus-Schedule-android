@@ -187,4 +187,45 @@ class AuthRemoteDataSource @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun sendEmailVerification(): Result<Unit> {
+        return try {
+            val currentUser = firebaseAuth.currentUser
+            if (currentUser != null) {
+                currentUser.sendEmailVerification().await()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("No user is currently signed in"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun reloadUser(): Result<Boolean> {
+        return try {
+            val currentUser = firebaseAuth.currentUser
+            if (currentUser != null) {
+                currentUser.reload().await()
+                Result.success(currentUser.isEmailVerified)
+            } else {
+                Result.failure(Exception("No user is currently signed in"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun isEmailVerified(): Result<Boolean> {
+        return try {
+            val currentUser = firebaseAuth.currentUser
+            if (currentUser != null) {
+                Result.success(currentUser.isEmailVerified)
+            } else {
+                Result.failure(Exception("No user is currently signed in"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -225,4 +225,16 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun resetPassword(email: String): Result<Unit> {
         return remoteDataSource.resetPassword(email)
     }
+
+    override suspend fun sendEmailVerification(): Result<Unit> {
+        return remoteDataSource.sendEmailVerification()
+    }
+
+    override suspend fun reloadUser(): Result<Boolean> {
+        return remoteDataSource.reloadUser()
+    }
+
+    override suspend fun isEmailVerified(): Result<Boolean> {
+        return remoteDataSource.isEmailVerified()
+    }
 }

@@ -16,4 +16,7 @@ interface AuthRepository {
     suspend fun updateUserProfile(userId: String, form: UserRegistrationForm): Result<User>
     suspend fun isUserProfileComplete(userId: String): Result<Boolean>
     suspend fun resetPassword(email: String): Result<Unit>
+    suspend fun sendEmailVerification(): Result<Unit>
+    suspend fun reloadUser(): Result<Boolean>
+    suspend fun isEmailVerified(): Result<Boolean>
 }

@@ -6,9 +6,11 @@ import com.om.diucampusschedule.data.repository.AuthRepositoryImpl
 import com.om.diucampusschedule.domain.model.AuthState
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRegistrationForm
+import com.om.diucampusschedule.domain.usecase.auth.CheckEmailVerificationUseCase
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.auth.GoogleSignInUseCase
 import com.om.diucampusschedule.domain.usecase.auth.ResetPasswordUseCase
+import com.om.diucampusschedule.domain.usecase.auth.SendEmailVerificationUseCase
 import com.om.diucampusschedule.domain.usecase.auth.SignInUseCase
 import com.om.diucampusschedule.domain.usecase.auth.SignOutUseCase
 import com.om.diucampusschedule.domain.usecase.auth.SignUpUseCase
@@ -31,6 +33,8 @@ class AuthViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val updateUserProfileUseCase: UpdateUserProfileUseCase,
     private val resetPasswordUseCase: ResetPasswordUseCase,
+    private val sendEmailVerificationUseCase: SendEmailVerificationUseCase,
+    private val checkEmailVerificationUseCase: CheckEmailVerificationUseCase,
     // Inject the repository implementation to demonstrate accessing additional methods
     private val authRepositoryImpl: AuthRepositoryImpl
 ) : ViewModel() {
@@ -202,9 +206,67 @@ class AuthViewModel @Inject constructor(
                 onSuccess = {
                     _authState.value = _authState.value.copy(
                         isLoading = false,
-                        error = null
+                        error = null,
+                        isPasswordResetSent = true,
+                        successMessage = "Password reset email sent! Check your inbox."
                     )
-                    // You might want to show a success message here
+                },
+                onFailure = { exception ->
+                    _authState.value = _authState.value.copy(
+                        isLoading = false,
+                        error = exception.message,
+                        isPasswordResetSent = false
+                    )
+                }
+            )
+        }
+    }
+
+    fun sendEmailVerification() {
+        viewModelScope.launch {
+            _authState.value = _authState.value.copy(isLoading = true, error = null)
+            
+            val result = sendEmailVerificationUseCase()
+            
+            result.fold(
+                onSuccess = {
+                    _authState.value = _authState.value.copy(
+                        isLoading = false,
+                        error = null,
+                        isEmailVerificationSent = true,
+                        successMessage = "Verification email sent! Check your inbox and click the link to verify your email."
+                    )
+                },
+                onFailure = { exception ->
+                    _authState.value = _authState.value.copy(
+                        isLoading = false,
+                        error = exception.message,
+                        isEmailVerificationSent = false
+                    )
+                }
+            )
+        }
+    }
+
+    fun checkEmailVerification() {
+        viewModelScope.launch {
+            _authState.value = _authState.value.copy(isLoading = true, error = null)
+            
+            val result = checkEmailVerificationUseCase()
+            
+            result.fold(
+                onSuccess = { isVerified ->
+                    _authState.value = _authState.value.copy(
+                        isLoading = false,
+                        error = null,
+                        successMessage = if (isVerified) "Email verified successfully!" else null
+                    )
+                    
+                    // If verified, refresh user data
+                    if (isVerified) {
+                        // Trigger auth state refresh
+                        observeAuthState()
+                    }
                 },
                 onFailure = { exception ->
                     _authState.value = _authState.value.copy(
@@ -222,6 +284,19 @@ class AuthViewModel @Inject constructor(
     
     fun setError(message: String) {
         _authState.value = _authState.value.copy(error = message, isLoading = false)
+    }
+    
+    fun clearSuccessMessage() {
+        _authState.value = _authState.value.copy(successMessage = null)
+    }
+    
+    fun clearFlags() {
+        _authState.value = _authState.value.copy(
+            isEmailVerificationSent = false,
+            isPasswordResetSent = false,
+            successMessage = null,
+            error = null
+        )
     }
 
     /**

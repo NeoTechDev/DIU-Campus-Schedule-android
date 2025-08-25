@@ -5,6 +5,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.om.diucampusschedule.ui.screens.auth.EmailVerificationScreen
+import com.om.diucampusschedule.ui.screens.auth.ForgotPasswordScreen
 import com.om.diucampusschedule.ui.screens.auth.RegistrationFormScreen
 import com.om.diucampusschedule.ui.screens.auth.SignInScreen
 import com.om.diucampusschedule.ui.screens.auth.SignUpScreen
@@ -30,6 +32,18 @@ fun AppNavigation(
 
         composable(Screen.SignUp.route) {
             SignUpScreen(navController = navController)
+        }
+
+        composable(Screen.ForgotPassword.route) {
+            ForgotPasswordScreen(navController = navController)
+        }
+
+        composable("${Screen.EmailVerification.route}/{email}") { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            EmailVerificationScreen(
+                navController = navController,
+                userEmail = email
+            )
         }
 
         composable(Screen.RegsitrationForm.route) {
