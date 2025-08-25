@@ -219,6 +219,10 @@ class AuthViewModel @Inject constructor(
     fun clearError() {
         _authState.value = _authState.value.copy(error = null)
     }
+    
+    fun setError(message: String) {
+        _authState.value = _authState.value.copy(error = message, isLoading = false)
+    }
 
     /**
      * Demonstrates using the previously unused methods:

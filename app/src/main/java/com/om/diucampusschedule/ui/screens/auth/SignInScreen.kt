@@ -60,10 +60,17 @@ fun SignInScreen(
     
     // Configure Google Sign-In
     val googleSignInOptions = remember {
-        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(context.getString(R.string.default_web_client_id))
-            .requestEmail()
-            .build()
+        try {
+            GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(context.getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build()
+        } catch (e: Exception) {
+            // Fallback configuration without ID token if default_web_client_id is not available
+            GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build()
+        }
     }
     
     val googleSignInClient = remember {
@@ -83,7 +90,13 @@ fun SignInScreen(
                 }
             } catch (e: ApiException) {
                 // Handle Google Sign-In error
-                viewModel.clearError()
+                val errorMessage = when (e.statusCode) {
+                    12501 -> "Google Sign-In was cancelled"
+                    12502 -> "Network error. Please check your internet connection"
+                    12500 -> "Google Sign-In configuration error. Please contact support"
+                    else -> "Google Sign-In failed: ${e.message}"
+                }
+                viewModel.setError(errorMessage)
             }
         }
     }

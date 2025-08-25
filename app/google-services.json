@@ -12,7 +12,20 @@
           "package_name": "com.om.diucampusschedule"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "464044924384-89932ocamctpmis8pqsad36v3dtbku3k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.om.diucampusschedule",
+            "certificate_hash": "90132fdf07a1550dde919de4fcfcd24e2e35d062"
+          }
+        },
+        {
+          "client_id": "464044924384-1retnstn8i04ug556psm4qcn3a5pjtbf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD9excOAIm6HSj_DhxbVeXgKBrPqV_2cjo"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "464044924384-1retnstn8i04ug556psm4qcn3a5pjtbf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
