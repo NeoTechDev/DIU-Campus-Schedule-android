@@ -4,10 +4,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.Timestamp
+import com.om.diucampusschedule.core.validation.DataValidator
 import com.om.diucampusschedule.data.model.RoutineScheduleDto
 import com.om.diucampusschedule.data.model.toDomainModel
 import com.om.diucampusschedule.data.model.toDto
 import com.om.diucampusschedule.domain.model.RoutineSchedule
+import com.om.diucampusschedule.domain.usecase.routine.ValidateRoutineDataUseCase
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -187,17 +189,36 @@ class RoutineRemoteDataSource @Inject constructor(
                                 }
                             }
                             
-                            val routine = com.om.diucampusschedule.domain.model.RoutineSchedule(
-                                id = document.id,
-                                semester = semester ?: "Unknown",
-                                department = routineDepartment ?: "Software Engineering",
-                                effectiveFrom = effectiveFrom ?: "",
-                                schedule = routineItems,
-                                version = documentData["version"] as? Long ?: System.currentTimeMillis(),
-                                updatedAt = (documentData["uploadedAt"] as? Timestamp)?.seconds?.times(1000) ?: System.currentTimeMillis()
-                            )
+                                                    val routine = com.om.diucampusschedule.domain.model.RoutineSchedule(
+                            id = document.id,
+                            semester = semester ?: "Unknown",
+                            department = routineDepartment ?: "Software Engineering",
+                            effectiveFrom = effectiveFrom ?: "",
+                            schedule = routineItems,
+                            version = documentData["version"] as? Long ?: System.currentTimeMillis(),
+                            updatedAt = (documentData["uploadedAt"] as? Timestamp)?.seconds?.times(1000) ?: System.currentTimeMillis()
+                        )
+                        
+                        // Validate routine data before returning
+                        val departmentValidation = DataValidator.validateDepartment(routine.department)
+                        if (!departmentValidation.isValid) {
+                            android.util.Log.w("RoutineDataSource", "Invalid department in routine: ${departmentValidation.getErrorMessage()}")
+                        }
+                        
+                        // Log validation warnings for routine items (don't fail, just warn)
+                        routine.schedule.forEachIndexed { index, item ->
+                            val courseValidation = DataValidator.validateCourseCode(item.courseCode)
+                            if (!courseValidation.isValid) {
+                                android.util.Log.w("RoutineDataSource", "Invalid course code in item $index: ${courseValidation.getErrorMessage()}")
+                            }
                             
-                            return Result.success(routine)
+                            val roomValidation = DataValidator.validateRoom(item.room)
+                            if (!roomValidation.isValid) {
+                                android.util.Log.w("RoutineDataSource", "Invalid room in item $index: ${roomValidation.getErrorMessage()}")
+                            }
+                        }
+                        
+                        return Result.success(routine)
                         }
                     }
                 }
@@ -375,7 +396,7 @@ class RoutineRemoteDataSource @Inject constructor(
                     }
                 } else {
                     // Fallback to old format
-                    val routineDto = document.toObject(RoutineScheduleDto::class.java)
+                val routineDto = document.toObject(RoutineScheduleDto::class.java)
                     if (routineDto?.department == department) {
                         routineDto.copy(id = document.id).toDomainModel()
                     } else {

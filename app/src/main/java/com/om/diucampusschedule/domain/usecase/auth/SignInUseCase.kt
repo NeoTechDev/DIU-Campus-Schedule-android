@@ -1,5 +1,6 @@
 package com.om.diucampusschedule.domain.usecase.auth
 
+import com.om.diucampusschedule.core.validation.DataValidator
 import com.om.diucampusschedule.domain.model.SignInRequest
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.repository.AuthRepository
@@ -9,18 +10,25 @@ class SignInUseCase @Inject constructor(
     private val authRepository: AuthRepository
 ) {
     suspend operator fun invoke(email: String, password: String): Result<User> {
-        if (email.isBlank()) {
-            return Result.failure(Exception("Email cannot be empty"))
+        // Email validation
+        val emailValidation = DataValidator.validateEmail(email)
+        if (!emailValidation.isValid) {
+            return Result.failure(Exception("Email validation failed: ${emailValidation.getErrorMessage()}"))
         }
         
+        // Basic password validation (not as strict as signup since it's existing password)
         if (password.isBlank()) {
             return Result.failure(Exception("Password cannot be empty"))
         }
         
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            return Result.failure(Exception("Please enter a valid email address"))
+        if (password.length > 128) {
+            return Result.failure(Exception("Password is too long"))
         }
         
-        return authRepository.signIn(SignInRequest(email.trim(), password))
+        return try {
+            authRepository.signIn(SignInRequest(email.trim().lowercase(), password))
+        } catch (e: Exception) {
+            Result.failure(Exception("Sign in failed: ${e.message}"))
+        }
     }
 }

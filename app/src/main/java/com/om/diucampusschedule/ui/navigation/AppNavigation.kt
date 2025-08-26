@@ -21,6 +21,7 @@ import com.om.diucampusschedule.ui.screens.auth.SignUpScreen
 import com.om.diucampusschedule.ui.screens.routine.RoutineScreen
 import com.om.diucampusschedule.ui.screens.welcome.WelcomeScreen
 import com.om.diucampusschedule.ui.screens.debug.DebugScreen
+import com.om.diucampusschedule.ui.screens.profile.ProfileScreen
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 
 @Composable
@@ -97,6 +98,11 @@ fun AppNavigation(
             // Main App Screens (with scaffold)
             composable(Screen.Routine.route) {
                 RoutineScreen(navController = navController)
+            }
+
+            // Profile Screen
+            composable(Screen.Profile.route) {
+                ProfileScreen(navController = navController)
             }
 
             // TODO: Add other screens when they are implemented

@@ -34,19 +34,24 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.om.diucampusschedule.R
+import com.om.diucampusschedule.core.validation.DataValidator
+import com.om.diucampusschedule.core.validation.DynamicDataValidator
 import com.om.diucampusschedule.domain.model.UserRegistrationForm
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
+import com.om.diucampusschedule.ui.viewmodel.ValidationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationFormScreen(
     navController: NavController,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    validationViewModel: ValidationViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val validationState by validationViewModel.uiState.collectAsStateWithLifecycle()
     var name by remember { mutableStateOf("") }
     var profilePictureUrl by remember { mutableStateOf("") }
     var department by remember { mutableStateOf("Software Engineering") }
@@ -55,6 +60,21 @@ fun RegistrationFormScreen(
     var section by remember { mutableStateOf("") }
     var labSection by remember { mutableStateOf("") }
     var initial by remember { mutableStateOf("") }
+    
+    // Validation error states
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var batchError by remember { mutableStateOf<String?>(null) }
+    var sectionError by remember { mutableStateOf<String?>(null) }
+    var labSectionError by remember { mutableStateOf<String?>(null) }
+    var initialError by remember { mutableStateOf<String?>(null) }
+
+    // Load validation data when department changes
+    LaunchedEffect(department) {
+        validationViewModel.loadValidationData(department)
+    }
+    
+    // Get current validation data
+    val validationData = validationState.validationData
 
     // Pre-fill data if user already has some info
     LaunchedEffect(authState.user) {
@@ -68,6 +88,53 @@ fun RegistrationFormScreen(
             if (user.labSection.isNotBlank()) labSection = user.labSection
             if (user.initial.isNotBlank()) initial = user.initial
         }
+    }
+    
+    // Validation functions using DynamicDataValidator
+    fun validateName(value: String): String? {
+        val result = DataValidator.validateName(value)
+        return if (result.isValid) null else result.getErrorMessage()
+    }
+    
+    fun validateBatch(value: String): String? {
+        val result = DynamicDataValidator.validateBatch(value, validationData)
+        return if (result.isValid) null else result.getErrorMessage()
+    }
+    
+    fun validateSection(value: String): String? {
+        val result = DynamicDataValidator.validateSection(value, batch, validationData)
+        return if (result.isValid) null else result.getErrorMessage()
+    }
+    
+    fun validateLabSection(value: String): String? {
+        val result = DynamicDataValidator.validateLabSection(value, validationData)
+        return if (result.isValid) null else result.getErrorMessage()
+    }
+    
+    fun validateInitial(value: String): String? {
+        val result = DynamicDataValidator.validateTeacherInitial(value, validationData)
+        return if (result.isValid) null else result.getErrorMessage()
+    }
+    
+    // Check if all validations pass
+    fun isFormValid(): Boolean {
+        val currentNameError = validateName(name)
+        val currentBatchError = if (role == UserRole.STUDENT) validateBatch(batch) else null
+        val currentSectionError = if (role == UserRole.STUDENT) validateSection(section) else null
+        val currentLabSectionError = if (role == UserRole.STUDENT) validateLabSection(labSection) else null
+        val currentInitialError = if (role == UserRole.TEACHER) validateInitial(initial) else null
+        
+        nameError = currentNameError
+        batchError = currentBatchError
+        sectionError = currentSectionError
+        labSectionError = currentLabSectionError
+        initialError = currentInitialError
+        
+        return currentNameError == null && 
+               currentBatchError == null && 
+               currentSectionError == null && 
+               currentLabSectionError == null && 
+               currentInitialError == null
     }
 
     // Navigate to main app when profile is complete
@@ -205,10 +272,17 @@ fun RegistrationFormScreen(
                         // Name Field
                         OutlinedTextField(
                             value = name,
-                            onValueChange = { name = it },
+                            onValueChange = { newValue ->
+                                name = newValue
+                                nameError = validateName(newValue)
+                            },
                             label = { Text("Full Name") },
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
+                            isError = nameError != null,
+                            supportingText = if (nameError != null) {
+                                { Text(text = nameError!!, color = MaterialTheme.colorScheme.error) }
+                            } else null
                         )
 
                         // Department Field (Read-only for now)
@@ -236,11 +310,19 @@ fun RegistrationFormScreen(
                                 // Student Radio Button
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.clickable { role = UserRole.STUDENT }
+                                    modifier = Modifier.clickable { 
+                                        role = UserRole.STUDENT
+                                        // Clear teacher-specific validation errors
+                                        initialError = null
+                                    }
                                 ) {
                                     RadioButton(
                                         selected = role == UserRole.STUDENT,
-                                        onClick = { role = UserRole.STUDENT }
+                                        onClick = { 
+                                            role = UserRole.STUDENT
+                                            // Clear teacher-specific validation errors
+                                            initialError = null
+                                        }
                                     )
                                     Text(
                                         text = "Student",
@@ -252,11 +334,23 @@ fun RegistrationFormScreen(
                                 // Teacher Radio Button
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.clickable { role = UserRole.TEACHER }
+                                    modifier = Modifier.clickable { 
+                                        role = UserRole.TEACHER
+                                        // Clear student-specific validation errors
+                                        batchError = null
+                                        sectionError = null
+                                        labSectionError = null
+                                    }
                                 ) {
                                     RadioButton(
                                         selected = role == UserRole.TEACHER,
-                                        onClick = { role = UserRole.TEACHER }
+                                        onClick = { 
+                                            role = UserRole.TEACHER
+                                            // Clear student-specific validation errors
+                                            batchError = null
+                                            sectionError = null
+                                            labSectionError = null
+                                        }
                                     )
                                     Text(
                                         text = "Teacher",
@@ -275,31 +369,74 @@ fun RegistrationFormScreen(
                             ) {
                                 OutlinedTextField(
                                     value = batch,
-                                    onValueChange = { batch = it },
+                                    onValueChange = { newValue ->
+                                        batch = newValue
+                                        batchError = validateBatch(newValue)
+                                        // Re-validate section when batch changes
+                                        if (section.isNotBlank()) {
+                                            sectionError = validateSection(section)
+                                        }
+                                    },
                                     label = { Text("Batch") },
                                     placeholder = { Text("59") },
                                     modifier = Modifier.weight(1f),
                                     singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    isError = batchError != null,
+                                    supportingText = when {
+                                        batchError != null -> {
+                                            { Text(text = batchError!!, color = MaterialTheme.colorScheme.error) }
+                                        }
+                                        validationData.validBatches.isNotEmpty() -> {
+                                            { Text(text = "Available: ${validationData.validBatches.sorted().joinToString(", ")}", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                        }
+                                        else -> null
+                                    }
                                 )
 
                                 OutlinedTextField(
                                     value = section,
-                                    onValueChange = { section = it },
+                                    onValueChange = { newValue ->
+                                        section = newValue
+                                        sectionError = validateSection(newValue)
+                                    },
                                     label = { Text("Section") },
                                     placeholder = { Text("A") },
                                     modifier = Modifier.weight(1f),
-                                    singleLine = true
+                                    singleLine = true,
+                                    isError = sectionError != null,
+                                    supportingText = when {
+                                        sectionError != null -> {
+                                            { Text(text = sectionError!!, color = MaterialTheme.colorScheme.error) }
+                                        }
+                                        batch.isNotBlank() && validationData.getSectionsForBatch(batch).isNotEmpty() -> {
+                                            { Text(text = "For batch $batch: ${validationData.getSectionsForBatch(batch).sorted().joinToString(", ")}", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                        }
+                                        else -> null
+                                    }
                                 )
                             }
 
                             OutlinedTextField(
                                 value = labSection,
-                                onValueChange = { labSection = it },
-                                label = { Text("Lab Section") },
+                                onValueChange = { newValue ->
+                                    labSection = newValue
+                                    labSectionError = validateLabSection(newValue)
+                                },
+                                label = { Text("Lab Section (Optional)") },
                                 placeholder = { Text("A1") },
                                 modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
+                                singleLine = true,
+                                isError = labSectionError != null,
+                                supportingText = when {
+                                    labSectionError != null -> {
+                                        { Text(text = labSectionError!!, color = MaterialTheme.colorScheme.error) }
+                                    }
+                                    validationData.validLabSections.isNotEmpty() -> {
+                                        { Text(text = "Available: ${validationData.validLabSections.sorted().joinToString(", ")}", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                    }
+                                    else -> null
+                                }
                             )
                         }
 
@@ -307,12 +444,50 @@ fun RegistrationFormScreen(
                         if (role == UserRole.TEACHER) {
                             OutlinedTextField(
                                 value = initial,
-                                onValueChange = { initial = it },
+                                onValueChange = { newValue ->
+                                    initial = newValue
+                                    initialError = validateInitial(newValue)
+                                },
                                 label = { Text("Initial") },
                                 placeholder = { Text("ABC") },
                                 modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
+                                singleLine = true,
+                                isError = initialError != null,
+                                supportingText = when {
+                                    initialError != null -> {
+                                        { Text(text = initialError!!, color = MaterialTheme.colorScheme.error) }
+                                    }
+                                    validationData.validTeacherInitials.isNotEmpty() -> {
+                                        { Text(text = "Available: ${validationData.validTeacherInitials.sorted().joinToString(", ")}", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                    }
+                                    else -> null
+                                }
                             )
+                        }
+                        
+                        // Loading indicator if validation data is loading
+                        if (validationState.isLoading) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = "Loading validation data...",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
                         }
 
                         // Error Message
@@ -329,23 +504,25 @@ fun RegistrationFormScreen(
                         // Complete Registration Button
                         Button(
                             onClick = {
-                                viewModel.clearError()
-                                val form = UserRegistrationForm(
-                                    name = name,
-                                    profilePictureUrl = profilePictureUrl,
-                                    department = department,
-                                    role = role,
-                                    batch = batch,
-                                    section = section,
-                                    labSection = labSection,
-                                    initial = initial
-                                )
-                                viewModel.updateUserProfile(form)
+                                if (isFormValid()) {
+                                    viewModel.clearError()
+                                    val form = UserRegistrationForm(
+                                        name = name.trim(),
+                                        profilePictureUrl = profilePictureUrl.trim(),
+                                        department = department.trim(),
+                                        role = role,
+                                        batch = batch.trim().uppercase(),
+                                        section = section.trim().uppercase(),
+                                        labSection = labSection.trim().uppercase().takeIf { it.isNotBlank() } ?: "",
+                                        initial = initial.trim().uppercase()
+                                    )
+                                    viewModel.updateUserProfile(form)
+                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
-                            enabled = !authState.isLoading,
+                            enabled = !authState.isLoading && !validationState.isLoading && isFormValid(),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             if (authState.isLoading) {

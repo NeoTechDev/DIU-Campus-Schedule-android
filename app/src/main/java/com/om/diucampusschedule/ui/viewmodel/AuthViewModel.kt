@@ -183,7 +183,8 @@ class AuthViewModel @Inject constructor(
                     _authState.value = _authState.value.copy(
                         user = user,
                         isLoading = false,
-                        error = null
+                        error = null,
+                        successMessage = "Profile updated successfully!"
                     )
                 },
                 onFailure = { exception ->
@@ -282,12 +283,12 @@ class AuthViewModel @Inject constructor(
         _authState.value = _authState.value.copy(error = null)
     }
     
-    fun setError(message: String) {
-        _authState.value = _authState.value.copy(error = message, isLoading = false)
-    }
-    
     fun clearSuccessMessage() {
         _authState.value = _authState.value.copy(successMessage = null)
+    }
+    
+    fun setError(message: String) {
+        _authState.value = _authState.value.copy(error = message, isLoading = false)
     }
     
     fun clearFlags() {

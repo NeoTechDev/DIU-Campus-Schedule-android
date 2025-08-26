@@ -64,6 +64,7 @@ fun MainTopAppBar(
 ) {
     val title = when (currentRoute) {
         Screen.Routine.route -> "Class Routine"
+        Screen.Profile.route -> "Profile"
         // TODO: Add other screen titles when implemented
         /*
         Screen.Today.route -> "Today's Schedule"
@@ -72,7 +73,6 @@ fun MainTopAppBar(
         Screen.Notes.route -> "Notes"
         Screen.EmptyRooms.route -> "Empty Rooms"
         Screen.FacultyInfo.route -> "Faculty Info"
-        Screen.Profile.route -> "Profile"
         */
         else -> "DIU Campus Schedule"
     }
@@ -83,22 +83,23 @@ fun MainTopAppBar(
         modifier = modifier,
         canNavigateBack = false,
         actions = {
-            // Menu actions for Routine screen
+            // Menu actions for screens
             when (currentRoute) {
                 Screen.Routine.route -> {
-                    // TODO: Add actions when other screens are implemented
-                    /*
+                    // Profile button for Routine screen
                     IconButton(
                         onClick = { 
-                            navController.navigate(Screen.EmptyRooms.route)
+                            navController.navigate(Screen.Profile.route)
                         }
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Room,
-                            contentDescription = "Empty Rooms"
+                            imageVector = Icons.Filled.AccountCircle,
+                            contentDescription = "Profile"
                         )
                     }
-                    */
+                }
+                Screen.Profile.route -> {
+                    // No additional actions for Profile screen
                 }
                 // TODO: Add other screen actions when implemented
             }

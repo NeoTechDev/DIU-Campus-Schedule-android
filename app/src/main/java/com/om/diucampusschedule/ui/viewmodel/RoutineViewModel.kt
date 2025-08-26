@@ -64,53 +64,66 @@ class RoutineViewModel @Inject constructor(
 
     init {
         logger.debug(TAG, "RoutineViewModel initialized")
-        initializeUser()
+        observeUserChanges()
         observeNetworkChanges()
     }
 
-    private fun initializeUser() {
-        viewModelScope.launch {
-            logger.debug(TAG, "Initializing user authentication")
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
-            try {
-                getCurrentUserUseCase().fold(
-                    onSuccess = { user ->
-                        if (user != null) {
-                            currentUser = user
-                            logger.info(TAG, "User authenticated: ${user.id}, department: ${user.department}")
-                            _uiState.value = _uiState.value.copy(
-                                currentUser = user,
-                                isLoading = false
-                            )
-                            loadInitialData()
-                        } else {
-                            val error = AppError.AuthenticationError("Please sign in to view your routine")
-                            logger.warning(TAG, "User not authenticated")
-                            _uiState.value = _uiState.value.copy(
-                                error = error,
-                                isLoading = false
-                            )
-                        }
-                    },
-                    onFailure = { throwable ->
-                        val error = AppError.fromThrowable(throwable)
-                        logger.error(TAG, "Failed to get user information", throwable)
-                        _uiState.value = _uiState.value.copy(
-                            error = error,
-                            isLoading = false
-                        )
+    private fun observeUserChanges() {
+        logger.debug(TAG, "Starting to observe user changes")
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        
+        getCurrentUserUseCase.observeCurrentUser()
+            .onEach { user ->
+                logger.debug(TAG, "User changed: ${user?.id}")
+                android.util.Log.d("RoutineViewModel", "User profile changed: ${user?.name}, Batch: ${user?.batch}, Section: ${user?.section}, Initial: ${user?.initial}")
+                
+                if (user != null) {
+                    val previousUser = currentUser
+                    currentUser = user
+                    
+                    _uiState.value = _uiState.value.copy(
+                        currentUser = user,
+                        isLoading = false
+                    )
+                    
+                    // Check if this is a profile update (user existed before) or initial load
+                    if (previousUser != null && hasUserProfileChanged(previousUser, user)) {
+                        logger.info(TAG, "User profile updated, refreshing routine data")
+                        android.util.Log.d("RoutineViewModel", "Profile changed - refreshing routine data")
+                        refreshRoutineData()
+                    } else if (previousUser == null) {
+                        logger.info(TAG, "Initial user load: ${user.id}, department: ${user.department}")
+                        loadInitialData()
                     }
-                )
-            } catch (e: Exception) {
-                val error = AppError.fromThrowable(e)
-                logger.error(TAG, "Error during user initialization", e)
+                } else {
+                    currentUser = null
+                    val error = AppError.AuthenticationError("Please sign in to view your routine")
+                    logger.warning(TAG, "User not authenticated")
+                    _uiState.value = _uiState.value.copy(
+                        error = error,
+                        isLoading = false,
+                        currentUser = null
+                    )
+                }
+            }
+            .catch { throwable ->
+                val error = AppError.fromThrowable(throwable)
+                logger.error(TAG, "Error observing user changes", throwable)
                 _uiState.value = _uiState.value.copy(
                     error = error,
                     isLoading = false
                 )
             }
-        }
+            .launchIn(viewModelScope)
+    }
+    
+    private fun hasUserProfileChanged(oldUser: User, newUser: User): Boolean {
+        return oldUser.batch != newUser.batch ||
+               oldUser.section != newUser.section ||
+               oldUser.labSection != newUser.labSection ||
+               oldUser.initial != newUser.initial ||
+               oldUser.department != newUser.department ||
+               oldUser.role != newUser.role
     }
 
     private fun loadInitialData() {
@@ -310,6 +323,59 @@ class RoutineViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isOffline = !networkMonitor.isCurrentlyOnline(),
                     hasPendingSync = !networkMonitor.isCurrentlyOnline()
+                )
+            }
+        }
+    }
+    
+    private fun refreshRoutineData() {
+        val user = currentUser ?: return
+        
+        viewModelScope.launch {
+            logger.debug(TAG, "Refreshing routine data due to profile changes")
+            android.util.Log.d("RoutineViewModel", "Refreshing routine data for updated user profile")
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            try {
+                // Load active days first with the new profile
+                getActiveDaysUseCase(user).fold(
+                    onSuccess = { days ->
+                        logger.info(TAG, "Loaded ${days.size} active days for updated profile: $days")
+                        android.util.Log.d("RoutineViewModel", "New active days after profile update: $days")
+                        _uiState.value = _uiState.value.copy(activeDays = days)
+                        
+                        // Set selected day to current day if it's active, otherwise first active day
+                        val currentDay = DayOfWeek.getCurrentDay().displayName
+                        val selectedDay = if (days.contains(currentDay)) {
+                            currentDay
+                        } else {
+                            days.firstOrNull() ?: currentDay
+                        }
+                        
+                        logger.debug(TAG, "Selected day after profile update: $selectedDay")
+                        _uiState.value = _uiState.value.copy(selectedDay = selectedDay)
+                        
+                        // Start observing routine for selected day with new profile
+                        observeRoutineForDay(selectedDay)
+                    },
+                    onFailure = { throwable ->
+                        val error = AppError.fromThrowable(throwable)
+                        logger.error(TAG, "Failed to load routine data after profile update", throwable)
+                        android.util.Log.e("RoutineViewModel", "Failed to refresh routine after profile update", throwable)
+                        _uiState.value = _uiState.value.copy(
+                            error = error,
+                            isLoading = false,
+                            isOffline = !networkMonitor.isCurrentlyOnline()
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                val error = AppError.fromThrowable(e)
+                logger.error(TAG, "Error refreshing routine data after profile update", e)
+                _uiState.value = _uiState.value.copy(
+                    error = error,
+                    isLoading = false,
+                    isOffline = !networkMonitor.isCurrentlyOnline()
                 )
             }
         }

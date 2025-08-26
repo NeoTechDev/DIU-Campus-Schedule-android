@@ -62,13 +62,13 @@ fun MainScaffold(
  */
 private fun isMainAppScreen(route: String?): Boolean {
     return when (route) {
-        Screen.Routine.route -> true
+        Screen.Routine.route,
+        Screen.Profile.route -> true
         // TODO: Add other screens when implemented
         /*
         Screen.Today.route,
         Screen.ExamRoutine.route,
-        Screen.Tasks.route,
-        Screen.Profile.route -> true
+        Screen.Tasks.route -> true
         */
         else -> false
     }
