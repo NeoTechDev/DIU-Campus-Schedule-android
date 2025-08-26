@@ -12,7 +12,7 @@ class GetCurrentUserUseCase @Inject constructor(
         return authRepository.getCurrentUser()
     }
     
-    fun observeAuthState(): Flow<User?> {
-        return authRepository.observeAuthState()
+    fun observeCurrentUser(): Flow<User?> {
+        return authRepository.observeCurrentUser()
     }
 }

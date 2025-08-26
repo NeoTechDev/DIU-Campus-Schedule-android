@@ -144,6 +144,10 @@ class AuthRepositoryImpl @Inject constructor(
             }
     }
 
+    override fun observeCurrentUser(): Flow<User?> {
+        return observeAuthState()
+    }
+
     // Additional method to observe user with offline fallback
     fun observeUserWithOfflineFallback(userId: String): Flow<User?> {
         return combine(

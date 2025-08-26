@@ -3,6 +3,7 @@ package com.om.diucampusschedule.di
 import android.content.Context
 import androidx.room.Room
 import com.om.diucampusschedule.data.local.AppDatabase
+import com.om.diucampusschedule.data.local.dao.RoutineDao
 import com.om.diucampusschedule.data.local.dao.UserDao
 import dagger.Module
 import dagger.Provides
@@ -22,11 +23,18 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
-        ).build()
+        )
+        .fallbackToDestructiveMigration() // Only for development
+        .build()
     }
 
     @Provides
     fun provideUserDao(database: AppDatabase): UserDao {
         return database.userDao()
+    }
+
+    @Provides
+    fun provideRoutineDao(database: AppDatabase): RoutineDao {
+        return database.routineDao()
     }
 }

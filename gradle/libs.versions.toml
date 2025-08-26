@@ -42,6 +42,8 @@ threeTenAbp = "1.4.9"
 ksp = "1.9.25-1.0.20"
 volley = "1.2.1"
 foundation = "1.9.0"
+firebaseCrashlyticsKtx = "20.0.0"
+playServicesMeasurementApi = "23.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -92,6 +94,8 @@ androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx"
 threetenabp = { group = "com.jakewharton.threetenabp", name = "threetenabp", version.ref = "threeTenAbp" }
 volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+firebase-crashlytics-ktx = { group = "com.google.firebase", name = "firebase-crashlytics-ktx", version.ref = "firebaseCrashlyticsKtx" }
+play-services-measurement-api = { group = "com.google.android.gms", name = "play-services-measurement-api", version.ref = "playServicesMeasurementApi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

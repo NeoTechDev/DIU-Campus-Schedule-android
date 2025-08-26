@@ -10,8 +10,10 @@ import com.om.diucampusschedule.ui.screens.auth.ForgotPasswordScreen
 import com.om.diucampusschedule.ui.screens.auth.RegistrationFormScreen
 import com.om.diucampusschedule.ui.screens.auth.SignInScreen
 import com.om.diucampusschedule.ui.screens.auth.SignUpScreen
+import com.om.diucampusschedule.ui.screens.routine.RoutineScreen
 import com.om.diucampusschedule.ui.screens.today.TodayScreen
 import com.om.diucampusschedule.ui.screens.welcome.WelcomeScreen
+import com.om.diucampusschedule.ui.screens.debug.DebugScreen
 
 @Composable
 fun AppNavigation(
@@ -54,8 +56,15 @@ fun AppNavigation(
             TodayScreen(navController = navController)
         }
 
+        composable(Screen.Routine.route) {
+            RoutineScreen(navController = navController)
+        }
+
+        composable(Screen.Debug.route) {
+            DebugScreen(navController = navController)
+        }
+
         // TODO: Add other main app screen destinations as they are implemented
-        // composable(Screen.Routine.route) { RoutineScreen(navController) }
         // composable(Screen.ExamRoutine.route) { ExamRoutineScreen(navController) }
         // composable(Screen.Tasks.route) { TasksScreen(navController) }
         // composable(Screen.Notes.route) { NotesScreen(navController) }

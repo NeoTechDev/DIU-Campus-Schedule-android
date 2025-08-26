@@ -60,7 +60,6 @@ dependencies {
 
     // Firebase & Google
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
-    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-messaging")
@@ -74,6 +73,8 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.volley)
     implementation(libs.androidx.foundation)
+    implementation(libs.firebase.crashlytics.ktx)
+    implementation(libs.play.services.measurement.api)
     ksp(libs.hilt.compiler)
 
     // Room
@@ -89,6 +90,9 @@ dependencies {
 
     // Image Loading
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // Gson
+    implementation("com.google.code.gson:gson:2.8.9")
 
     // Datastore
     implementation(libs.androidx.datastore.preferences)
