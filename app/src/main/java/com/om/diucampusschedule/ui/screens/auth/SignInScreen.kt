@@ -139,7 +139,7 @@ fun SignInScreen(
     LaunchedEffect(authState) {
         if (authState.isAuthenticated && authState.user != null) {
             if (authState.user!!.isProfileComplete) {
-                navController.navigate(Screen.Today.route) {
+                navController.navigate(Screen.Routine.route) {
                     popUpTo(Screen.SignIn.route) { inclusive = true }
                 }
             } else {

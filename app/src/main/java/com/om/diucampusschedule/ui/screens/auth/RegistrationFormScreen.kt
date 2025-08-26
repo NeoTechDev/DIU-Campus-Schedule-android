@@ -73,7 +73,7 @@ fun RegistrationFormScreen(
     // Navigate to main app when profile is complete
     LaunchedEffect(authState) {
         if (authState.user?.isProfileComplete == true) {
-            navController.navigate(Screen.Today.route) {
+            navController.navigate(Screen.Routine.route) {
                 popUpTo(Screen.RegsitrationForm.route) { inclusive = true }
             }
         }
