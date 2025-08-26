@@ -29,52 +29,16 @@ fun TodayScreen(
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     
-    // Navigate back to welcome screen if user signs out
-    LaunchedEffect(authState) {
-        if (!authState.isAuthenticated) {
-            navController.navigate(Screen.Welcome.route) {
-                popUpTo(Screen.Today.route) { inclusive = true }
-            }
-        }
-    }
-    DIUCampusScheduleTheme {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Today's Schedule",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    },
-                    actions = {
-                        // Sign Out Button
-                        IconButton(
-                            onClick = {
-                                viewModel.signOut()
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ExitToApp,
-                                contentDescription = "Sign Out",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                )
-            }
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                // Welcome message with user name
+    // Note: Navigation logic is handled by AppNavigation.kt
+    // No need to handle auth state navigation here
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Welcome message with user name
                 Text(
                     text = "🎉 Welcome${authState.user?.name?.let { ", $it" } ?: ""}! 🎉",
                     style = MaterialTheme.typography.headlineMedium.copy(
@@ -246,10 +210,8 @@ fun TodayScreen(
                         }
                     }
                 }
-            }
         }
     }
-}
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

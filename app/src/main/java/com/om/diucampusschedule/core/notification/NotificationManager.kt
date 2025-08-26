@@ -1,11 +1,13 @@
 package com.om.diucampusschedule.core.notification
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.om.diucampusschedule.MainActivity
@@ -82,6 +84,7 @@ class NotificationManager @Inject constructor(
         }
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showRoutineUpdateNotification(
         title: String = "Routine Updated",
         message: String = "Your class schedule has been updated",
@@ -124,6 +127,7 @@ class NotificationManager @Inject constructor(
         }
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showClassReminderNotification(
         routineItem: RoutineItem,
         minutesUntilClass: Int
@@ -171,6 +175,7 @@ class NotificationManager @Inject constructor(
         }
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showGeneralNotification(
         title: String,
         message: String,

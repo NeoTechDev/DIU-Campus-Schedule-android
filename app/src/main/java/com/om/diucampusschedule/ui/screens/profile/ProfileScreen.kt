@@ -30,6 +30,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.om.diucampusschedule.core.validation.DataValidator
 import com.om.diucampusschedule.core.validation.DynamicDataValidator
 import com.om.diucampusschedule.domain.model.User
@@ -68,6 +70,16 @@ fun ProfileScreen(
     var sectionError by remember { mutableStateOf<String?>(null) }
     var labSectionError by remember { mutableStateOf<String?>(null) }
     var initialError by remember { mutableStateOf<String?>(null) }
+    
+    // Google Sign-In client for sign out
+    val context = LocalContext.current
+    val googleSignInClient = remember {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(context.getString(com.om.diucampusschedule.R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        GoogleSignIn.getClient(context, gso)
+    }
     
     // Initialize form with current user data
     LaunchedEffect(user) {
@@ -694,7 +706,7 @@ fun ProfileScreen(
                 TextButton(
                     onClick = {
                         showSignOutDialog = false
-                        viewModel.signOut()
+                        viewModel.signOutWithGoogle(googleSignInClient)
                         navController.navigate(Screen.Welcome.route) {
                             popUpTo(0) { inclusive = true }
                         }

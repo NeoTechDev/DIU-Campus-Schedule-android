@@ -24,22 +24,13 @@ sealed class Screen(val route: String) {
     object Debug : Screen("debug")
 }
 
-// Bottom Navigation Items - For now only Routine screen
+// Bottom Navigation Items
 sealed class BottomNavItem(
     val route: String,
     val title: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 ) {
-    object Routine : BottomNavItem(
-        route = Screen.Routine.route,
-        title = "Routine",
-        selectedIcon = Icons.Filled.Schedule,
-        unselectedIcon = Icons.Outlined.Schedule
-    )
-    
-    // TODO: Add other navigation items when their screens are implemented
-    /*
     object Today : BottomNavItem(
         route = Screen.Today.route,
         title = "Today",
@@ -47,11 +38,18 @@ sealed class BottomNavItem(
         unselectedIcon = Icons.Outlined.Today
     )
     
-    object ExamRoutine : BottomNavItem(
-        route = Screen.ExamRoutine.route,
-        title = "Exams",
-        selectedIcon = Icons.Filled.Quiz,
-        unselectedIcon = Icons.Outlined.Quiz
+    object Routine : BottomNavItem(
+        route = Screen.Routine.route,
+        title = "Routine",
+        selectedIcon = Icons.Filled.Schedule,
+        unselectedIcon = Icons.Outlined.Schedule
+    )
+    
+    object Empty : BottomNavItem(
+        route = Screen.EmptyRooms.route,
+        title = "Empty",
+        selectedIcon = Icons.Filled.Room,
+        unselectedIcon = Icons.Outlined.Room
     )
     
     object Tasks : BottomNavItem(
@@ -61,15 +59,14 @@ sealed class BottomNavItem(
         unselectedIcon = Icons.Outlined.Task
     )
     
-    object Profile : BottomNavItem(
-        route = Screen.Profile.route,
-        title = "Profile",
-        selectedIcon = Icons.Filled.Person,
-        unselectedIcon = Icons.Outlined.Person
+    object Notes : BottomNavItem(
+        route = Screen.Notes.route,
+        title = "Notes",
+        selectedIcon = Icons.Filled.Note,
+        unselectedIcon = Icons.Outlined.Note
     )
-    */
     
     companion object {
-        val items = listOf(Routine) // Only Routine for now
+        val items = listOf(Today, Routine, Empty, Tasks, Notes)
     }
 }

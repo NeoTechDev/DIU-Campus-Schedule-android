@@ -1,5 +1,6 @@
 package com.om.diucampusschedule.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,6 +33,17 @@ fun MainScaffold(
         else -> true
     }
     
+    // Handle back button to always go to Today screen from other main app screens
+    if (showMainUI && isMainAppScreen(currentRoute) && currentRoute != Screen.Today.route) {
+        BackHandler {
+            navController.navigate(Screen.Today.route) {
+                // Clear the entire back stack and make Today the only entry
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+    
     if (showMainUI) {
         Scaffold(
             modifier = modifier,
@@ -58,18 +70,15 @@ fun MainScaffold(
 
 /**
  * Determines if the current route should show the bottom navigation bar
- * For now, only show bottom nav on Routine screen since it's the only implemented screen
  */
 private fun isMainAppScreen(route: String?): Boolean {
     return when (route) {
-        Screen.Routine.route,
-        Screen.Profile.route -> true
-        // TODO: Add other screens when implemented
-        /*
         Screen.Today.route,
-        Screen.ExamRoutine.route,
-        Screen.Tasks.route -> true
-        */
+        Screen.Routine.route,
+        Screen.EmptyRooms.route,
+        Screen.Tasks.route,
+        Screen.Notes.route,
+        Screen.Profile.route -> true
         else -> false
     }
 }
@@ -95,6 +104,17 @@ fun CustomMainScaffold(
         Screen.RegsitrationForm.route,
         Screen.Debug.route -> false
         else -> true
+    }
+    
+    // Handle back button to always go to Today screen from other main app screens
+    if (showMainUI && isMainAppScreen(currentRoute) && currentRoute != Screen.Today.route) {
+        BackHandler {
+            navController.navigate(Screen.Today.route) {
+                // Clear the entire back stack and make Today the only entry
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
     }
     
     if (showMainUI) {

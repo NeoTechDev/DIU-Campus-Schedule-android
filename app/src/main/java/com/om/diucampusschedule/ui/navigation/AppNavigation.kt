@@ -19,6 +19,10 @@ import com.om.diucampusschedule.ui.screens.auth.RegistrationFormScreen
 import com.om.diucampusschedule.ui.screens.auth.SignInScreen
 import com.om.diucampusschedule.ui.screens.auth.SignUpScreen
 import com.om.diucampusschedule.ui.screens.routine.RoutineScreen
+import com.om.diucampusschedule.ui.screens.today.TodayScreen
+import com.om.diucampusschedule.ui.screens.tasks.TaskScreen
+import com.om.diucampusschedule.ui.screens.notes.NotesScreen
+import com.om.diucampusschedule.ui.screens.emptyrooms.EmptyRoomsScreen
 import com.om.diucampusschedule.ui.screens.welcome.WelcomeScreen
 import com.om.diucampusschedule.ui.screens.debug.DebugScreen
 import com.om.diucampusschedule.ui.screens.profile.ProfileScreen
@@ -33,12 +37,42 @@ fun AppNavigation(
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     
     // Determine the actual start destination based on auth state and parameter
-    val actualStartDestination = remember(authState, startDestination) {
-        when {
-            startDestination != null -> startDestination
-            authState.isAuthenticated && authState.user?.isProfileComplete == true -> Screen.Routine.route
-            authState.isAuthenticated && authState.user?.isProfileComplete == false -> Screen.RegsitrationForm.route
-            else -> Screen.Welcome.route
+    // Only compute this once on initial load to prevent navigation loops
+    val actualStartDestination = remember(startDestination) {
+        startDestination ?: Screen.Welcome.route
+    }
+    
+    // Handle auth state changes for navigation
+    LaunchedEffect(authState.isAuthenticated, authState.user?.isProfileComplete) {
+        if (!authState.isLoading) {
+            val currentRoute = navController.currentBackStackEntry?.destination?.route
+            
+            when {
+                authState.isAuthenticated && authState.user?.isProfileComplete == true -> {
+                    // User is authenticated and profile is complete
+                    if (currentRoute in listOf(Screen.Welcome.route, Screen.SignIn.route, Screen.SignUp.route, Screen.RegsitrationForm.route)) {
+                        navController.navigate(Screen.Today.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                }
+                authState.isAuthenticated && authState.user?.isProfileComplete == false -> {
+                    // User is authenticated but profile is incomplete
+                    if (currentRoute in listOf(Screen.Welcome.route, Screen.SignIn.route, Screen.SignUp.route)) {
+                        navController.navigate(Screen.RegsitrationForm.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                }
+                !authState.isAuthenticated -> {
+                    // User is not authenticated
+                    if (currentRoute !in listOf(Screen.Welcome.route, Screen.SignIn.route, Screen.SignUp.route, Screen.ForgotPassword.route, Screen.EmailVerification.route)) {
+                        navController.navigate(Screen.Welcome.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -96,45 +130,39 @@ fun AppNavigation(
             }
 
             // Main App Screens (with scaffold)
+            composable(Screen.Today.route) {
+                TodayScreen(navController = navController)
+            }
+            
             composable(Screen.Routine.route) {
                 RoutineScreen(navController = navController)
+            }
+            
+            composable(Screen.EmptyRooms.route) {
+                EmptyRoomsScreen(navController = navController)
+            }
+            
+            composable(Screen.Tasks.route) {
+                TaskScreen(navController = navController)
+            }
+            
+            composable(Screen.Notes.route) {
+                NotesScreen(navController = navController)
             }
 
             // Profile Screen
             composable(Screen.Profile.route) {
                 ProfileScreen(navController = navController)
             }
-
-            // TODO: Add other screens when they are implemented
-            /*
-            composable(Screen.Today.route) {
-                TodayScreen(navController = navController)
-            }
             
+            // Placeholder for unimplemented screens
             composable(Screen.ExamRoutine.route) {
                 PlaceholderScreen(title = "Exam Routine", description = "Exam schedules will be displayed here")
-            }
-            
-            composable(Screen.Tasks.route) {
-                PlaceholderScreen(title = "Tasks", description = "Your tasks and reminders will be displayed here")
-            }
-            
-            composable(Screen.Notes.route) {
-                PlaceholderScreen(title = "Notes", description = "Your notes will be displayed here")
-            }
-            
-            composable(Screen.EmptyRooms.route) {
-                PlaceholderScreen(title = "Empty Rooms", description = "Available rooms will be displayed here")
             }
             
             composable(Screen.FacultyInfo.route) {
                 PlaceholderScreen(title = "Faculty Info", description = "Faculty information will be displayed here")
             }
-            
-            composable(Screen.Profile.route) {
-                PlaceholderScreen(title = "Profile", description = "Your profile will be displayed here")
-            }
-            */
 
             composable(Screen.Debug.route) {
                 DebugScreen(navController = navController)

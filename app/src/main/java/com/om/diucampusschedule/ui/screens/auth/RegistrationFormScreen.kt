@@ -137,14 +137,8 @@ fun RegistrationFormScreen(
                currentInitialError == null
     }
 
-    // Navigate to main app when profile is complete
-    LaunchedEffect(authState) {
-        if (authState.user?.isProfileComplete == true) {
-            navController.navigate(Screen.Routine.route) {
-                popUpTo(Screen.RegsitrationForm.route) { inclusive = true }
-            }
-        }
-    }
+    // Note: Navigation logic is handled by AppNavigation.kt
+    // No need to handle auth state navigation here
 
     DIUCampusScheduleTheme {
         Box(

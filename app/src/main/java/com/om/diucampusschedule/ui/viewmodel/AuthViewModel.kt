@@ -2,6 +2,7 @@ package com.om.diucampusschedule.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.om.diucampusschedule.data.repository.AuthRepositoryImpl
 import com.om.diucampusschedule.domain.model.AuthState
 import com.om.diucampusschedule.domain.model.User
@@ -161,6 +162,50 @@ class AuthViewModel @Inject constructor(
                     )
                 }
             )
+        }
+    }
+
+    fun signOutWithGoogle(googleSignInClient: GoogleSignInClient? = null) {
+        viewModelScope.launch {
+            _authState.value = _authState.value.copy(isLoading = true, error = null)
+            
+            try {
+                // Sign out from Firebase first
+                val result = signOutUseCase()
+                
+                result.fold(
+                    onSuccess = {
+                        // Sign out from Google Sign-In client if provided
+                        googleSignInClient?.signOut()?.addOnCompleteListener {
+                            _authState.value = _authState.value.copy(
+                                isAuthenticated = false,
+                                user = null,
+                                isLoading = false,
+                                error = null
+                            )
+                        } ?: run {
+                            // If no Google client provided, just update state
+                            _authState.value = _authState.value.copy(
+                                isAuthenticated = false,
+                                user = null,
+                                isLoading = false,
+                                error = null
+                            )
+                        }
+                    },
+                    onFailure = { exception ->
+                        _authState.value = _authState.value.copy(
+                            isLoading = false,
+                            error = exception.message
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                _authState.value = _authState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Sign out failed"
+                )
+            }
         }
     }
 

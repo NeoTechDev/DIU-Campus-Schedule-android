@@ -135,20 +135,8 @@ fun SignInScreen(
         }
     }
 
-    // Navigate based on auth state
-    LaunchedEffect(authState) {
-        if (authState.isAuthenticated && authState.user != null) {
-            if (authState.user!!.isProfileComplete) {
-                navController.navigate(Screen.Routine.route) {
-                    popUpTo(Screen.SignIn.route) { inclusive = true }
-                }
-            } else {
-                navController.navigate(Screen.RegsitrationForm.route) {
-                    popUpTo(Screen.SignIn.route) { inclusive = true }
-                }
-            }
-        }
-    }
+    // Note: Navigation logic is handled by AppNavigation.kt
+    // No need to handle auth state navigation here
 
     DIUCampusScheduleTheme {
         Box(

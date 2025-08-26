@@ -56,6 +56,7 @@ fun DIUTopAppBar(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainTopAppBar(
     currentRoute: String?,
@@ -63,47 +64,61 @@ fun MainTopAppBar(
     modifier: Modifier = Modifier
 ) {
     val title = when (currentRoute) {
-        Screen.Routine.route -> "Class Routine"
-        Screen.Profile.route -> "Profile"
-        // TODO: Add other screen titles when implemented
-        /*
         Screen.Today.route -> "Today's Schedule"
-        Screen.ExamRoutine.route -> "Exam Schedule"
+        Screen.Routine.route -> "Class Routine"
+        Screen.EmptyRooms.route -> "Empty Rooms"
         Screen.Tasks.route -> "Tasks"
         Screen.Notes.route -> "Notes"
-        Screen.EmptyRooms.route -> "Empty Rooms"
+        Screen.Profile.route -> "Profile"
+        Screen.ExamRoutine.route -> "Exam Schedule"
         Screen.FacultyInfo.route -> "Faculty Info"
-        */
         else -> "DIU Campus Schedule"
     }
 
-    DIUTopAppBar(
-        title = title,
-        navController = navController,
+    TopAppBar(
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
         modifier = modifier,
-        canNavigateBack = false,
-        actions = {
-            // Menu actions for screens
-            when (currentRoute) {
-                Screen.Routine.route -> {
-                    // Profile button for Routine screen
-                    IconButton(
-                        onClick = { 
-                            navController.navigate(Screen.Profile.route)
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.AccountCircle,
-                            contentDescription = "Profile"
-                        )
-                    }
-                }
-                Screen.Profile.route -> {
-                    // No additional actions for Profile screen
-                }
-                // TODO: Add other screen actions when implemented
+        navigationIcon = {
+            // Menu icon for main app screens
+            IconButton(onClick = { 
+                // TODO: Implement drawer or menu functionality
+                // For now, it's just a visual element
+            }) {
+                Icon(
+                    imageVector = Icons.Filled.Menu,
+                    contentDescription = "Menu"
+                )
             }
-        }
+        },
+        actions = {
+            // Profile icon for all main screens except Profile screen itself
+            if (currentRoute != Screen.Profile.route) {
+                IconButton(
+                    onClick = { 
+                        navController.navigate(Screen.Profile.route)
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AccountCircle,
+                        contentDescription = "Profile"
+                    )
+                }
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            titleContentColor = MaterialTheme.colorScheme.onPrimary,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+        )
     )
 }
 
