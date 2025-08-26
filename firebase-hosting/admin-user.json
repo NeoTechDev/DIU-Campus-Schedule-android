@@ -1,0 +1,13 @@
+{
+  "users": [
+    {
+      "localId": "admin-user-001",
+      "email": "admin@diucampusschedule.app",
+      "passwordHash": "UkVCQUJZT05JQ1RBSU5TUERGVEVYVENTSVNEUklSQl9NVklOQ09NTFVUS1VTVEpVUlRBUlBFTVJJUFVUU1RJSFMzVA==",
+      "salt": "bNGdmJyWldHQnpESWtiMnBqb2k=",
+      "emailVerified": true,
+      "disabled": false,
+      "customAttributes": "{\"admin\":true,\"role\":\"admin\"}"
+    }
+  ]
+}

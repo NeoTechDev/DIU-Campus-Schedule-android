@@ -1,0 +1,10 @@
+{
+  "users": [
+    {
+      "localId": "adminuser001",
+      "email": "admin@diucampusschedule.app",
+      "emailVerified": true,
+      "disabled": false
+    }
+  ]
+}

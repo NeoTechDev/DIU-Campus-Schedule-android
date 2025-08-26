@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DIU Admin Login - Simple & Clean</title>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+        .header p {
+            color: #718096;
+            font-size: 1.1em;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 600;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+            text-align: center;
+        }
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border-left: 4px solid #48bb78;
+        }
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border-left: 4px solid #f56565;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .credentials-info {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .credentials-info .icon {
+            font-size: 1.5em;
+            margin-bottom: 8px;
+        }
+        .default-creds {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        .default-creds h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .cred-item {
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="header">
+            <h1>🔐 Admin Login</h1>
+            <p>Enter your credentials to access the dashboard</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" required>
+            </div>
+            
+            <button type="submit" class="btn" id="loginBtn">
+                <span id="loginText">🔑 Login</span>
+                <span id="loginLoader" class="loading" style="display: none;"></span>
+            </button>
+        </form>
+
+        <div id="status" class="status"></div>
+
+
+
+        <div class="credentials-info">
+            <div class="icon">🛡️</div>
+            <strong>Simple & Secure</strong><br>
+            <small>Clean authentication system for routine management</small>
+        </div>
+    </div>
+
+    <script>
+        // Default credentials
+        const DEFAULT_USERNAME = "admin@diucs";
+        const DEFAULT_PASSWORD = "ovi@maruf.25";
+
+        function showStatus(message, isError = false) {
+            const statusEl = document.getElementById("status");
+            statusEl.className = `status ${isError ? "error" : "success"}`;
+            statusEl.innerHTML = message;
+            statusEl.style.display = "block";
+        }
+
+        function setLoading(isLoading) {
+            const loginBtn = document.getElementById("loginBtn");
+            const loginText = document.getElementById("loginText");
+            const loginLoader = document.getElementById("loginLoader");
+            
+            loginBtn.disabled = isLoading;
+            loginText.style.display = isLoading ? "none" : "inline";
+            loginLoader.style.display = isLoading ? "inline-block" : "none";
+        }
+
+        function authenticate(username, password) {
+            // Simple authentication check
+            return username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD;
+        }
+
+        function createSession() {
+            // Create simple session
+            const sessionData = {
+                authenticated: true,
+                username: DEFAULT_USERNAME,
+                loginTime: new Date().toISOString(),
+                sessionId: Math.random().toString(36).substr(2, 9)
+            };
+            
+            localStorage.setItem('adminSession', JSON.stringify(sessionData));
+            sessionStorage.setItem('isLoggedIn', 'true');
+        }
+
+        function checkExistingSession() {
+            const session = localStorage.getItem('adminSession');
+            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+            
+            if (session && isLoggedIn === 'true') {
+                try {
+                    const sessionData = JSON.parse(session);
+                    if (sessionData.authenticated) {
+                        // Redirect to dashboard
+                        window.location.href = "/dashboard.html";
+                        return true;
+                    }
+                } catch (e) {
+                    // Invalid session data, clear it
+                    localStorage.removeItem('adminSession');
+                    sessionStorage.removeItem('isLoggedIn');
+                }
+            }
+            return false;
+        }
+
+        // Check for existing session on page load
+        document.addEventListener("DOMContentLoaded", function() {
+            if (checkExistingSession()) {
+                return; // Will redirect to dashboard
+            }
+            
+            // Don't pre-fill credentials for security
+        });
+
+        document.getElementById("loginForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value;
+
+            if (!username || !password) {
+                showStatus("❌ Please enter both username and password", true);
+                return;
+            }
+
+            try {
+                setLoading(true);
+                showStatus("🔐 Authenticating...", false);
+
+                // Simulate authentication delay for better UX
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                if (authenticate(username, password)) {
+                    showStatus("✅ Authentication successful! Redirecting...", false);
+                    
+                    // Create session
+                    createSession();
+
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = "/dashboard.html";
+                    }, 1500);
+                } else {
+                    showStatus("❌ Invalid username or password", true);
+                }
+
+            } catch (error) {
+                console.error("Login error:", error);
+                showStatus("❌ Login failed: " + error.message, true);
+            } finally {
+                setLoading(false);
+            }
+        });
+    </script>
+</body>
+</html>
