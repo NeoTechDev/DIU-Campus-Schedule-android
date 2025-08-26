@@ -11,7 +11,7 @@ import javax.inject.Inject
 @HiltAndroidApp
 class App(override val workManagerConfiguration: Configuration) : Application(), Configuration.Provider {
     
-    @Inject
+
     lateinit var workerFactory: WorkerFactory
 
     override fun onCreate() {
@@ -24,9 +24,4 @@ class App(override val workManagerConfiguration: Configuration) : Application(),
         RoutineSyncWorker.enqueuePeriodicSync(this)
     }
 
-    fun getWorkManagerConfiguration(): Configuration {
-        return Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .build()
-    }
 }

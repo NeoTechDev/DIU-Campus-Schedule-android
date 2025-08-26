@@ -17,7 +17,6 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 
-@AssistedInject
 class RoutineSyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
@@ -169,7 +168,7 @@ interface ChildWorkerFactory {
     fun create(appContext: Context, workerParams: WorkerParameters): ListenableWorker
 }
 
-class WorkerFactory @AssistedInject constructor(
+class WorkerFactory(
     private val routineSyncChildWorkerFactory: RoutineSyncChildWorkerFactory
 ) : androidx.work.WorkerFactory() {
     

@@ -65,15 +65,17 @@ class AnalyticsManager @Inject constructor(
 
     fun setUserProperties(user: User) {
         try {
-            firebaseAnalytics.setUserProperty(PARAM_USER_ROLE, user.role)
+            firebaseAnalytics.setUserProperty(PARAM_USER_ROLE, user.role.name)
             firebaseAnalytics.setUserProperty(PARAM_DEPARTMENT, user.department)
             
-            crashlytics.setCustomKey(PARAM_USER_ROLE, user.role)
+            crashlytics.setCustomKey(PARAM_USER_ROLE, user.role.name)
             crashlytics.setCustomKey(PARAM_DEPARTMENT, user.department)
-            crashlytics.setCustomKey("user_semester", user.semester ?: "unknown")
             crashlytics.setCustomKey("user_batch", user.batch ?: "unknown")
+            crashlytics.setCustomKey("user_section", user.section ?: "unknown")
+            crashlytics.setCustomKey("user_lab_section", user.labSection ?: "unknown")
+            crashlytics.setCustomKey("user_initial", user.initial ?: "unknown")
             
-            logger.debug(TAG, "User properties set: role=${user.role}, department=${user.department}")
+            logger.debug(TAG, "User properties set: role=${user.role.name}, department=${user.department}")
         } catch (e: Exception) {
             logger.error(TAG, "Failed to set user properties", e)
         }

@@ -41,12 +41,12 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         
         // Handle navigation from notifications when app is already running
-        intent?.getStringExtra("navigate_to")?.let { destination ->
+        intent.getStringExtra("navigate_to")?.let { destination ->
             // You can add navigation logic here if needed
         }
     }

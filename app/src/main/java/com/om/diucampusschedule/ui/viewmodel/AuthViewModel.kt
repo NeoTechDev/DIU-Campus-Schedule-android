@@ -47,7 +47,7 @@ class AuthViewModel @Inject constructor(
     }
 
     private fun observeAuthState() {
-        getCurrentUserUseCase.observeAuthState()
+        getCurrentUserUseCase.observeCurrentUser() // Changed from observeAuthState
             .onEach { user ->
                 _authState.value = _authState.value.copy(
                     isAuthenticated = user != null,

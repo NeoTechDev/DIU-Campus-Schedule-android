@@ -1,6 +1,7 @@
 package com.om.diucampusschedule.core.logging
 
 import android.util.Log
+import com.google.firebase.crashlytics.BuildConfig
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import javax.inject.Inject
 import javax.inject.Singleton

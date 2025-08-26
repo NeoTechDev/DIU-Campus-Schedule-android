@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.dagger.hilt.android)
     alias(libs.plugins.kotlin.ksp)
     id("com.google.gms.google-services")
+    alias(libs.plugins.google.firebase.crashlytics) // Added this line in a previous step
 }
 
 android {
@@ -60,11 +61,13 @@ dependencies {
 
     // Firebase & Google
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
+    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-inappmessaging-display")
     implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-crashlytics") // Added this line
 
     implementation(libs.play.services.auth)
 
@@ -73,8 +76,7 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.volley)
     implementation(libs.androidx.foundation)
-    implementation(libs.firebase.crashlytics.ktx)
-    implementation(libs.play.services.measurement.api)
+    // implementation(libs.play.services.measurement.api) // Removed this line
     ksp(libs.hilt.compiler)
 
     // Room

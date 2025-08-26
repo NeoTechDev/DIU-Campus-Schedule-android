@@ -43,7 +43,7 @@ fun RoutineScreen(
     viewModel: RoutineViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+
     // Animation states
     val refreshRotation by animateFloatAsState(
         targetValue = if (uiState.isRefreshing) 360f else 0f,
@@ -81,7 +81,7 @@ fun RoutineScreen(
                 },
                 actions = {
                     // Offline indicator
-                    if (uiState.isOfflineMode) {
+                    if (uiState.isOffline) {
                         Icon(
                             imageVector = Icons.Default.CloudOff,
                             contentDescription = "Offline Mode",
@@ -89,7 +89,7 @@ fun RoutineScreen(
                             modifier = Modifier.padding(end = 8.dp)
                         )
                     }
-                    
+
                     // Refresh button
                     IconButton(
                         onClick = { viewModel.refreshRoutine() },
@@ -113,20 +113,20 @@ fun RoutineScreen(
                 uiState.isLoading && uiState.routineItems.isEmpty() -> {
                     LoadingContent()
                 }
-                
+
                 uiState.error != null && uiState.routineItems.isEmpty() -> {
                     ErrorContent(
-                        error = uiState.error!!,
-                        isOffline = uiState.isOfflineMode,
-                        onRetry = { viewModel.retryLoad() },
+                        error = uiState.error!!.message ?: "An unknown error occurred",
+                        isOffline = uiState.isOffline,
+                        onRetry = { viewModel.retryLastAction() },
                         onDismiss = { viewModel.clearError() }
                     )
                 }
-                
+
                 uiState.activeDays.isEmpty() -> {
                     EmptyContent()
                 }
-                
+
                 else -> {
                     RoutineContent(
                         activeDays = uiState.activeDays,
@@ -196,9 +196,9 @@ private fun ErrorContent(
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.error
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Text(
                     text = if (isOffline) "Offline Mode" else "Error",
                     style = MaterialTheme.typography.headlineSmall.copy(
@@ -206,18 +206,18 @@ private fun ErrorContent(
                     ),
                     color = MaterialTheme.colorScheme.error
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
                     text = error,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -227,7 +227,7 @@ private fun ErrorContent(
                     ) {
                         Text("Dismiss")
                     }
-                    
+
                     Button(
                         onClick = onRetry,
                         modifier = Modifier.weight(1f)
@@ -256,9 +256,9 @@ private fun EmptyContent() {
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
                 text = "No Classes Scheduled",
                 style = MaterialTheme.typography.headlineSmall.copy(
@@ -266,9 +266,9 @@ private fun EmptyContent() {
                 ),
                 textAlign = TextAlign.Center
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = "Your routine will appear here once it's available.",
                 style = MaterialTheme.typography.bodyLarge,
@@ -298,7 +298,7 @@ private fun RoutineContent(
             selectedDay = selectedDay,
             onDaySelected = onDaySelected
         )
-        
+
         // Refresh indicator
         if (isRefreshing) {
             LinearProgressIndicator(
@@ -306,7 +306,7 @@ private fun RoutineContent(
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        
+
         // Routine List
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -355,10 +355,10 @@ private fun DaySelector(
         items(activeDays) { day ->
             val isSelected = day == selectedDay
             val isToday = day == DayOfWeek.getCurrentDay().displayName
-            
+
             val dayOfWeek = DayOfWeek.fromString(day)
             val shortName = dayOfWeek?.shortName ?: day.take(3)
-            
+
             Card(
                 modifier = Modifier
                     .clickable { onDaySelected(day) }
@@ -393,7 +393,7 @@ private fun DaySelector(
                             else -> MaterialTheme.colorScheme.onSurface
                         }
                     )
-                    
+
                     if (isToday) {
                         Text(
                             text = "Today",
@@ -420,18 +420,18 @@ private fun RoutineItemCard(
         val startTime = routineItem.startTime
         val endTime = routineItem.endTime
         val today = DayOfWeek.getCurrentDay().displayName
-        
+
         routineItem.day == today && startTime != null && endTime != null &&
-        currentTime.isAfter(startTime) && currentTime.isBefore(endTime)
+                currentTime.isAfter(startTime) && currentTime.isBefore(endTime)
     }
-    
+
     val isUpcoming = remember(routineItem, currentTime) {
         val startTime = routineItem.startTime
         val today = DayOfWeek.getCurrentDay().displayName
-        
+
         routineItem.day == today && startTime != null &&
-        startTime.isAfter(currentTime) && 
-        java.time.Duration.between(currentTime, startTime).toMinutes() <= 30
+                startTime.isAfter(currentTime) &&
+                java.time.Duration.between(currentTime, startTime).toMinutes() <= 30
     }
 
     Card(
@@ -473,13 +473,13 @@ private fun RoutineItemCard(
                         else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
-                
+
                 Text(
                     text = routineItem.duration,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
-                
+
                 if (isCurrentClass) {
                     Box(
                         modifier = Modifier
@@ -489,9 +489,9 @@ private fun RoutineItemCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             // Course details
             Column(
                 modifier = Modifier.weight(1f)
@@ -506,7 +506,7 @@ private fun RoutineItemCard(
                         ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    
+
                     if (isCurrentClass) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Card(
@@ -526,9 +526,9 @@ private fun RoutineItemCard(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -544,9 +544,9 @@ private fun RoutineItemCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(16.dp))
-                    
+
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
@@ -560,7 +560,7 @@ private fun RoutineItemCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
                 }
-                
+
                 if (currentUser?.role == UserRole.TEACHER) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -595,9 +595,9 @@ private fun NoDayClassesContent(selectedDay: String) {
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
                 text = "No Classes on $selectedDay",
                 style = MaterialTheme.typography.titleLarge.copy(
@@ -605,9 +605,9 @@ private fun NoDayClassesContent(selectedDay: String) {
                 ),
                 textAlign = TextAlign.Center
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = "Enjoy your free day!",
                 style = MaterialTheme.typography.bodyMedium,
