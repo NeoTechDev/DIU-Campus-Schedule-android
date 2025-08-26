@@ -44,6 +44,18 @@ fun RoutineScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // Debug logging
+    LaunchedEffect(uiState) {
+        android.util.Log.d("RoutineScreen", "UI State updated:")
+        android.util.Log.d("RoutineScreen", "  - isLoading: ${uiState.isLoading}")
+        android.util.Log.d("RoutineScreen", "  - hasError: ${uiState.error != null}")
+        android.util.Log.d("RoutineScreen", "  - error: ${uiState.error?.message}")
+        android.util.Log.d("RoutineScreen", "  - activeDays: ${uiState.activeDays}")
+        android.util.Log.d("RoutineScreen", "  - selectedDay: ${uiState.selectedDay}")
+        android.util.Log.d("RoutineScreen", "  - routineItems: ${uiState.routineItems.size}")
+        android.util.Log.d("RoutineScreen", "  - currentUser: ${uiState.currentUser?.name}")
+    }
+
     // Animation states
     val refreshRotation by animateFloatAsState(
         targetValue = if (uiState.isRefreshing) 360f else 0f,
@@ -111,10 +123,12 @@ fun RoutineScreen(
 
             when {
                 uiState.isLoading && uiState.routineItems.isEmpty() -> {
+                    android.util.Log.d("RoutineScreen", "Showing LoadingContent")
                     LoadingContent()
                 }
 
                 uiState.error != null && uiState.routineItems.isEmpty() -> {
+                    android.util.Log.d("RoutineScreen", "Showing ErrorContent: ${uiState.error!!.message}")
                     ErrorContent(
                         error = uiState.error!!.message ?: "An unknown error occurred",
                         isOffline = uiState.isOffline,
@@ -124,10 +138,12 @@ fun RoutineScreen(
                 }
 
                 uiState.activeDays.isEmpty() -> {
+                    android.util.Log.d("RoutineScreen", "Showing EmptyContent (activeDays is empty)")
                     EmptyContent()
                 }
 
                 else -> {
+                    android.util.Log.d("RoutineScreen", "Showing RoutineContent with ${uiState.routineItems.size} items")
                     RoutineContent(
                         activeDays = uiState.activeDays,
                         selectedDay = uiState.selectedDay,

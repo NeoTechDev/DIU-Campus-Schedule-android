@@ -67,17 +67,37 @@ data class RoutineItem(
     
     // Check if this routine item matches user's profile
     fun matchesUser(user: User): Boolean {
-        return when (user.role) {
+        val matches = when (user.role) {
             UserRole.STUDENT -> {
-                department.equals(user.department, ignoreCase = true) &&
-                batch == user.batch &&
-                (section == user.section || labSection == user.labSection)
+                // Students filter by: department + batch + section (NOT lab section)
+                val deptMatch = department.equals(user.department, ignoreCase = true)
+                val batchMatch = batch.trim().equals(user.batch.trim(), ignoreCase = true)
+                val sectionMatch = section.trim().equals(user.section.trim(), ignoreCase = true)
+                
+                android.util.Log.d("RoutineItem", "Student filtering for ${user.name}:")
+                android.util.Log.d("RoutineItem", "  Course: $courseCode, Day: $day, Time: $time, Batch: $batch, Section: $section")
+                android.util.Log.d("RoutineItem", "  Item dept: '$department' vs User dept: '${user.department}' -> $deptMatch")
+                android.util.Log.d("RoutineItem", "  Item batch: '$batch' vs User batch: '${user.batch}' -> $batchMatch")
+                android.util.Log.d("RoutineItem", "  Item section: '$section' vs User section: '${user.section}' -> $sectionMatch")
+                android.util.Log.d("RoutineItem", "  FINAL MATCH: ${deptMatch && batchMatch && sectionMatch}")
+                
+                deptMatch && batchMatch && sectionMatch
             }
             UserRole.TEACHER -> {
-                department.equals(user.department, ignoreCase = true) &&
-                teacherInitial.equals(user.initial, ignoreCase = true)
+                // Teachers filter by: department + initial
+                val deptMatch = department.equals(user.department, ignoreCase = true)
+                val initialMatch = teacherInitial.trim().equals(user.initial.trim(), ignoreCase = true)
+                
+                android.util.Log.d("RoutineItem", "Teacher filtering for ${user.name}:")
+                android.util.Log.d("RoutineItem", "  Course: $courseCode, Day: $day, Time: $time, Teacher: $teacherInitial")
+                android.util.Log.d("RoutineItem", "  Item dept: '$department' vs User dept: '${user.department}' -> $deptMatch")
+                android.util.Log.d("RoutineItem", "  Item initial: '$teacherInitial' vs User initial: '${user.initial}' -> $initialMatch")
+                android.util.Log.d("RoutineItem", "  FINAL MATCH: ${deptMatch && initialMatch}")
+                
+                deptMatch && initialMatch
             }
         }
+        return matches
     }
 }
 
@@ -93,19 +113,27 @@ data class RoutineSchedule(
 ) {
     // Get routine items for a specific user
     fun getRoutineForUser(user: User): List<RoutineItem> {
-        return schedule.filter { it.matchesUser(user) }
+        android.util.Log.d("RoutineSchedule", "Filtering ${schedule.size} routine items for user: ${user.name}")
+        android.util.Log.d("RoutineSchedule", "User details - Role: ${user.role}, Dept: '${user.department}', Batch: '${user.batch}', Section: '${user.section}', LabSection: '${user.labSection}', Initial: '${user.initial}'")
+        
+        val filtered = schedule.filter { it.matchesUser(user) }
+        android.util.Log.d("RoutineSchedule", "Filtered result: ${filtered.size} items match user")
+        
+        return filtered
     }
     
     // Get routine items for a specific day
     fun getRoutineForDay(day: String, user: User): List<RoutineItem> {
-        return getRoutineForUser(user)
-            .filter { it.day.equals(day, ignoreCase = true) }
-            .sortedBy { it.startTime }
+        val userRoutine = getRoutineForUser(user)
+        val dayRoutine = userRoutine.filter { it.day.equals(day, ignoreCase = true) }
+        android.util.Log.d("RoutineSchedule", "Day '$day' has ${dayRoutine.size} classes for user ${user.name}")
+        return dayRoutine.sortedBy { it.startTime }
     }
     
     // Get all days that have classes for the user
     fun getActiveDaysForUser(user: User): List<String> {
-        return getRoutineForUser(user)
+        val userRoutine = getRoutineForUser(user)
+        val activeDays = userRoutine
             .map { it.day }
             .distinct()
             .sortedBy { day ->
@@ -120,6 +148,8 @@ data class RoutineSchedule(
                     else -> 8
                 }
             }
+        android.util.Log.d("RoutineSchedule", "Active days for user ${user.name}: $activeDays")
+        return activeDays
     }
 }
 

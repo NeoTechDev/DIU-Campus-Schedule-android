@@ -47,75 +47,74 @@ class RoutineRepositoryImpl @Inject constructor(
 
     override suspend fun getRoutineForUserAndDay(user: User, day: String): Result<List<RoutineItem>> {
         return try {
-            // First try to get from local storage
-            val localRoutine = localDataSource.getRoutineForUserAndDay(user, day)
+            android.util.Log.d("RoutineRepository", "Getting routine for user: ${user.name}, day: $day")
             
-            if (localRoutine.isNotEmpty()) {
-                // Check if we need to sync in the background
-                syncRoutineDataInBackground(user.department)
-                Result.success(localRoutine)
-            } else {
-                // No local data, fetch from remote
-                syncRoutineData(user.department).fold(
-                    onSuccess = {
-                        val updatedRoutine = localDataSource.getRoutineForUserAndDay(user, day)
-                        Result.success(updatedRoutine)
-                    },
-                    onFailure = { error ->
-                        Result.failure(error)
-                    }
-                )
-            }
+            // TEMPORARY: Force remote fetch to bypass local issues
+            android.util.Log.d("RoutineRepository", "FORCING remote fetch for day $day debugging")
+            refreshFromRemote(user.department).fold(
+                onSuccess = { schedule ->
+                    android.util.Log.d("RoutineRepository", "Remote fetch successful, schedule has ${schedule.schedule.size} total items")
+                    android.util.Log.d("RoutineRepository", "Filtering for day: $day")
+                    val dayRoutine = schedule.getRoutineForDay(day, user)
+                    android.util.Log.d("RoutineRepository", "Routine items for $day: ${dayRoutine.size}")
+                    Result.success(dayRoutine)
+                },
+                onFailure = { error ->
+                    android.util.Log.e("RoutineRepository", "Remote fetch failed for day $day", error)
+                    Result.failure(error)
+                }
+            )
         } catch (e: Exception) {
+            android.util.Log.e("RoutineRepository", "Error getting routine for day $day", e)
             Result.failure(e)
         }
     }
 
     override fun observeRoutineForUserAndDay(user: User, day: String): Flow<List<RoutineItem>> {
         return flow {
-            // Start by emitting local data
-            val localRoutine = localDataSource.getRoutineForUserAndDay(user, day)
-            emit(localRoutine)
+            android.util.Log.d("RoutineRepository", "Starting to observe routine for user: ${user.name}, day: $day")
             
-            // Then sync in background if needed
-            syncRoutineDataInBackground(user.department)
-            
-            // Observe local changes
-            localDataSource.observeRoutineForUserAndDay(user, day)
-                .collect { updatedRoutine ->
-                    emit(updatedRoutine)
-                }
-        }.catch { e ->
-            // Fall back to local data only
-            localDataSource.observeRoutineForUserAndDay(user, day)
-                .collect { localRoutine ->
-                    emit(localRoutine)
-                }
+            // TEMPORARY: Force remote fetch to bypass local issues
+            try {
+                refreshFromRemote(user.department).fold(
+                    onSuccess = { schedule ->
+                        android.util.Log.d("RoutineRepository", "Remote fetch successful in observe, schedule has ${schedule.schedule.size} total items")
+                        val dayRoutine = schedule.getRoutineForDay(day, user)
+                        android.util.Log.d("RoutineRepository", "Emitting ${dayRoutine.size} items for day $day")
+                        emit(dayRoutine)
+                    },
+                    onFailure = { error ->
+                        android.util.Log.e("RoutineRepository", "Remote fetch failed in observe for day $day", error)
+                        emit(emptyList<RoutineItem>())
+                    }
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("RoutineRepository", "Exception in observe for day $day", e)
+                emit(emptyList<RoutineItem>())
+            }
         }
     }
 
     override suspend fun getActiveDaysForUser(user: User): Result<List<String>> {
         return try {
-            // First try to get from local storage
-            val localDays = localDataSource.getActiveDaysForUser(user)
+            android.util.Log.d("RoutineRepository", "Getting active days for user: ${user.name}, department: ${user.department}")
             
-            if (localDays.isNotEmpty()) {
-                // Check if we need to sync in the background
-                syncRoutineDataInBackground(user.department)
-                Result.success(localDays)
-            } else {
-                // No local data, fetch from remote
-                syncRoutineData(user.department).fold(
-                    onSuccess = {
-                        val updatedDays = localDataSource.getActiveDaysForUser(user)
-                        Result.success(updatedDays)
-                    },
-                    onFailure = { error ->
-                        Result.failure(error)
-                    }
-                )
-            }
+            // TEMPORARY: Force remote fetch to bypass local issues
+            android.util.Log.d("RoutineRepository", "FORCING remote fetch for debugging")
+            refreshFromRemote(user.department).fold(
+                onSuccess = { schedule ->
+                    android.util.Log.d("RoutineRepository", "Remote fetch successful, schedule has ${schedule.schedule.size} total items")
+                    val activeDays = schedule.getActiveDaysForUser(user)
+                    android.util.Log.d("RoutineRepository", "Active days from remote: $activeDays")
+                    Result.success(activeDays)
+                },
+                onFailure = { error ->
+                    android.util.Log.e("RoutineRepository", "Remote fetch failed", error)
+                    Result.failure(error)
+                }
+            )
         } catch (e: Exception) {
+            android.util.Log.e("RoutineRepository", "Error getting active days", e)
             Result.failure(e)
         }
     }

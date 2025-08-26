@@ -171,11 +171,13 @@ class RoutineViewModel @Inject constructor(
         val user = currentUser ?: return
         
         logger.debug(TAG, "Starting to observe routine for day: $day")
+        android.util.Log.d("RoutineViewModel", "User details - Name: ${user.name}, Department: ${user.department}, Batch: ${user.batch}, Section: ${user.section}, Role: ${user.role}")
         
         observeUserRoutineForDayUseCase(user, day)
             .catch { throwable ->
                 val error = AppError.fromThrowable(throwable)
                 logger.error(TAG, "Error observing routine for day: $day", throwable)
+                android.util.Log.e("RoutineViewModel", "Error observing routine for day: $day", throwable)
                 _uiState.value = _uiState.value.copy(
                     error = error,
                     isOffline = !networkMonitor.isCurrentlyOnline()
@@ -183,6 +185,7 @@ class RoutineViewModel @Inject constructor(
             }
             .onEach { routineItems ->
                 logger.debug(TAG, "Received ${routineItems.size} routine items for $day")
+                android.util.Log.d("RoutineViewModel", "Received ${routineItems.size} routine items for $day")
                 _uiState.value = _uiState.value.copy(
                     routineItems = routineItems,
                     isLoading = false,
