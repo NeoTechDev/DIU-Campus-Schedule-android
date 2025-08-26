@@ -3,6 +3,7 @@ package com.om.diucampusschedule.di
 import android.content.Context
 import android.net.ConnectivityManager
 import androidx.work.WorkManager
+import com.om.diucampusschedule.core.network.NetworkConnectivityManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,5 +25,11 @@ object NetworkModule {
     @Singleton
     fun provideWorkManager(@ApplicationContext context: Context): WorkManager {
         return WorkManager.getInstance(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNetworkConnectivityManager(@ApplicationContext context: Context): NetworkConnectivityManager {
+        return NetworkConnectivityManager(context)
     }
 }

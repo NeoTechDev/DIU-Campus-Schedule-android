@@ -56,6 +56,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.om.diucampusschedule.R
+import com.om.diucampusschedule.core.network.rememberConnectivityState
+import com.om.diucampusschedule.ui.components.NetworkStatusMessage
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -78,6 +80,9 @@ fun SignInScreen(
     val focusManager = LocalFocusManager.current
     val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
+    
+    // Network connectivity state
+    val isConnected = rememberConnectivityState()
     
     // Animation states
     val formScale by animateFloatAsState(
@@ -177,6 +182,11 @@ fun SignInScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                // Network Status
+                NetworkStatusMessage(
+                    isConnected = isConnected,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
                 // App Logo/Icon (placeholder)
                 Box(
                     modifier = Modifier
@@ -455,7 +465,7 @@ fun SignInScreen(
                                     .fillMaxWidth()
                                     .height(56.dp)
                                     .scale(buttonScale),
-                                enabled = !authState.isLoading && email.isNotBlank() && password.isNotBlank(),
+                                enabled = !authState.isLoading && email.isNotBlank() && password.isNotBlank() && isConnected,
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
@@ -548,6 +558,7 @@ fun SignInScreen(
                                     val signInIntent = googleSignInClient.signInIntent
                                     googleSignInLauncher.launch(signInIntent)
                                 },
+                                enabled = isConnected,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(56.dp),

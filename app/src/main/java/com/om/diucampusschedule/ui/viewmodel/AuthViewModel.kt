@@ -3,6 +3,7 @@ package com.om.diucampusschedule.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.om.diucampusschedule.core.network.NetworkConnectivityManager
 import com.om.diucampusschedule.data.repository.AuthRepositoryImpl
 import com.om.diucampusschedule.domain.model.AuthState
 import com.om.diucampusschedule.domain.model.User
@@ -36,6 +37,7 @@ class AuthViewModel @Inject constructor(
     private val resetPasswordUseCase: ResetPasswordUseCase,
     private val sendEmailVerificationUseCase: SendEmailVerificationUseCase,
     private val checkEmailVerificationUseCase: CheckEmailVerificationUseCase,
+    private val networkConnectivityManager: NetworkConnectivityManager,
     // Inject the repository implementation to demonstrate accessing additional methods
     private val authRepositoryImpl: AuthRepositoryImpl
 ) : ViewModel() {
@@ -61,6 +63,15 @@ class AuthViewModel @Inject constructor(
 
     fun signIn(email: String, password: String) {
         viewModelScope.launch {
+            // Check internet connectivity first
+            if (!networkConnectivityManager.isConnected()) {
+                _authState.value = _authState.value.copy(
+                    isLoading = false,
+                    error = networkConnectivityManager.getNetworkErrorMessage()
+                )
+                return@launch
+            }
+
             _authState.value = _authState.value.copy(isLoading = true, error = null)
             
             val result = signInUseCase(email, password)
@@ -79,7 +90,11 @@ class AuthViewModel @Inject constructor(
                         isAuthenticated = false,
                         user = null,
                         isLoading = false,
-                        error = exception.message
+                        error = if (!networkConnectivityManager.isConnected()) {
+                            networkConnectivityManager.getNetworkErrorMessage()
+                        } else {
+                            exception.message
+                        }
                     )
                 }
             )
@@ -88,6 +103,15 @@ class AuthViewModel @Inject constructor(
 
     fun signUp(email: String, password: String, confirmPassword: String) {
         viewModelScope.launch {
+            // Check internet connectivity first
+            if (!networkConnectivityManager.isConnected()) {
+                _authState.value = _authState.value.copy(
+                    isLoading = false,
+                    error = networkConnectivityManager.getNetworkErrorMessage()
+                )
+                return@launch
+            }
+
             _authState.value = _authState.value.copy(isLoading = true, error = null)
             
             val result = signUpUseCase(email, password, confirmPassword)
@@ -106,7 +130,11 @@ class AuthViewModel @Inject constructor(
                         isAuthenticated = false,
                         user = null,
                         isLoading = false,
-                        error = exception.message
+                        error = if (!networkConnectivityManager.isConnected()) {
+                            networkConnectivityManager.getNetworkErrorMessage()
+                        } else {
+                            exception.message
+                        }
                     )
                 }
             )
@@ -115,6 +143,15 @@ class AuthViewModel @Inject constructor(
 
     fun signInWithGoogle(idToken: String) {
         viewModelScope.launch {
+            // Check internet connectivity first
+            if (!networkConnectivityManager.isConnected()) {
+                _authState.value = _authState.value.copy(
+                    isLoading = false,
+                    error = networkConnectivityManager.getNetworkErrorMessage()
+                )
+                return@launch
+            }
+
             _authState.value = _authState.value.copy(isLoading = true, error = null)
             
             val result = googleSignInUseCase(idToken)
@@ -133,7 +170,11 @@ class AuthViewModel @Inject constructor(
                         isAuthenticated = false,
                         user = null,
                         isLoading = false,
-                        error = exception.message
+                        error = if (!networkConnectivityManager.isConnected()) {
+                            networkConnectivityManager.getNetworkErrorMessage()
+                        } else {
+                            exception.message
+                        }
                     )
                 }
             )
@@ -219,6 +260,15 @@ class AuthViewModel @Inject constructor(
                 return@launch
             }
 
+            // Check internet connectivity first
+            if (!networkConnectivityManager.isConnected()) {
+                _authState.value = _authState.value.copy(
+                    isLoading = false,
+                    error = networkConnectivityManager.getNetworkErrorMessage()
+                )
+                return@launch
+            }
+
             _authState.value = _authState.value.copy(isLoading = true, error = null)
             
             val result = updateUserProfileUseCase(currentUser.id, form)
@@ -235,7 +285,11 @@ class AuthViewModel @Inject constructor(
                 onFailure = { exception ->
                     _authState.value = _authState.value.copy(
                         isLoading = false,
-                        error = exception.message
+                        error = if (!networkConnectivityManager.isConnected()) {
+                            networkConnectivityManager.getNetworkErrorMessage()
+                        } else {
+                            exception.message
+                        }
                     )
                 }
             )

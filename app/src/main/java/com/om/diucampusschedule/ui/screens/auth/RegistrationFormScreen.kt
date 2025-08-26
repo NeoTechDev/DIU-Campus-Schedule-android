@@ -38,6 +38,8 @@ import com.om.diucampusschedule.core.validation.DataValidator
 import com.om.diucampusschedule.core.validation.DynamicDataValidator
 import com.om.diucampusschedule.domain.model.UserRegistrationForm
 import com.om.diucampusschedule.domain.model.UserRole
+import com.om.diucampusschedule.core.network.rememberConnectivityState
+import com.om.diucampusschedule.ui.components.NetworkStatusMessage
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -67,6 +69,9 @@ fun RegistrationFormScreen(
     var sectionError by remember { mutableStateOf<String?>(null) }
     var labSectionError by remember { mutableStateOf<String?>(null) }
     var initialError by remember { mutableStateOf<String?>(null) }
+    
+    // Network connectivity state
+    val isConnected = rememberConnectivityState()
 
     // Load validation data when department changes
     LaunchedEffect(department) {
@@ -179,6 +184,12 @@ fun RegistrationFormScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.height(32.dp))
+                
+                // Network Status
+                NetworkStatusMessage(
+                    isConnected = isConnected,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
                 // Title
                 Text(
@@ -516,7 +527,7 @@ fun RegistrationFormScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
-                            enabled = !authState.isLoading && !validationState.isLoading && isFormValid(),
+                            enabled = !authState.isLoading && !validationState.isLoading && isFormValid() && isConnected,
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             if (authState.isLoading) {

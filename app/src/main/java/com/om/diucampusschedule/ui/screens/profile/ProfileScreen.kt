@@ -32,7 +32,9 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.om.diucampusschedule.core.network.rememberConnectivityState
 import com.om.diucampusschedule.core.validation.DataValidator
+import com.om.diucampusschedule.ui.components.NetworkStatusMessage
 import com.om.diucampusschedule.core.validation.DynamicDataValidator
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRegistrationForm
@@ -80,6 +82,9 @@ fun ProfileScreen(
             .build()
         GoogleSignIn.getClient(context, gso)
     }
+    
+    // Network connectivity state
+    val isConnected = rememberConnectivityState()
     
     // Initialize form with current user data
     LaunchedEffect(user) {
@@ -181,6 +186,11 @@ fun ProfileScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Network Status
+            NetworkStatusMessage(
+                isConnected = isConnected,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
             // Header
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -340,7 +350,7 @@ fun ProfileScreen(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        enabled = !authState.isLoading && isFormValid()
+                        enabled = !authState.isLoading && isFormValid() && isConnected
                     ) {
                         if (authState.isLoading) {
                             CircularProgressIndicator(
@@ -626,6 +636,7 @@ fun ProfileScreen(
                     OutlinedButton(
                         onClick = { showSignOutDialog = true },
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = isConnected,
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
                         )

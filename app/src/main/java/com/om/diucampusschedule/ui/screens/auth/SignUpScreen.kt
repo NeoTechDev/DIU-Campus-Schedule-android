@@ -54,6 +54,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.om.diucampusschedule.R
+import com.om.diucampusschedule.core.network.rememberConnectivityState
+import com.om.diucampusschedule.ui.components.NetworkStatusMessage
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -80,6 +82,9 @@ fun SignUpScreen(
     val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
     val confirmPasswordFocusRequester = remember { FocusRequester() }
+    
+    // Network connectivity state
+    val isConnected = rememberConnectivityState()
     
     // Animation states
     val formScale by animateFloatAsState(
@@ -187,6 +192,11 @@ fun SignUpScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                // Network Status
+                NetworkStatusMessage(
+                    isConnected = isConnected,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
                 // App Logo/Icon
                 Box(
                     modifier = Modifier
@@ -336,7 +346,7 @@ fun SignUpScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
-                            enabled = !authState.isLoading,
+                            enabled = !authState.isLoading && isConnected,
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             if (authState.isLoading) {
@@ -377,6 +387,7 @@ fun SignUpScreen(
                                 val signInIntent = googleSignInClient.signInIntent
                                 googleSignInLauncher.launch(signInIntent)
                             },
+                            enabled = isConnected,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
