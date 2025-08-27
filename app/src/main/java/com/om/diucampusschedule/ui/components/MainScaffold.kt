@@ -83,62 +83,6 @@ private fun isMainAppScreen(route: String?): Boolean {
     }
 }
 
-/**
- * Alternative scaffold with custom bottom navigation design
- */
-@Composable
-fun CustomMainScaffold(
-    navController: NavController,
-    modifier: Modifier = Modifier,
-    content: @Composable (PaddingValues) -> Unit
-) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-    
-    val showMainUI = when (currentRoute) {
-        Screen.Welcome.route,
-        Screen.SignIn.route,
-        Screen.SignUp.route,
-        Screen.ForgotPassword.route,
-        Screen.EmailVerification.route,
-        Screen.RegsitrationForm.route,
-        Screen.Debug.route -> false
-        else -> true
-    }
-    
-    // Handle back button to always go to Today screen from other main app screens
-    if (showMainUI && isMainAppScreen(currentRoute) && currentRoute != Screen.Today.route) {
-        BackHandler {
-            navController.navigate(Screen.Today.route) {
-                // Clear the entire back stack and make Today the only entry
-                popUpTo(0) { inclusive = true }
-                launchSingleTop = true
-            }
-        }
-    }
-    
-    if (showMainUI) {
-        Scaffold(
-            modifier = modifier,
-            topBar = {
-                MainTopAppBar(
-                    currentRoute = currentRoute,
-                    navController = navController
-                )
-            },
-            bottomBar = {
-                if (isMainAppScreen(currentRoute)) {
-                    CustomBottomNavigationBar(navController = navController)
-                }
-            }
-        ) { paddingValues ->
-            content(paddingValues)
-        }
-    } else {
-        content(PaddingValues())
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun MainScaffoldPreview() {

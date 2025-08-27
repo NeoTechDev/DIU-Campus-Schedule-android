@@ -1,0 +1,452 @@
+[
+    {
+        "courseCode": "SE111",
+        "courseName": "Computer Fundamentals",
+        "credit": 3,
+        "batch": 45
+    },
+    {
+        "courseCode": "SE112",
+        "courseName": "Computer Fundamentals Lab",
+        "credit": 1,
+        "batch": 45
+    },
+    {
+        "courseCode": "SE113",
+        "courseName": "Introduction to Software Engineering",
+        "credit": 3,
+        "batch": 45
+    },
+    {
+        "courseCode": "ENG101",
+        "courseName": "English Reading, Writing Skills & Public Speaking/ English I",
+        "credit": 3,
+        "batch": 45
+    },
+    {
+        "courseCode": "BNS101",
+        "courseName": "Bangladesh Studies",
+        "credit": 3,
+        "batch": 45
+    },
+    {
+        "courseCode": "MAT101",
+        "courseName": "Math-I: Calculus & Geometry/ Mathematics I",
+        "credit": 3,
+        "batch": 44
+    },
+    {
+        "courseCode": "SE121",
+        "courseName": "Structured Programming",
+        "credit": 3,
+        "batch": 44
+    },
+    {
+        "courseCode": "SE122",
+        "courseName": "Structured Programming Lab",
+        "credit": 1,
+        "batch": 44
+    },
+    {
+        "courseCode": "PHY101",
+        "courseName": "Physics: Mechanics, Electromagnetism & Waves/ Physics I",
+        "credit": 3,
+        "batch": 44
+    },
+    {
+        "courseCode": "SE212",
+        "courseName": "Software Requirement Specifications & Analysis",
+        "credit": 3,
+        "batch": 44
+    },
+    {
+        "courseCode": "SE131",
+        "courseName": "Data Structure",
+        "credit": 3,
+        "batch": 43
+    },
+    {
+        "courseCode": "SE132",
+        "courseName": "Data Structure Lab",
+        "credit": 1,
+        "batch": 43
+    },
+    {
+        "courseCode": "SE133",
+        "courseName": "Software Development Capstone Project",
+        "credit": 3,
+        "batch": 43
+    },
+    {
+        "courseCode": "SE123",
+        "courseName": "Discrete Mathematics",
+        "credit": 3,
+        "batch": 43
+    },
+    {
+        "courseCode": "SE213",
+        "courseName": "Digital Electronics & Logic Design",
+        "credit": 3,
+        "batch": 43
+    },
+    {
+        "courseCode": "STA101",
+        "courseName": "Probability & Statistics in Software Engineering/ Statistics I",
+        "credit": 3,
+        "batch": 42
+    },
+    {
+        "courseCode": "AOL101",
+        "courseName": "Art of Living",
+        "credit": 3,
+        "batch": 42
+    },
+    {
+        "courseCode": "SE214",
+        "courseName": "Algorithms Design & Analysis",
+        "credit": 3,
+        "batch": 42
+    },
+    {
+        "courseCode": "SE215",
+        "courseName": "Algorithms Design & Analysis Lab",
+        "credit": 1,
+        "batch": 42
+    },
+    {
+        "courseCode": "SE223",
+        "courseName": "Database Systems",
+        "credit": 3,
+        "batch": 42
+    },
+    {
+        "courseCode": "SE224",
+        "courseName": "Database Systems Lab",
+        "credit": 1,
+        "batch": 42
+    },
+    {
+        "courseCode": "SE232",
+        "courseName": "Operating System & System Programming",
+        "credit": 3,
+        "batch": 41
+    },
+    {
+        "courseCode": "SE233",
+        "courseName": "Operating System & System Programming Lab",
+        "credit": 1,
+        "batch": 41
+    },
+    {
+        "courseCode": "GE235",
+        "courseName": "Principles of Accounting, Business & Economics",
+        "credit": 3,
+        "batch": 41
+    },
+    {
+        "courseCode": "SE231",
+        "courseName": "System Analysis & Design Capstone Project",
+        "credit": 3,
+        "batch": 41
+    },
+    {
+        "courseCode": "SE234",
+        "courseName": "Theory of Computing",
+        "credit": 3,
+        "batch": 41
+    },
+    {
+        "courseCode": "SE312",
+        "courseName": "Software Quality Assurance & Testing",
+        "credit": 3,
+        "batch": 40
+    },
+    {
+        "courseCode": "SE313",
+        "courseName": "Software Quality Assurance & Testing Lab",
+        "credit": 1,
+        "batch": 40
+    },
+    {
+        "courseCode": "GE324",
+        "courseName": "Business Analysis & Communication",
+        "credit": 3,
+        "batch": 40
+    },
+    {
+        "courseCode": "SE321",
+        "courseName": "Software Engineering Web Application",
+        "credit": 3,
+        "batch": 40
+    },
+    {
+        "courseCode": "SE322",
+        "courseName": "Software Engineering Web Application Lab",
+        "credit": 1,
+        "batch": 40
+    },
+    {
+        "courseCode": "SE323",
+        "courseName": "Software Architecture & Design",
+        "credit": 3,
+        "batch": 40
+    },
+    {
+        "courseCode": "SE431",
+        "courseName": "Final Year Project/ Thesis/ Internship",
+        "credit": 6,
+        "batch": 39
+    },
+    {
+        "courseCode": "SE331",
+        "courseName": "Software Engineering Design Capstone Project",
+        "credit": 3,
+        "batch": 39
+    },
+    {
+        "courseCode": "SE535",
+        "courseName": "Data Warehouse & Data Mining (Non-Major Only)",
+        "credit": 3,
+        "batch": 39
+    },
+    {
+        "courseCode": "SE599",
+        "courseName": "Research Methodology & Scientific Writing/ Open Elective \u2013 III (Non-Major Only)",
+        "credit": 3,
+        "batch": 39
+    },
+    {
+        "courseCode": "DS331",
+        "courseName": "Introduction to Data Science and Data Management & Analysis (DS Major)",
+        "credit": 2,
+        "batch": 39
+    },
+    {
+        "courseCode": "DS332",
+        "courseName": "Introduction to Data Science and Data Management & Analysis Lab (DS Major)",
+        "credit": 1,
+        "batch": 39
+    },
+    {
+        "courseCode": "DS411",
+        "courseName": "Statistical Data Analysis (DS Major)",
+        "credit": 2,
+        "batch": 39
+    },
+    {
+        "courseCode": "DS412",
+        "courseName": "Statistical Data Analysis Lab (DS Major)",
+        "credit": 1,
+        "batch": 39
+    },
+    {
+        "courseCode": "CS211",
+        "courseName": "Cyber Security Fundamentals",
+        "credit": 3,
+        "batch": 39
+    },
+    {
+        "courseCode": "CS418",
+        "courseName": "Network and Communication Security",
+        "credit": 3,
+        "batch": 39
+    },
+    {
+        "courseCode": "RE421",
+        "courseName": "Robotics Process Automation Design & Development",
+        "credit": 2,
+        "batch": 39
+    },
+    {
+        "courseCode": "RE422",
+        "courseName": "Robotics Process Automation Design & Development Lab",
+        "credit": 1,
+        "batch": 39
+    },
+    {
+        "courseCode": "RE411",
+        "courseName": "Embedded System Design & Development",
+        "credit": 2,
+        "batch": 39
+    },
+    {
+        "courseCode": "RE412",
+        "courseName": "Embedded System Design & Development Lab",
+        "credit": 1,
+        "batch": 39
+    },
+    {
+        "courseCode": "SE442",
+        "courseName": "Management Information System/Open Elective - I",
+        "credit": 3,
+        "batch": 39
+    },
+    {
+        "courseCode": "SE341",
+        "courseName": "Numerical Analysis (Non-Major Only)",
+        "credit": 3,
+        "batch": 38
+    },
+    {
+        "courseCode": "SE331",
+        "courseName": "Software Engineering Design Capstone Project",
+        "credit": 3,
+        "batch": 38
+    },
+    {
+        "courseCode": "SE431",
+        "courseName": "Thesis/Project",
+        "credit": 6,
+        "batch": 38
+    },
+    {
+        "courseCode": "SE332",
+        "courseName": "Information System Security",
+        "credit": 3,
+        "batch": 38
+    },
+    {
+        "courseCode": "SE447",
+        "courseName": "Human Computer Interaction (Non-Major Only)",
+        "credit": 3,
+        "batch": 38
+    },
+    {
+        "courseCode": "DS331",
+        "courseName": "Introduction to Data Science and Data Management & Analysis",
+        "credit": 2,
+        "batch": 38
+    },
+    {
+        "courseCode": "DS332",
+        "courseName": "Introduction to Data Science and Data Management & Analysis Lab (DS Major)",
+        "credit": 1,
+        "batch": 38
+    },
+    {
+        "courseCode": "CS211",
+        "courseName": "Cyber Security Fundamentals",
+        "credit": 3,
+        "batch": 38
+    },
+    {
+        "courseCode": "RE421",
+        "courseName": "Robotics process Automation Design & Development",
+        "credit": 2,
+        "batch": 38
+    },
+    {
+        "courseCode": "RE422",
+        "courseName": "Robotics process Automation Design & Development Lab",
+        "credit": 1,
+        "batch": 38
+    },
+    {
+        "courseCode": "DS411",
+        "courseName": "Statistical Data Analysis",
+        "credit": 2,
+        "batch": 38
+    },
+    {
+        "courseCode": "DS412",
+        "courseName": "Statistical Data Analysis Lab (DS Major)",
+        "credit": 1,
+        "batch": 38
+    },
+    {
+        "courseCode": "CS418",
+        "courseName": "Network and Communication Security",
+        "credit": 3,
+        "batch": 38
+    },
+    {
+        "courseCode": "RE411",
+        "courseName": "Embedded System Design & Development",
+        "credit": 2,
+        "batch": 38
+    },
+    {
+        "courseCode": "RE412",
+        "courseName": "Embedded System Design & Development Lab",
+        "credit": 1,
+        "batch": 38
+    },
+    {
+        "courseCode": "SE441",
+        "courseName": "Software Engineering Professional Ethics",
+        "credit": 3,
+        "batch": 37
+    },
+    {
+        "courseCode": "SE411",
+        "courseName": "Software Project Management & Documentation",
+        "credit": 3,
+        "batch": 37
+    },
+    {
+        "courseCode": "SE342",
+        "courseName": "Compailer design (Non-Major Only)",
+        "credit": 3,
+        "batch": 37
+    },
+    {
+        "courseCode": "SE444",
+        "courseName": "Data Warehouse & Data Mining (Non-Major Only)",
+        "credit": 3,
+        "batch": 37
+    },
+    {
+        "courseCode": "DS421",
+        "courseName": "Machine Learning Driven Data Analysis I (DS Major)",
+        "credit": 2,
+        "batch": 37
+    },
+    {
+        "courseCode": "DS422",
+        "courseName": "Machine Learning Driven Data Analysis Lab I (DS Major)",
+        "credit": 1,
+        "batch": 37
+    },
+    {
+        "courseCode": "DS423",
+        "courseName": "Machine Learning Driven Data Analysis II and Communicating Data Insights (DS Major)",
+        "credit": 2,
+        "batch": 37
+    },
+    {
+        "courseCode": "DS424",
+        "courseName": "Machine Learning Driven Data Analysis II and Communicating Data Insights Lab (DS Major)",
+        "credit": 1,
+        "batch": 37
+    },
+    {
+        "courseCode": "CS422",
+        "courseName": "Digital Forensic",
+        "credit": 3,
+        "batch": 37
+    },
+    {
+        "courseCode": "CS334",
+        "courseName": "Ethical Hacking & Countermeasures",
+        "credit": 1,
+        "batch": 37
+    },
+    {
+        "courseCode": "CS335",
+        "courseName": "Ethical Hacking & Countermeasures Lab",
+        "credit": 2,
+        "batch": 37
+    },
+    {
+        "courseCode": "SE324",
+        "courseName": "Business Analysis & Communication",
+        "credit": 3,
+        "batch": 36
+    },
+    {
+        "courseCode": "SE411",
+        "courseName": "Software Project Management & Documentation",
+        "credit": 3,
+        "batch": 36
+    }
+]

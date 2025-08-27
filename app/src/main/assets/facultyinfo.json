@@ -1,0 +1,1152 @@
+[
+    {
+        "name": "Dr. Imran Mahmud",
+        "faculty_initial": "IM",
+        "employee_id": "710000934",
+        "designation": "Associate Professor & Head",
+        "contact_number": "01711370502",
+        "email": "imranmahmud@daffodilvarsity.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Dr. Md Fazla Elahe",
+        "faculty_initial": "FE",
+        "employee_id": "710001114",
+        "designation": "Assistant Professor &  Associate Head",
+        "contact_number": "01891866411",
+        "email": "elahe.se@daffodilvarsity.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Prof. Dr  Engr. A.K.M Masum",
+        "faculty_initial": "DAKM",
+        "employee_id": "710003252",
+        "designation": "Professor ",
+        "contact_number": "01842411784",
+        "email": "masum.swe@diu.edu.bd",
+        "room_no": "607",
+        "course": ""
+    },
+    {
+        "name": "DR. A. H. M. SAIFULLAH SADI",
+        "faculty_initial": "SS",
+        "employee_id": "710003717",
+        "designation": "Professor ",
+        "contact_number": "01795379956",
+        "email": " sadi.swe@diu.edu.bd ",
+        "room_no": "607",
+        "course": ""
+    },
+    {
+        "name": "A.H.M Shahariar Parvez",
+        "faculty_initial": "SP",
+        "employee_id": "710003253",
+        "designation": "Associate Professor",
+        "contact_number": "01718642878",
+        "email": "shahariar.swe@diu.edu.bd",
+        "room_no": "724",
+        "course": ""
+    },
+    {
+        "name": "DR. RUBAIYAT ISLAM",
+        "faculty_initial": "RI",
+        "employee_id": "710003716",
+        "designation": "Associate Professor",
+        "contact_number": "01711593262",
+        "email": "islam.swe@diu.edu.bd ",
+        "room_no": "907",
+        "course": ""
+    },
+    {
+        "name": "Mohammad Khaled Sohel",
+        "faculty_initial": "MKS",
+        "employee_id": "710000795",
+        "designation": "Assistant Professor",
+        "contact_number": "01713493251",
+        "email": "khaledsohel@daffodilvarsity.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Afsana Begum",
+        "faculty_initial": "AB",
+        "employee_id": "710001535",
+        "designation": "Assistant Professor",
+        "contact_number": "01717545414",
+        "email": "afsana.swe@diu.edu.bd",
+        "room_no": "607",
+        "course": ""
+    },
+    {
+        "name": "Md. Shohel Arman",
+        "faculty_initial": "MSA",
+        "employee_id": "710002084",
+        "designation": "Assistant Professor",
+        "contact_number": "01673383289",
+        "email": "arman.swe@diu.edu.bd",
+        "room_no": "601",
+        "course": ""
+    },
+    {
+        "name": "Tapushe Rabaya Toma",
+        "faculty_initial": "TRT",
+        "employee_id": "710001911",
+        "designation": "Assistant Professor",
+        "contact_number": "01676078744",
+        "email": "toma.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Shahina Haque ",
+        "faculty_initial": "SH",
+        "employee_id": "710000359",
+        "designation": "Assistant Professor",
+        "contact_number": "01856059153",
+        "email": "shahina@daffodilvarsity.edu.bd",
+        "room_no": "805",
+        "course": "Physics"
+    },
+    {
+        "name": "Mr. Nuruzzaman Faruqui",
+        "faculty_initial": "NF",
+        "employee_id": "710002797",
+        "designation": "Assistant Professor",
+        "contact_number": "01763341153",
+        "email": "faruqui.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Dr. Marzia Ahmed",
+        "faculty_initial": "DMA",
+        "employee_id": "710002501",
+        "designation": "Assistant Professor",
+        "contact_number": "01745482644",
+        "email": "marzia.swe@diu.edu.bd",
+        "room_no": "908",
+        "course": ""
+    },
+    {
+        "name": "Mohammad Azam Khan",
+        "faculty_initial": "MAK",
+        "employee_id": "710003744",
+        "designation": "Assistant Professor",
+        "contact_number": "01715444441",
+        "email": "azamkhan.swe@diu.edu.bd ",
+        "room_no": "907",
+        "course": ""
+    },
+    {
+        "name": "DR. MST. TASKIA KHATUN",
+        "faculty_initial": "MTK",
+        "employee_id": "710003700",
+        "designation": "Assistant Professor",
+        "contact_number": "01701564663",
+        "email": "khatun.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Khalid Been Badruzzaman",
+        "faculty_initial": "KBB",
+        "employee_id": "710001009",
+        "designation": "Lecturer (Senior Scale)",
+        "contact_number": "01673290848",
+        "email": "khalid@daffodilvarsity.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Nadira Islam",
+        "faculty_initial": "NIR",
+        "employee_id": "710002891",
+        "designation": "Lecturer (Senior Scale)",
+        "contact_number": "01759339422",
+        "email": "nadira.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Fatama Binta Rafiq",
+        "faculty_initial": "FBR",
+        "employee_id": "710002083",
+        "designation": "Lecturer (Senior Scale)",
+        "contact_number": "01516187007",
+        "email": "fatama.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Hafizul Imran",
+        "faculty_initial": "HI",
+        "employee_id": "710002755",
+        "designation": "Lecturer (Senior Scale)",
+        "contact_number": "1740064708",
+        "email": "hafizul.swe@daffodilvarsity.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Mahbubul Alam",
+        "faculty_initial": "MA",
+        "employee_id": "710003414",
+        "designation": "Lecturer (Senior Scale)",
+        "contact_number": "01867721461",
+        "email": "mahbubul.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": "English"
+    },
+    {
+        "name": "Mr. Md. Rajib Mia",
+        "faculty_initial": "RM",
+        "employee_id": "710002801",
+        "designation": "Lecturer (Senior Scale)",
+        "contact_number": "01796679434",
+        "email": "rajib.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Nusrat Tasnim",
+        "faculty_initial": "NT",
+        "employee_id": "710002799",
+        "designation": "Lecturer (Senior Scale)",
+        "contact_number": "01781967393",
+        "email": "nusrattasnim.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Musabbir Sammak ",
+        "faculty_initial": "MHS",
+        "employee_id": "710002844",
+        "designation": "Lecturer (Senior Scale)",
+        "contact_number": "01796679434",
+        "email": "musabbir.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Md. Selim Reza",
+        "faculty_initial": " SR",
+        "employee_id": "710003747",
+        "designation": "Lecturer (Senior Scale)",
+        "contact_number": "01719310512",
+        "email": "selim.swe0161.c@diu.edu.bd",
+        "room_no": "805",
+        "course": ""
+    },
+    {
+        "name": "Ms. Rakhi Moni Saha",
+        "faculty_initial": "RMS",
+        "employee_id": "710003067",
+        "designation": "Lecturer",
+        "contact_number": "01754347750",
+        "email": "rakhi.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Ms. Raiyan Janik Monir",
+        "faculty_initial": "RJM",
+        "employee_id": "710003068",
+        "designation": "Lecturer",
+        "contact_number": "01776314653",
+        "email": "raiyanjanik.swe@diu.edu.bd",
+        "room_no": "907",
+        "course": ""
+    },
+    {
+        "name": "Munira Tabassum Mou",
+        "faculty_initial": "MTM",
+        "employee_id": "710003256",
+        "designation": "Lecturer",
+        "contact_number": "01319396567",
+        "email": "munira.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Suprove Chandra Sarkar",
+        "faculty_initial": "SCS",
+        "employee_id": "710003346",
+        "designation": "Lecturer",
+        "contact_number": "01521539046",
+        "email": "suprove.swe@diu.edu.bd",
+        "room_no": "907",
+        "course": ""
+    },
+    {
+        "name": "Mujahidul Islam ",
+        "faculty_initial": "MI",
+        "employee_id": "710003438",
+        "designation": "Lecturer",
+        "contact_number": "01521325296",
+        "email": "mujahidulislam.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Md Mozammelul Haque",
+        "faculty_initial": "MMH",
+        "employee_id": "710003382",
+        "designation": "Lecturer",
+        "contact_number": "01794190171",
+        "email": "mozammelul.swe@diu.edu.bd",
+        "room_no": "907",
+        "course": "Math"
+    },
+    {
+        "name": "Ishrat Sultana",
+        "faculty_initial": "IS",
+        "employee_id": "710003368",
+        "designation": "Lecturer",
+        "contact_number": "01684531230",
+        "email": "ishrat.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Abdul Hye Zebon",
+        "faculty_initial": "AHZ",
+        "employee_id": "710003367",
+        "designation": "Lecturer",
+        "contact_number": "01521438443",
+        "email": "zebon.swe@diu.edu.bd",
+        "room_no": "907",
+        "course": ""
+    },
+    {
+        "name": "Maliha Binte Mukhles",
+        "faculty_initial": "MBM",
+        "employee_id": "710003361",
+        "designation": "Lecturer",
+        "contact_number": "01517104794",
+        "email": "mukhles.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Kazi Rifat Ahmed",
+        "faculty_initial": "KRA",
+        "employee_id": "710003360",
+        "designation": "Lecturer",
+        "contact_number": "01521259962",
+        "email": "rifat.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Ashrafia Esha",
+        "faculty_initial": "AE",
+        "employee_id": "710003437",
+        "designation": "Lecturer",
+        "contact_number": "01316711223",
+        "email": "ashrafiaesha.swe@diu.edu.bd",
+        "room_no": "907",
+        "course": ""
+    },
+    {
+        "name": "Masrufa Tasnim Esha",
+        "faculty_initial": "MTE",
+        "employee_id": "710003366",
+        "designation": "Lecturer",
+        "contact_number": "01553081243",
+        "email": "tasnim.swe@diu.edu.bd",
+        "room_no": "613",
+        "course": ""
+    },
+    {
+        "name": "MD. MAZBAUR RASHID ",
+        "faculty_initial": "MR",
+        "employee_id": "710003362",
+        "designation": "Lecturer",
+        "contact_number": "01796228391",
+        "email": "mazba.swe@diu.edu.bd",
+        "room_no": "907",
+        "course": ""
+    },
+    {
+        "name": "Akash Ghosh ",
+        "faculty_initial": "AG",
+        "employee_id": "710003710",
+        "designation": "Lecturer",
+        "contact_number": "01761822321",
+        "email": "akash.swe@diu.edu.bd",
+        "room_no": "908",
+        "course": ""
+    },
+    {
+        "name": "Nusrat Jahan Mim",
+        "faculty_initial": "NJM",
+        "employee_id": "710003701",
+        "designation": "Lecturer",
+        "contact_number": "01734679702",
+        "email": "nusratjahan.swe@diu.edu.bd",
+        "room_no": "605",
+        "course": ""
+    },
+    {
+        "name": "Rifa Tasfia",
+        "faculty_initial": "RT",
+        "employee_id": "710003702",
+        "designation": "Lecturer",
+        "contact_number": "01737869274",
+        "email": "rifa.swe@diu.edu.bd ",
+        "room_no": "908",
+        "course": ""
+    },
+    {
+        "name": "Md. Ali Akber",
+        "faculty_initial": "MAAA",
+        "employee_id": "710003703",
+        "designation": "Lecturer",
+        "contact_number": "01923130240",
+        "email": "ali.swe@diu.edu.bd",
+        "room_no": "713",
+        "course": ""
+    },
+    {
+        "name": "MS. SYEDA SUMAIA SULTANA",
+        "faculty_initial": "MSSS",
+        "employee_id": "710003711",
+        "designation": "Lecturer",
+        "contact_number": "01864646749",
+        "email": " sultana.swe@diu.edu.bd ",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Arnob Deb",
+        "faculty_initial": "AD",
+        "employee_id": "710003704",
+        "designation": "Lecturer",
+        "contact_number": "01701487723",
+        "email": "arnob.swe@diu.edu.bd",
+        "room_no": "908",
+        "course": ""
+    },
+    {
+        "name": "MR. PARTHO CHANDA",
+        "faculty_initial": "PC",
+        "employee_id": "710003720",
+        "designation": "Lecturer",
+        "contact_number": "01556628930",
+        "email": "chanda.swe@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "MR. BIBHAS ROY CHOWDHURY PIYAS",
+        "faculty_initial": "CP",
+        "employee_id": "710003699",
+        "designation": "Lecturer",
+        "contact_number": "01703428672",
+        "email": "piyas.swe@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Jafrin Iqbal Chowdhury",
+        "faculty_initial": "JIC",
+        "employee_id": "710003713",
+        "designation": "Lecturer",
+        "contact_number": "01842208940",
+        "email": "jafrin.swe@diu.edu.bd",
+        "room_no": "705",
+        "course": ""
+    },
+    {
+        "name": "MR. MD MONIR HOSSAIN",
+        "faculty_initial": "MMMH",
+        "employee_id": "710003705",
+        "designation": "Lecturer",
+        "contact_number": "01704909244",
+        "email": "monirhossain.swe@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Sanjoy Deb",
+        "faculty_initial": "SD",
+        "employee_id": "710003698",
+        "designation": "Lecturer",
+        "contact_number": "01865361349",
+        "email": "dev.swe@diu.edu.bd",
+        "room_no": "908",
+        "course": ""
+    },
+    {
+        "name": "Fazla Rabby Raihan",
+        "faculty_initial": "FRR",
+        "employee_id": "710003707",
+        "designation": "Lecturer",
+        "contact_number": "01956249285",
+        "email": "fraihan.swe@diu.edu.bd",
+        "room_no": "908",
+        "course": ""
+    },
+    {
+        "name": "Maliha Bushra Hoque",
+        "faculty_initial": "MBH",
+        "employee_id": "710003714",
+        "designation": "Lecturer",
+        "contact_number": "01797088600",
+        "email": "maliha.swe@diu.edu.bd",
+        "room_no": "907",
+        "course": ""
+    },
+    {
+        "name": "MS. SHAHRIN ISLAM",
+        "faculty_initial": "MMSI",
+        "employee_id": "710003712",
+        "designation": "Lecturer",
+        "contact_number": "01779448961",
+        "email": "shahrinislam.swe@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "MS. FATAMA JANNAT TISHA",
+        "faculty_initial": "FJT",
+        "employee_id": "710003718",
+        "designation": "Lecturer",
+        "contact_number": "01881638899",
+        "email": "tisha.swe@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Ashikur Rahman",
+        "faculty_initial": "AR",
+        "employee_id": "710003706",
+        "designation": "Lecturer",
+        "contact_number": "01617277969",
+        "email": "ashikur.swe@diu.edu.bd",
+        "room_no": "713",
+        "course": ""
+    },
+    {
+        "name": "MR. HUMAUN KABIR NAYEM",
+        "faculty_initial": "HKN",
+        "employee_id": "710003719",
+        "designation": "Lecturer",
+        "contact_number": "01737329184",
+        "email": "nayem.swe@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Maidul Islam",
+        "faculty_initial": "MIM",
+        "employee_id": "710003715",
+        "designation": "Lecturer",
+        "contact_number": "01816955972",
+        "email": "maidul.swe@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "K. M. Shahriar Islam",
+        "faculty_initial": "SI",
+        "employee_id": "710003697",
+        "designation": "Lecturer",
+        "contact_number": "01723021777",
+        "email": "shahriar.swe@diu.edu.bd",
+        "room_no": "908",
+        "course": ""
+    },
+    {
+        "name": "MR. RANTU DAS",
+        "faculty_initial": "MRD",
+        "employee_id": "710003709",
+        "designation": "Lecturer",
+        "contact_number": "01637237519",
+        "email": "das.swe@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Dr. S. M. Hasan Mahmud",
+        "faculty_initial": "HM",
+        "employee_id": "",
+        "designation": "Associate Professor",
+        "contact_number": "01722418230",
+        "email": "hasan.swe@yahoo.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Nusrat Jahan",
+        "faculty_initial": "NJN",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01779749972",
+        "email": "nusratiitju1977@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Rashidul Hasan Hridoy",
+        "faculty_initial": "RHH",
+        "employee_id": "721500394",
+        "designation": "Lecturer",
+        "contact_number": "01714969317",
+        "email": "rashidul.cse0394.c@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Kridita Ray",
+        "faculty_initial": "KR",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01820357572",
+        "email": "kridita15-14065@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Shahriar Parvez",
+        "faculty_initial": "MSP",
+        "employee_id": "723500141",
+        "designation": "Lecturer",
+        "contact_number": "01944829693",
+        "email": "parvez.swe0141.c@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Tawhid Ahmed Komol",
+        "faculty_initial": "TAK",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01864627419",
+        "email": "komol242-25-059@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Shakil Ahmed",
+        "faculty_initial": "SA",
+        "employee_id": "721500537",
+        "designation": "Lecturer",
+        "contact_number": "01764808404",
+        "email": "shakil.stu2018@juniv.edu",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Miskatul Jannat",
+        "faculty_initial": "MJ",
+        "employee_id": "723500159",
+        "designation": "Lecturer",
+        "contact_number": "01827572936",
+        "email": "miskatul.swe0159.c@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Tahmina Meem ",
+        "faculty_initial": "TM",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01858014587",
+        "email": "tahminameem23@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Izaz Ahmmed Tuhin",
+        "faculty_initial": "IAT",
+        "employee_id": "723500152",
+        "designation": "Lecturer",
+        "contact_number": "01918267179",
+        "email": "izaz.swe0152.c@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Most. Sanjida Afrin",
+        "faculty_initial": "SAN",
+        "employee_id": "721500509",
+        "designation": "Lecturer",
+        "contact_number": "01705894883",
+        "email": "afrinasha217@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Tanzim Hossain",
+        "faculty_initial": "TH",
+        "employee_id": "723500154",
+        "designation": "Lecturer",
+        "contact_number": "01558202603",
+        "email": "tanzim.swe0154.c@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Durjoy Bhowmik",
+        "faculty_initial": "DB",
+        "employee_id": "721500516",
+        "designation": "Lecturer",
+        "contact_number": "01761563906",
+        "email": "durjoy.cse0516.c@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Aklema Akter Shorna",
+        "faculty_initial": "AAS",
+        "employee_id": "723500162",
+        "designation": "Lecturer",
+        "contact_number": "01758548019",
+        "email": "shorna.swe0162.c@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Arpita Paul",
+        "faculty_initial": "AP",
+        "employee_id": "723500164",
+        "designation": "Lecturer",
+        "contact_number": "01701472287",
+        "email": "arpita.swe0164.c@diu.edu.bd",
+        "room_no": "713",
+        "course": ""
+    },
+    {
+        "name": "Naima Ahmed Nup",
+        "faculty_initial": "NAN",
+        "employee_id": "723500169",
+        "designation": "Lecturer",
+        "contact_number": "01521104699",
+        "email": "naima.swe0169.c@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Joya Chakraborty",
+        "faculty_initial": "JC",
+        "employee_id": "721000183",
+        "designation": "Lecturer",
+        "contact_number": "01700968224",
+        "email": "joya.eng0183.c@diu.edu.bd",
+        "room_no": "",
+        "course": "ENG 101"
+    },
+    {
+        "name": "Md. Moshiur Rahman",
+        "faculty_initial": "MOR",
+        "employee_id": "721500523",
+        "designation": "Lecturer",
+        "contact_number": "01737445535",
+        "email": " moshiur.cse0523.c@diu.edu.bd",
+        "room_no": "",
+        "course": "Physics"
+    },
+    {
+        "name": "Md. Safik Ullah ",
+        "faculty_initial": "MSU",
+        "employee_id": "723500146",
+        "designation": "Lecturer",
+        "contact_number": "01678571144",
+        "email": "safik.swe0146.c@diu.edu.bd",
+        "room_no": "",
+        "course": "Math"
+    },
+    {
+        "name": "Md Islamul Alam",
+        "faculty_initial": "MIA",
+        "employee_id": "721900071",
+        "designation": "Lecturer",
+        "contact_number": "01402016404",
+        "email": "islamul.ice0071.c@diu.edu.bd",
+        "room_no": "",
+        "course": "Math"
+    },
+    {
+        "name": "Nurunnahar Any",
+        "faculty_initial": "",
+        "employee_id": "723500149",
+        "designation": "Lecturer",
+        "contact_number": "01759064016",
+        "email": "any.swe0149.c@diu.edu.bd",
+        "room_no": "",
+        "course": "Math"
+    },
+    {
+        "name": "Md. Sakib Ali Mazumder",
+        "faculty_initial": "SAM",
+        "employee_id": "723500165",
+        "designation": "Lecturer",
+        "contact_number": "01623072047",
+        "email": "sakib.swe0165.c@diu.edu.bd",
+        "room_no": "Campus store 2nd floor",
+        "course": ""
+    },
+    {
+        "name": "Dr. Ehteshamul Haque",
+        "faculty_initial": "DEH",
+        "employee_id": "723500151",
+        "designation": "Lecturer (Senior Scale)",
+        "contact_number": "01784020038",
+        "email": "ehteshamul.swe0151.c@diu.edu.bd",
+        "room_no": "705",
+        "course": "BNS101"
+    },
+    {
+        "name": "Liza Akter",
+        "faculty_initial": "LA",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01776477976",
+        "email": "lizak28.337@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Tahia Sarker",
+        "faculty_initial": "TS",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01764792934",
+        "email": "tahmidsarker212@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Joy Barman",
+        "faculty_initial": "JB",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01914793441",
+        "email": "joybarman7668@gmail.com",
+        "room_no": "",
+        "course": "Physics"
+    },
+    {
+        "name": "Mohammad Rifat-ul-Islam",
+        "faculty_initial": "MRI",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01521326176",
+        "email": "25rulislam@gmail.com",
+        "room_no": "",
+        "course": "Physics"
+    },
+    {
+        "name": "Khaled Mushahed Hossain",
+        "faculty_initial": "KMH",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01916824759",
+        "email": "khaledmushahedhossain@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Tahmina Meem ",
+        "faculty_initial": "TM",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01858014587",
+        "email": "tahminameem23@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Mahbubur Rahman",
+        "faculty_initial": "MRN",
+        "employee_id": "721500507",
+        "designation": "Lecturer",
+        "contact_number": "01797368331",
+        "email": "rahmanmahbub511@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Kazi Fatema",
+        "faculty_initial": "KF",
+        "employee_id": "721600037",
+        "designation": "Lecturer",
+        "contact_number": "01965599279",
+        "email": "kazifatema1975@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Nazmus Sakib",
+        "faculty_initial": "NS",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01717643264",
+        "email": "sakib.ipe.ruet@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Foysal Khandakar Joy",
+        "faculty_initial": "FkJ",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01521327794",
+        "email": "khjoyfoysal@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Nasim Mahmud Likhon",
+        "faculty_initial": "NML",
+        "employee_id": "723500170",
+        "designation": "Lecturer",
+        "contact_number": "01755132180",
+        "email": "nasimmahmud819@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "M. Shahriar Islam",
+        "faculty_initial": "MSI",
+        "employee_id": "723500166",
+        "designation": "Lecturer",
+        "contact_number": "01521722069",
+        "email": "shahriar.swe0166.c@diu.edu.bd",
+        "room_no": "",
+        "course": "BNS101"
+    },
+    {
+        "name": "Dr. Mohammed Nadir Bin Ali",
+        "faculty_initial": "NBA",
+        "employee_id": "710000006",
+        "designation": "Associate Professor",
+        "contact_number": "01713493003",
+        "email": "registrar@daffodilvarsity.edu.bd",
+        "room_no": "65104",
+        "course": ""
+    },
+    {
+        "name": "Dr. Md. Kamrul Hossain",
+        "faculty_initial": "MKH",
+        "employee_id": "710001306",
+        "designation": "Associate Professor",
+        "contact_number": "01711069636",
+        "email": "add-dor@daffodilvarsity.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Nusrat Jahan",
+        "faculty_initial": "NJ",
+        "employee_id": "710001642",
+        "designation": "Assistant Professor",
+        "contact_number": "01681745350",
+        "email": "nusrat.swe@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Sohana Islam Swarna",
+        "faculty_initial": "SIS",
+        "employee_id": "721000176",
+        "designation": "Lecturer",
+        "contact_number": "01317943319",
+        "email": "swarna.eng0176.c@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Shahadat",
+        "faculty_initial": "SDT",
+        "employee_id": "723500168",
+        "designation": "Associate Professor",
+        "contact_number": "01832854230",
+        "email": "sadat.shadow@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Fayazunnesa Chowdhury ",
+        "faculty_initial": "FC",
+        "employee_id": "",
+        "designation": "Lecturer",
+        "contact_number": "01737216620",
+        "email": "fayazunnesa.cse0405.c@diu.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Fazly Rabbi ",
+        "faculty_initial": "FE",
+        "employee_id": "723500097",
+        "designation": "Adjunct Faculty (Asst. Prof.)",
+        "contact_number": "01557243803",
+        "email": "fazlyrabbi77@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Annesha Ahmed",
+        "faculty_initial": "AA",
+        "employee_id": "723500096",
+        "designation": "Adjunct Faculty (Asst. Prof.)",
+        "contact_number": "01678083254",
+        "email": "annesha.dpsl@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Mirza Ashek Ahmed",
+        "faculty_initial": "MAA",
+        "employee_id": "723500124",
+        "designation": "Adjunct Faculty (Assistant Professor)",
+        "contact_number": "3475647001",
+        "email": "mirza99121@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Mr. N.M.I Raisul Bari",
+        "faculty_initial": "RB",
+        "employee_id": "723500095",
+        "designation": "Associate Professor",
+        "contact_number": "01711189438",
+        "email": "raisulb@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Saiful Islam",
+        "faculty_initial": "SI",
+        "employee_id": "723500143",
+        "designation": "Associate Professor",
+        "contact_number": "01711507033",
+        "email": "rajib.saiful84@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Shahadat",
+        "faculty_initial": "",
+        "employee_id": "723500168",
+        "designation": "Associate Professor",
+        "contact_number": "01711086787",
+        "email": "mshossain73@yahoo.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Shahidullah",
+        "faculty_initial": "",
+        "employee_id": "723500167",
+        "designation": "Assistant Professor",
+        "contact_number": "01303337785",
+        "email": "shahidullahbup@gmail.com",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md Alauddin",
+        "faculty_initial": "",
+        "employee_id": "710002696",
+        "designation": "",
+        "contact_number": "01847334937",
+        "email": "sweoffice@daffodilvarsity.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Jui Jenifer Gomes",
+        "faculty_initial": "",
+        "employee_id": "710003643",
+        "designation": "",
+        "contact_number": "01897644947",
+        "email": "sweoffice3@daffodilvarsity.edu.bd",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Tofayel Khan",
+        "faculty_initial": "",
+        "employee_id": "",
+        "designation": "",
+        "contact_number": "01837317473",
+        "email": "",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Alamin",
+        "faculty_initial": "",
+        "employee_id": "",
+        "designation": "",
+        "contact_number": "01632132599",
+        "email": "",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Ujjal Mia",
+        "faculty_initial": "",
+        "employee_id": "",
+        "designation": "",
+        "contact_number": "01811397228",
+        "email": "",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Zohir Khan",
+        "faculty_initial": "",
+        "employee_id": "",
+        "designation": "",
+        "contact_number": "01825928154",
+        "email": "",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Abdul Kaiyum Khan",
+        "faculty_initial": "",
+        "employee_id": "",
+        "designation": "",
+        "contact_number": "01921993655",
+        "email": "",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Sabbir ",
+        "faculty_initial": "",
+        "employee_id": "",
+        "designation": "",
+        "contact_number": "01862448946",
+        "email": "",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md. Rony",
+        "faculty_initial": "",
+        "employee_id": "",
+        "designation": "",
+        "contact_number": "01870290321",
+        "email": "",
+        "room_no": "",
+        "course": ""
+    },
+    {
+        "name": "Md Riyad",
+        "faculty_initial": "",
+        "employee_id": "",
+        "designation": "",
+        "contact_number": "01888689926",
+        "email": "",
+        "room_no": "",
+        "course": ""
+    }
+]

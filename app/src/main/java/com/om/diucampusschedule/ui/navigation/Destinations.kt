@@ -1,9 +1,6 @@
 package com.om.diucampusschedule.ui.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.ui.graphics.vector.ImageVector
+import com.om.diucampusschedule.R
 
 // Navigation Routes
 sealed class Screen(val route: String) {
@@ -28,42 +25,42 @@ sealed class Screen(val route: String) {
 sealed class BottomNavItem(
     val route: String,
     val title: String,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
+    val selectedIcon: Int,
+    val unselectedIcon: Int
 ) {
     object Today : BottomNavItem(
         route = Screen.Today.route,
         title = "Today",
-        selectedIcon = Icons.Filled.Today,
-        unselectedIcon = Icons.Outlined.Today
+        selectedIcon = R.drawable.today_filled,
+        unselectedIcon = R.drawable.today_outlined
     )
     
     object Routine : BottomNavItem(
         route = Screen.Routine.route,
-        title = "Routine",
-        selectedIcon = Icons.Filled.Schedule,
-        unselectedIcon = Icons.Outlined.Schedule
+        title = "Routines",
+        selectedIcon = R.drawable.routine_filled,
+        unselectedIcon = R.drawable.routine_outlined
     )
     
     object Empty : BottomNavItem(
         route = Screen.EmptyRooms.route,
-        title = "Empty",
-        selectedIcon = Icons.Filled.Room,
-        unselectedIcon = Icons.Outlined.Room
+        title = "Rooms",
+        selectedIcon = R.drawable.location_filled,
+        unselectedIcon = R.drawable.location_outlined
     )
     
     object Tasks : BottomNavItem(
         route = Screen.Tasks.route,
         title = "Tasks",
-        selectedIcon = Icons.Filled.Task,
-        unselectedIcon = Icons.Outlined.Task
+        selectedIcon = R.drawable.task_filled,
+        unselectedIcon = R.drawable.task_outlined
     )
     
     object Notes : BottomNavItem(
         route = Screen.Notes.route,
         title = "Notes",
-        selectedIcon = Icons.Filled.Note,
-        unselectedIcon = Icons.Outlined.Note
+        selectedIcon = R.drawable.notes_filled,
+        unselectedIcon = R.drawable.notes_outlined
     )
     
     companion object {
