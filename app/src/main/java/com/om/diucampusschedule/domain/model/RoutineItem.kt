@@ -65,6 +65,12 @@ data class RoutineItem(
             else -> 0
         }
     
+    /**
+     * Check if this routine item is on an off day
+     */
+    val isOnOffDay: Boolean
+        get() = DayOfWeek.isOffDay(day)
+    
     // Check if this routine item matches user's profile
     fun matchesUser(user: User): Boolean {
         val matches = when (user.role) {
@@ -72,19 +78,19 @@ data class RoutineItem(
                 // Students filter by: department + batch + section (including lab sections)
                 val deptMatch = department.equals(user.department, ignoreCase = true)
                 val batchMatch = batch.trim().equals(user.batch.trim(), ignoreCase = true)
-
+                
                 // Enhanced section matching logic
                 val userSection = user.section.trim().uppercase()
                 val itemSection = section.trim().uppercase()
-
+                
                 val sectionMatch = when {
                     // Exact section match (e.g., user: "A", item: "A")
                     itemSection == userSection -> true
-
+                    
                     // User has main section (e.g., "A") and item has lab sections (e.g., "A1", "A2")
-                    userSection.length == 1 && itemSection.startsWith(userSection) &&
-                            itemSection.length > 1 && itemSection.substring(1).all { it.isDigit() } -> true
-
+                    userSection.length == 1 && itemSection.startsWith(userSection) && 
+                    itemSection.length > 1 && itemSection.substring(1).all { it.isDigit() } -> true
+                    
                     else -> false
                 }
                 
@@ -145,12 +151,13 @@ data class RoutineSchedule(
         return dayRoutine.sortedBy { it.startTime }
     }
     
-    // Get all days that have classes for the user
+    // Get all days that have classes for the user (excluding off days like Friday)
     fun getActiveDaysForUser(user: User): List<String> {
         val userRoutine = getRoutineForUser(user)
         val activeDays = userRoutine
             .map { it.day }
             .distinct()
+            .filter { day -> !DayOfWeek.isOffDay(day) } // Exclude off days like Friday
             .sortedBy { day ->
                 when (day.lowercase()) {
                     "saturday" -> 1
@@ -159,24 +166,47 @@ data class RoutineSchedule(
                     "tuesday" -> 4
                     "wednesday" -> 5
                     "thursday" -> 6
-                    "friday" -> 7
                     else -> 8
                 }
             }
-        android.util.Log.d("RoutineSchedule", "Active days for user ${user.name}: $activeDays")
+        android.util.Log.d("RoutineSchedule", "Active days for user ${user.name}: $activeDays (Friday excluded as off day)")
         return activeDays
+    }
+    
+    /**
+     * Get all possible days including off days for comprehensive display
+     */
+    fun getAllDaysForUser(user: User): List<String> {
+        // Get all working days from enum
+        val workingDays = DayOfWeek.getWorkingDays().map { it.displayName }
+        
+        // Add Friday as off day
+        val allDays = workingDays + listOf("Friday")
+        
+        return allDays.sortedBy { day ->
+            when (day.lowercase()) {
+                "saturday" -> 1
+                "sunday" -> 2
+                "monday" -> 3
+                "tuesday" -> 4
+                "wednesday" -> 5
+                "thursday" -> 6
+                "friday" -> 7
+                else -> 8
+            }
+        }
     }
 }
 
-// Enum for days of the week
-enum class DayOfWeek(val displayName: String, val shortName: String) {
+// Enum for days of the week (excluding Friday - off day)
+enum class DayOfWeek(val displayName: String, val shortName: String, val isOffDay: Boolean = false) {
     SATURDAY("Saturday", "Sat"),
     SUNDAY("Sunday", "Sun"),
     MONDAY("Monday", "Mon"),
     TUESDAY("Tuesday", "Tue"),
     WEDNESDAY("Wednesday", "Wed"),
     THURSDAY("Thursday", "Thu"),
-    FRIDAY("Friday", "Fri");
+    FRIDAY("Friday", "Fri", isOffDay = true); // Friday is an off day
     
     companion object {
         fun fromString(day: String): DayOfWeek? {
@@ -193,6 +223,20 @@ enum class DayOfWeek(val displayName: String, val shortName: String) {
                 java.time.DayOfWeek.THURSDAY -> THURSDAY
                 java.time.DayOfWeek.FRIDAY -> FRIDAY
             }
+        }
+        
+        /**
+         * Get all working days (excluding off days)
+         */
+        fun getWorkingDays(): List<DayOfWeek> {
+            return values().filter { !it.isOffDay }
+        }
+        
+        /**
+         * Check if a given day is an off day
+         */
+        fun isOffDay(day: String): Boolean {
+            return fromString(day)?.isOffDay == true
         }
     }
 }

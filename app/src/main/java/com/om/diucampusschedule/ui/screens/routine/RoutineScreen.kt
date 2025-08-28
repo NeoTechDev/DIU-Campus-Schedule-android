@@ -32,6 +32,7 @@ import androidx.navigation.compose.rememberNavController
 import com.om.diucampusschedule.domain.model.DayOfWeek
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.UserRole
+import com.om.diucampusschedule.ui.components.OffDayDisplay
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
 import java.time.LocalTime
@@ -145,6 +146,7 @@ fun RoutineScreen(
                 else -> {
                     android.util.Log.d("RoutineScreen", "Showing RoutineContent with ${uiState.routineItems.size} items")
                     RoutineContent(
+                        allDays = uiState.allDays,
                         activeDays = uiState.activeDays,
                         selectedDay = uiState.selectedDay,
                         routineItems = uiState.routineItems,
@@ -297,6 +299,7 @@ private fun EmptyContent() {
 
 @Composable
 private fun RoutineContent(
+    allDays: List<String>,
     activeDays: List<String>,
     selectedDay: String,
     routineItems: List<RoutineItem>,
@@ -305,12 +308,13 @@ private fun RoutineContent(
     onDaySelected: (String) -> Unit,
     onRefresh: () -> Unit
 ) {
+    
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Day Selector
+        // Day Selector - show all days including Friday
         DaySelector(
-            activeDays = activeDays,
+            activeDays = allDays,
             selectedDay = selectedDay,
             onDaySelected = onDaySelected
         )
@@ -323,13 +327,20 @@ private fun RoutineContent(
             )
         }
 
-        // Routine List
+        // Content based on selected day
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (routineItems.isEmpty()) {
+            // Check if selected day is Friday (off day)
+            if (DayOfWeek.isOffDay(selectedDay)) {
+                item {
+                    OffDayDisplay(
+                        dayName = selectedDay
+                    )
+                }
+            } else if (routineItems.isEmpty()) {
                 item {
                     NoDayClassesContent(selectedDay)
                 }
@@ -371,6 +382,7 @@ private fun DaySelector(
         items(activeDays) { day ->
             val isSelected = day == selectedDay
             val isToday = day == DayOfWeek.getCurrentDay().displayName
+            val isOffDay = DayOfWeek.isOffDay(day)
 
             val dayOfWeek = DayOfWeek.fromString(day)
             val shortName = dayOfWeek?.shortName ?: day.take(3)
@@ -382,17 +394,22 @@ private fun DaySelector(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = when {
+                        isSelected && isOffDay -> MaterialTheme.colorScheme.tertiary
                         isSelected -> MaterialTheme.colorScheme.primary
+                        isToday && isOffDay -> MaterialTheme.colorScheme.tertiaryContainer
                         isToday -> MaterialTheme.colorScheme.primaryContainer
+                        isOffDay -> MaterialTheme.colorScheme.surfaceVariant
                         else -> MaterialTheme.colorScheme.surface
                     }
                 ),
                 elevation = CardDefaults.cardElevation(
                     defaultElevation = if (isSelected) 8.dp else 2.dp
                 ),
-                border = if (isToday && !isSelected) {
-                    BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                } else null
+                border = when {
+                    isToday && !isSelected && isOffDay -> BorderStroke(2.dp, MaterialTheme.colorScheme.tertiary)
+                    isToday && !isSelected -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    else -> null
+                }
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -404,8 +421,11 @@ private fun DaySelector(
                             fontWeight = FontWeight.Bold
                         ),
                         color = when {
+                            isSelected && isOffDay -> MaterialTheme.colorScheme.onTertiary
                             isSelected -> MaterialTheme.colorScheme.onPrimary
+                            isToday && isOffDay -> MaterialTheme.colorScheme.tertiary
                             isToday -> MaterialTheme.colorScheme.primary
+                            isOffDay -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                             else -> MaterialTheme.colorScheme.onSurface
                         }
                     )
@@ -415,8 +435,22 @@ private fun DaySelector(
                             text = "Today",
                             style = MaterialTheme.typography.labelSmall,
                             color = when {
+                                isSelected && isOffDay -> MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.8f)
                                 isSelected -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                isOffDay -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
                                 else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                            }
+                        )
+                    }
+                    
+                    if (isOffDay) {
+                        Text(
+                            text = "Off",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = when {
+                                isSelected -> MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.8f)
+                                isToday -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             }
                         )
                     }

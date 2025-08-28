@@ -2,14 +2,17 @@ package com.om.diucampusschedule.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.om.diucampusschedule.core.cache.RoutineCacheService
 import com.om.diucampusschedule.core.error.AppError
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.core.network.NetworkMonitor
 import com.om.diucampusschedule.domain.model.DayOfWeek
 import com.om.diucampusschedule.domain.model.RoutineItem
+import com.om.diucampusschedule.domain.model.RoutineSchedule
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetActiveDaysUseCase
+import com.om.diucampusschedule.domain.usecase.routine.GetAllDaysUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineForDayUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineUseCase
 import com.om.diucampusschedule.domain.usecase.routine.ObserveUserRoutineForDayUseCase
@@ -20,7 +23,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -34,11 +36,15 @@ data class RoutineUiState(
     val hasPendingSync: Boolean = false,
     val routineItems: List<RoutineItem> = emptyList(),
     val activeDays: List<String> = emptyList(),
+    val allDays: List<String> = emptyList(), // All days including off days
     val selectedDay: String = DayOfWeek.getCurrentDay().displayName,
     val currentUser: User? = null,
     val error: AppError? = null,
-    val lastSyncTime: Long = 0L
+    val lastSyncTime: Long = 0L,
+    val isCacheLoaded: Boolean = false // Track if initial cache is loaded
 )
+
+
 
 @HiltViewModel
 class RoutineViewModel @Inject constructor(
@@ -47,10 +53,12 @@ class RoutineViewModel @Inject constructor(
     private val getUserRoutineForDayUseCase: GetUserRoutineForDayUseCase,
     private val observeUserRoutineForDayUseCase: ObserveUserRoutineForDayUseCase,
     private val getActiveDaysUseCase: GetActiveDaysUseCase,
+    private val getAllDaysUseCase: GetAllDaysUseCase,
     private val syncRoutineUseCase: SyncRoutineUseCase,
     private val refreshRoutineUseCase: RefreshRoutineUseCase,
     private val networkMonitor: NetworkMonitor,
-    private val logger: AppLogger
+    private val logger: AppLogger,
+    private val cacheService: RoutineCacheService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RoutineUiState())
@@ -134,36 +142,69 @@ class RoutineViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             try {
-                // Load active days first
-                getActiveDaysUseCase(user).fold(
-                    onSuccess = { days ->
-                        logger.info(TAG, "Loaded ${days.size} active days: $days")
-                        _uiState.value = _uiState.value.copy(activeDays = days)
-                        
-                        // Set selected day to current day if it's active, otherwise first active day
-                        val currentDay = DayOfWeek.getCurrentDay().displayName
-                        val selectedDay = if (days.contains(currentDay)) {
-                            currentDay
-                        } else {
-                            days.firstOrNull() ?: currentDay
+                // Load all days (including off days) and active days
+                val allDays = getAllDaysUseCase()
+                
+                // Check cache first
+                val cachedActiveDays = cacheService.getCachedActiveDays(user)
+                if (cachedActiveDays != null) {
+                    logger.info(TAG, "Using cached active days: $cachedActiveDays")
+                    _uiState.value = _uiState.value.copy(
+                        activeDays = cachedActiveDays,
+                        allDays = allDays
+                    )
+                    
+                    // Set selected day and continue with preloading
+                    val currentDay = DayOfWeek.getCurrentDay().displayName
+                    val selectedDay = currentDay // Always select current day, even if it's an off day
+                    
+                    logger.debug(TAG, "Selected initial day: $selectedDay")
+                    _uiState.value = _uiState.value.copy(selectedDay = selectedDay)
+                    
+                    // Preload all days data for faster switching
+                    preloadAllDaysData()
+                    
+                    // Start observing routine for selected day (will be empty for off days)
+                    observeRoutineForDay(selectedDay)
+                } else {
+                    // Load from use case and cache
+                    getActiveDaysUseCase(user).fold(
+                        onSuccess = { activeDays ->
+                            logger.info(TAG, "Loaded ${activeDays.size} active days: $activeDays")
+                            logger.info(TAG, "All days including off days: $allDays")
+                            
+                            // Cache the active days
+                            cacheService.cacheActiveDays(user, activeDays)
+                            
+                            _uiState.value = _uiState.value.copy(
+                                activeDays = activeDays,
+                                allDays = allDays
+                            )
+                            
+                            // Set selected day to current day (including off days)
+                            val currentDay = DayOfWeek.getCurrentDay().displayName
+                            val selectedDay = currentDay // Always select current day, even if it's an off day
+                            
+                            logger.debug(TAG, "Selected initial day: $selectedDay")
+                            _uiState.value = _uiState.value.copy(selectedDay = selectedDay)
+                            
+                            // Preload all days data for faster switching
+                            preloadAllDaysData()
+                            
+                            // Start observing routine for selected day (will be empty for off days)
+                            observeRoutineForDay(selectedDay)
+                        },
+                        onFailure = { throwable ->
+                            val error = AppError.fromThrowable(throwable)
+                            logger.error(TAG, "Failed to load routine data", throwable)
+                            _uiState.value = _uiState.value.copy(
+                                error = error,
+                                isLoading = false,
+                                isOffline = !networkMonitor.isCurrentlyOnline()
+                            )
                         }
-                        
-                        logger.debug(TAG, "Selected initial day: $selectedDay")
-                        _uiState.value = _uiState.value.copy(selectedDay = selectedDay)
-                        
-                        // Start observing routine for selected day
-                        observeRoutineForDay(selectedDay)
-                    },
-                    onFailure = { throwable ->
-                        val error = AppError.fromThrowable(throwable)
-                        logger.error(TAG, "Failed to load routine data", throwable)
-                        _uiState.value = _uiState.value.copy(
-                            error = error,
-                            isLoading = false,
-                            isOffline = !networkMonitor.isCurrentlyOnline()
-                        )
-                    }
-                )
+                    )
+                }
                 
                 // Sync in background
                 syncRoutineDataSilently()
@@ -193,12 +234,17 @@ class RoutineViewModel @Inject constructor(
                 android.util.Log.e("RoutineViewModel", "Error observing routine for day: $day", throwable)
                 _uiState.value = _uiState.value.copy(
                     error = error,
+                    isLoading = false,
                     isOffline = !networkMonitor.isCurrentlyOnline()
                 )
             }
             .onEach { routineItems ->
                 logger.debug(TAG, "Received ${routineItems.size} routine items for $day")
                 android.util.Log.d("RoutineViewModel", "Received ${routineItems.size} routine items for $day")
+                
+                // Cache the data using singleton cache service
+                cacheService.cacheRoutineForDay(day, user, routineItems)
+                
                 _uiState.value = _uiState.value.copy(
                     routineItems = routineItems,
                     isLoading = false,
@@ -209,6 +255,46 @@ class RoutineViewModel @Inject constructor(
                 )
             }
             .launchIn(viewModelScope)
+    }
+    
+
+    
+    private fun preloadAllDaysData() {
+        val user = currentUser ?: return
+        
+        viewModelScope.launch {
+            try {
+                logger.debug(TAG, "Preloading all days data")
+                
+                // First check if we already have cached data
+                if (cacheService.preloadAllDaysFromSchedule(user)) {
+                    logger.debug(TAG, "Preloaded from existing full schedule cache")
+                    _uiState.value = _uiState.value.copy(isCacheLoaded = true)
+                    return@launch
+                }
+                
+                // If no full schedule cache, load from use case
+                getUserRoutineUseCase(user).fold(
+                    onSuccess = { allRoutineItems ->
+                        logger.debug(TAG, "Successfully preloaded ${allRoutineItems.size} routine items")
+                        
+                        // Group by day and cache using singleton service
+                        val groupedByDay = allRoutineItems.groupBy { it.day }
+                        groupedByDay.forEach { (day, items) ->
+                            cacheService.cacheRoutineForDay(day, user, items)
+                        }
+                        
+                        _uiState.value = _uiState.value.copy(isCacheLoaded = true)
+                        logger.debug(TAG, "Cached data for ${groupedByDay.keys.size} days")
+                    },
+                    onFailure = { error ->
+                        logger.error(TAG, "Failed to preload routine data", error)
+                    }
+                )
+            } catch (e: Exception) {
+                logger.error(TAG, "Error preloading routine data", e)
+            }
+        }
     }
 
     private fun observeNetworkChanges() {
@@ -228,13 +314,44 @@ class RoutineViewModel @Inject constructor(
 
     fun selectDay(day: String) {
         if (day != _uiState.value.selectedDay) {
+            val user = currentUser ?: return
             logger.debug(TAG, "Day selected: $day")
-            _uiState.value = _uiState.value.copy(
-                selectedDay = day,
-                isLoading = true,
-                error = null
-            )
-            observeRoutineForDay(day)
+            
+            // Check if we have cached data for this day
+            val cachedData = cacheService.getCachedRoutineForDay(day, user)
+            
+            if (cachedData != null) {
+                logger.debug(TAG, "Using cached data for day: $day (${cachedData.size} items)")
+                _uiState.value = _uiState.value.copy(
+                    selectedDay = day,
+                    routineItems = cachedData,
+                    isLoading = false,
+                    error = null
+                )
+            } else {
+                logger.debug(TAG, "No valid cache for day: $day, trying full schedule cache")
+                
+                // Try to get data from full schedule cache first
+                val fromFullSchedule = cacheService.getRoutineFromFullSchedule(day, user)
+                if (fromFullSchedule != null) {
+                    logger.debug(TAG, "Loaded day $day from full schedule cache (${fromFullSchedule.size} items)")
+                    _uiState.value = _uiState.value.copy(
+                        selectedDay = day,
+                        routineItems = fromFullSchedule,
+                        isLoading = false,
+                        error = null
+                    )
+                } else {
+                    logger.debug(TAG, "No cache available, loading from data source")
+                    _uiState.value = _uiState.value.copy(
+                        selectedDay = day,
+                        isLoading = true,
+                        error = null
+                    )
+                    // Fall back to observing data
+                    observeRoutineForDay(day)
+                }
+            }
             
             logger.logUserAction("day_selected", mapOf("day" to day))
         }
@@ -247,12 +364,19 @@ class RoutineViewModel @Inject constructor(
             logger.info(TAG, "Manual refresh triggered")
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
             
+            // Clear cache to ensure fresh data
+            clearCache()
+            
             try {
                 refreshRoutineUseCase(user.department).fold(
                     onSuccess = {
                         logger.info(TAG, "Routine refresh completed successfully")
                         // Reload active days and current routine
                         loadActiveDays()
+                        
+                        // Preload fresh data
+                        preloadAllDaysData()
+                        
                         _uiState.value = _uiState.value.copy(
                             isRefreshing = false,
                             isOffline = false,
@@ -337,23 +461,31 @@ class RoutineViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             try {
-                // Load active days first with the new profile
+                // Load all days (including off days) and active days with the new profile
+                val allDays = getAllDaysUseCase()
+                
                 getActiveDaysUseCase(user).fold(
-                    onSuccess = { days ->
-                        logger.info(TAG, "Loaded ${days.size} active days for updated profile: $days")
-                        android.util.Log.d("RoutineViewModel", "New active days after profile update: $days")
-                        _uiState.value = _uiState.value.copy(activeDays = days)
+                    onSuccess = { activeDays ->
+                        logger.info(TAG, "Loaded ${activeDays.size} active days for updated profile: $activeDays")
+                        android.util.Log.d("RoutineViewModel", "New active days after profile update: $activeDays")
                         
-                        // Set selected day to current day if it's active, otherwise first active day
+                        _uiState.value = _uiState.value.copy(
+                            activeDays = activeDays,
+                            allDays = allDays
+                        )
+                        
+                        // Set selected day to current day (including off days)
                         val currentDay = DayOfWeek.getCurrentDay().displayName
-                        val selectedDay = if (days.contains(currentDay)) {
-                            currentDay
-                        } else {
-                            days.firstOrNull() ?: currentDay
-                        }
+                        val selectedDay = currentDay // Always select current day, even if it's an off day
                         
                         logger.debug(TAG, "Selected day after profile update: $selectedDay")
                         _uiState.value = _uiState.value.copy(selectedDay = selectedDay)
+                        
+                        // Clear cache when profile changes
+                        clearCache()
+                        
+                        // Preload all days data for faster switching
+                        preloadAllDaysData()
                         
                         // Start observing routine for selected day with new profile
                         observeRoutineForDay(selectedDay)
@@ -479,9 +611,21 @@ class RoutineViewModel @Inject constructor(
         }
     }
 
+    private fun clearCache() {
+        logger.debug(TAG, "Clearing routine cache")
+        val user = currentUser
+        if (user != null) {
+            cacheService.clearCacheForUser(user)
+        } else {
+            cacheService.clearAllCache()
+        }
+        _uiState.value = _uiState.value.copy(isCacheLoaded = false)
+    }
+
     override fun onCleared() {
         super.onCleared()
         logger.debug(TAG, "RoutineViewModel cleared")
+        clearCache()
     }
 }
 
