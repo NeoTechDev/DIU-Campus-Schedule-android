@@ -40,6 +40,7 @@ import com.om.diucampusschedule.domain.model.UserRegistrationForm
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.core.network.rememberConnectivityState
 import com.om.diucampusschedule.ui.components.NetworkStatusMessage
+import com.om.diucampusschedule.ui.components.LabSectionChipGroup
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -67,7 +68,6 @@ fun RegistrationFormScreen(
     var nameError by remember { mutableStateOf<String?>(null) }
     var batchError by remember { mutableStateOf<String?>(null) }
     var sectionError by remember { mutableStateOf<String?>(null) }
-    var labSectionError by remember { mutableStateOf<String?>(null) }
     var initialError by remember { mutableStateOf<String?>(null) }
     
     // Network connectivity state
@@ -111,10 +111,7 @@ fun RegistrationFormScreen(
         return if (result.isValid) null else result.getErrorMessage()
     }
     
-    fun validateLabSection(value: String): String? {
-        val result = DynamicDataValidator.validateLabSection(value, validationData)
-        return if (result.isValid) null else result.getErrorMessage()
-    }
+
     
     fun validateInitial(value: String): String? {
         val result = DynamicDataValidator.validateTeacherInitial(value, validationData)
@@ -126,20 +123,19 @@ fun RegistrationFormScreen(
         val currentNameError = validateName(name)
         val currentBatchError = if (role == UserRole.STUDENT) validateBatch(batch) else null
         val currentSectionError = if (role == UserRole.STUDENT) validateSection(section) else null
-        val currentLabSectionError = if (role == UserRole.STUDENT) validateLabSection(labSection) else null
         val currentInitialError = if (role == UserRole.TEACHER) validateInitial(initial) else null
         
         nameError = currentNameError
         batchError = currentBatchError
         sectionError = currentSectionError
-        labSectionError = currentLabSectionError
         initialError = currentInitialError
         
         return currentNameError == null && 
                currentBatchError == null && 
                currentSectionError == null && 
-               currentLabSectionError == null && 
-               currentInitialError == null
+               currentInitialError == null &&
+               // For students, lab section must be selected if section is provided
+               (role != UserRole.STUDENT || section.isBlank() || labSection.isNotBlank())
     }
 
     // Note: Navigation logic is handled by AppNavigation.kt
@@ -341,20 +337,24 @@ fun RegistrationFormScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.clickable { 
                                         role = UserRole.TEACHER
-                                        // Clear student-specific validation errors
+                                        // Clear student-specific validation errors and data
                                         batchError = null
                                         sectionError = null
-                                        labSectionError = null
+                                        batch = ""
+                                        section = ""
+                                        labSection = ""
                                     }
                                 ) {
                                     RadioButton(
                                         selected = role == UserRole.TEACHER,
                                         onClick = { 
                                             role = UserRole.TEACHER
-                                            // Clear student-specific validation errors
+                                            // Clear student-specific validation errors and data
                                             batchError = null
                                             sectionError = null
-                                            labSectionError = null
+                                            batch = ""
+                                            section = ""
+                                            labSection = ""
                                         }
                                     )
                                     Text(
@@ -404,6 +404,13 @@ fun RegistrationFormScreen(
                                     onValueChange = { newValue ->
                                         section = newValue
                                         sectionError = validateSection(newValue)
+                                        // Clear lab section when section changes
+                                        if (labSection.isNotBlank()) {
+                                            val expectedLabSections = validationData.getLabSectionsForMainSection(newValue)
+                                            if (!expectedLabSections.contains(labSection)) {
+                                                labSection = ""
+                                            }
+                                        }
                                     },
                                     label = { Text("Section") },
                                     placeholder = { Text("A") },
@@ -422,26 +429,15 @@ fun RegistrationFormScreen(
                                 )
                             }
 
-                            OutlinedTextField(
-                                value = labSection,
-                                onValueChange = { newValue ->
-                                    labSection = newValue
-                                    labSectionError = validateLabSection(newValue)
+                            // Lab Section Chip Selection
+                            LabSectionChipGroup(
+                                mainSection = section,
+                                selectedLabSection = labSection,
+                                onLabSectionSelected = { selectedLabSection ->
+                                    labSection = selectedLabSection
                                 },
-                                label = { Text("Lab Section (Optional)") },
-                                placeholder = { Text("A1") },
                                 modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                isError = labSectionError != null,
-                                supportingText = when {
-                                    labSectionError != null -> {
-                                        { Text(text = labSectionError!!, color = MaterialTheme.colorScheme.error) }
-                                    }
-                                    validationData.validLabSections.isNotEmpty() -> {
-                                        { Text(text = "Available: ${validationData.validLabSections.sorted().joinToString(", ")}", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                                    }
-                                    else -> null
-                                }
+                                enabled = section.isNotBlank()
                             )
                         }
 

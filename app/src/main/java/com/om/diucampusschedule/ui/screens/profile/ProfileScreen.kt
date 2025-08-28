@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +36,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.om.diucampusschedule.core.network.rememberConnectivityState
 import com.om.diucampusschedule.core.validation.DataValidator
 import com.om.diucampusschedule.ui.components.NetworkStatusMessage
+import com.om.diucampusschedule.ui.components.LabSectionChipGroup
+import com.om.diucampusschedule.ui.components.LabSectionChipDisplay
 import com.om.diucampusschedule.core.validation.DynamicDataValidator
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRegistrationForm
@@ -70,7 +73,6 @@ fun ProfileScreen(
     var nameError by remember { mutableStateOf<String?>(null) }
     var batchError by remember { mutableStateOf<String?>(null) }
     var sectionError by remember { mutableStateOf<String?>(null) }
-    var labSectionError by remember { mutableStateOf<String?>(null) }
     var initialError by remember { mutableStateOf<String?>(null) }
     
     // Google Sign-In client for sign out
@@ -146,10 +148,7 @@ fun ProfileScreen(
         return if (result.isValid) null else result.getErrorMessage()
     }
     
-    fun validateLabSection(value: String): String? {
-        val result = DynamicDataValidator.validateLabSection(value, validationData)
-        return if (result.isValid) null else result.getErrorMessage()
-    }
+
     
     fun validateInitial(value: String): String? {
         val result = DynamicDataValidator.validateTeacherInitial(value, validationData)
@@ -161,20 +160,19 @@ fun ProfileScreen(
         val currentNameError = validateName(name)
         val currentBatchError = if (role == UserRole.STUDENT) validateBatch(batch) else null
         val currentSectionError = if (role == UserRole.STUDENT) validateSection(section) else null
-        val currentLabSectionError = if (role == UserRole.STUDENT) validateLabSection(labSection) else null
         val currentInitialError = if (role == UserRole.TEACHER) validateInitial(initial) else null
         
         nameError = currentNameError
         batchError = currentBatchError
         sectionError = currentSectionError
-        labSectionError = currentLabSectionError
         initialError = currentInitialError
         
         return currentNameError == null && 
                currentBatchError == null && 
                currentSectionError == null && 
-               currentLabSectionError == null && 
-               currentInitialError == null
+               currentInitialError == null &&
+               // For students, lab section must be selected if section is provided
+               (role != UserRole.STUDENT || section.isBlank() || labSection.isNotBlank())
     }
     
     DIUCampusScheduleTheme {
@@ -317,7 +315,6 @@ fun ProfileScreen(
                             nameError = null
                             batchError = null
                             sectionError = null
-                            labSectionError = null
                             initialError = null
                         },
                         modifier = Modifier.weight(1f)
@@ -447,7 +444,6 @@ fun ProfileScreen(
                                         // Clear validation errors when role changes
                                         batchError = null
                                         sectionError = null
-                                        labSectionError = null
                                         initialError = null
                                     }
                                     .padding(vertical = 8.dp)
@@ -469,17 +465,28 @@ fun ProfileScreen(
                                     .fillMaxWidth()
                                     .clickable { 
                                         role = UserRole.TEACHER
-                                        // Clear validation errors when role changes
+                                        // Clear validation errors and student data when role changes
                                         batchError = null
                                         sectionError = null
-                                        labSectionError = null
                                         initialError = null
+                                        batch = ""
+                                        section = ""
+                                        labSection = ""
                                     }
                                     .padding(vertical = 8.dp)
                             ) {
                                 RadioButton(
                                     selected = role == UserRole.TEACHER,
-                                    onClick = { role = UserRole.TEACHER }
+                                                                            onClick = { 
+                                            role = UserRole.TEACHER
+                                            // Clear validation errors and student data when role changes
+                                            batchError = null
+                                            sectionError = null
+                                            initialError = null
+                                            batch = ""
+                                            section = ""
+                                            labSection = ""
+                                        }
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
@@ -556,7 +563,16 @@ fun ProfileScreen(
                                 ProfileField(
                                     label = "Section",
                                     value = section,
-                                    onValueChange = { section = it },
+                                    onValueChange = { newValue ->
+                                        section = newValue
+                                        // Clear lab section when section changes
+                                        if (labSection.isNotBlank()) {
+                                            val expectedLabSections = validationData.getLabSectionsForMainSection(newValue)
+                                            if (!expectedLabSections.contains(labSection)) {
+                                                labSection = ""
+                                            }
+                                        }
+                                    },
                                     isEditing = isEditing,
                                     icon = Icons.Default.Class,
                                     placeholder = "A",
@@ -575,23 +591,54 @@ fun ProfileScreen(
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        ProfileField(
-                            label = "Lab Section",
-                            value = labSection,
-                            onValueChange = { labSection = it },
-                            isEditing = isEditing,
-                            icon = Icons.Default.Science,
-                            placeholder = "A1",
-                            errorMessage = labSectionError,
-                            onValidate = { input ->
-                                val error = validateLabSection(input)
-                                labSectionError = error
-                                error
-                            },
-                            helperText = if (validationData.validLabSections.isNotEmpty()) {
-                                "Available lab sections: ${validationData.validLabSections.sorted().joinToString(", ")}"
-                            } else null
-                        )
+                        // Lab Section Selection
+                        Column {
+                            Text(
+                                text = "Lab Section",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            
+                            if (isEditing) {
+                                LabSectionChipGroup(
+                                    mainSection = section,
+                                    selectedLabSection = labSection,
+                                    onLabSectionSelected = { selectedLabSection ->
+                                        labSection = selectedLabSection
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = section.isNotBlank(),
+                                    showLabel = false
+                                )
+                            } else {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Science,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    if (labSection.isNotEmpty()) {
+                                        LabSectionChipDisplay(
+                                            selectedLabSection = labSection
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "Not selected",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         // Teacher fields
                         ProfileField(
@@ -642,7 +689,7 @@ fun ProfileScreen(
                         )
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Logout,
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )

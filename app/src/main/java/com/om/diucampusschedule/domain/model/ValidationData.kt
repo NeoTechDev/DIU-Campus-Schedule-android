@@ -52,4 +52,23 @@ data class ValidationData(
     fun isDepartmentValid(department: String): Boolean {
         return validDepartments.contains(department.trim())
     }
+    
+    /**
+     * Generate lab sections for a main section (e.g., A -> [A1, A2], B -> [B1, B2])
+     */
+    fun getLabSectionsForMainSection(mainSection: String): List<String> {
+        val section = mainSection.trim().uppercase()
+        if (section.isBlank()) return emptyList()
+        
+        // Generate lab sections by appending 1 and 2 to the main section
+        return listOf("${section}1", "${section}2")
+    }
+    
+    /**
+     * Check if a lab section is valid for a given main section
+     */
+    fun isLabSectionValidForMainSection(mainSection: String, labSection: String): Boolean {
+        val validLabSectionsForSection = getLabSectionsForMainSection(mainSection)
+        return validLabSectionsForSection.contains(labSection.trim().uppercase())
+    }
 }
