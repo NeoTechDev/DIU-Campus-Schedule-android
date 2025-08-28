@@ -42,7 +42,12 @@ interface RoutineDao {
         WHERE scheduleId = :scheduleId 
         AND department = :department 
         AND (
-            (:isStudent = 1 AND batch = :batch AND (section = :section OR labSection = :labSection))
+           (:isStudent = 1 AND batch = :batch AND (
+                section = :section OR 
+                labSection = :labSection OR 
+                (LENGTH(:section) = 1 AND section LIKE (:section || '%') AND LENGTH(section) > 1 AND 
+                 CAST(SUBSTR(section, 2) AS INTEGER) IS NOT NULL)
+            ))
             OR 
             (:isStudent = 0 AND teacherInitial = :teacherInitial)
         )
@@ -75,7 +80,12 @@ interface RoutineDao {
         AND department = :department 
         AND day = :day
         AND (
-            (:isStudent = 1 AND batch = :batch AND (section = :section OR labSection = :labSection))
+           (:isStudent = 1 AND batch = :batch AND (
+                section = :section OR 
+                labSection = :labSection OR 
+                (LENGTH(:section) = 1 AND section LIKE (:section || '%') AND LENGTH(section) > 1 AND 
+                 CAST(SUBSTR(section, 2) AS INTEGER) IS NOT NULL)
+            ))
             OR 
             (:isStudent = 0 AND teacherInitial = :teacherInitial)
         )
@@ -98,7 +108,12 @@ interface RoutineDao {
         AND department = :department 
         AND day = :day
         AND (
-            (:isStudent = 1 AND batch = :batch AND (section = :section OR labSection = :labSection))
+            (:isStudent = 1 AND batch = :batch AND (
+                section = :section OR 
+                labSection = :labSection OR 
+                (LENGTH(:section) = 1 AND section LIKE (:section || '%') AND LENGTH(section) > 1 AND 
+                 CAST(SUBSTR(section, 2) AS INTEGER) IS NOT NULL)
+            ))
             OR 
             (:isStudent = 0 AND teacherInitial = :teacherInitial)
         )
@@ -120,7 +135,12 @@ interface RoutineDao {
         WHERE scheduleId = :scheduleId 
         AND department = :department 
         AND (
-            (:isStudent = 1 AND batch = :batch AND (section = :section OR labSection = :labSection))
+             (:isStudent = 1 AND batch = :batch AND (
+                section = :section OR 
+                labSection = :labSection OR 
+                (LENGTH(:section) = 1 AND section LIKE (:section || '%') AND LENGTH(section) > 1 AND 
+                 CAST(SUBSTR(section, 2) AS INTEGER) IS NOT NULL)
+            ))
             OR 
             (:isStudent = 0 AND teacherInitial = :teacherInitial)
         )

@@ -522,6 +522,12 @@ private fun RoutineItemCard(
                         ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = routineItem.batch + routineItem.section,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
 
                     if (isCurrentClass) {
                         Spacer(modifier = Modifier.width(8.dp))
