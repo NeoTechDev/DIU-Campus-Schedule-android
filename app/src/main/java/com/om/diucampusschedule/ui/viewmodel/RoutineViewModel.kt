@@ -34,7 +34,8 @@ data class RoutineUiState(
     val isRefreshing: Boolean = false,
     val isOffline: Boolean = false,
     val hasPendingSync: Boolean = false,
-    val routineItems: List<RoutineItem> = emptyList(),
+    val routineItems: List<RoutineItem> = emptyList(), // For selected day (backward compatibility)
+    val allRoutineItems: List<RoutineItem> = emptyList(), // All routine items for full week
     val activeDays: List<String> = emptyList(),
     val allDays: List<String> = emptyList(), // All days including off days
     val selectedDay: String = DayOfWeek.getCurrentDay().displayName,
@@ -269,7 +270,19 @@ class RoutineViewModel @Inject constructor(
                 // First check if we already have cached data
                 if (cacheService.preloadAllDaysFromSchedule(user)) {
                     logger.debug(TAG, "Preloaded from existing full schedule cache")
-                    _uiState.value = _uiState.value.copy(isCacheLoaded = true)
+                    
+                    // Get all cached routine items for the full week view
+                    val allDays = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+                    val allCachedItems = mutableListOf<RoutineItem>()
+                    allDays.forEach { day ->
+                        val dayItems = cacheService.getCachedRoutineForDay(day, user) ?: emptyList()
+                        allCachedItems.addAll(dayItems)
+                    }
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isCacheLoaded = true,
+                        allRoutineItems = allCachedItems
+                    )
                     return@launch
                 }
                 
@@ -284,7 +297,10 @@ class RoutineViewModel @Inject constructor(
                             cacheService.cacheRoutineForDay(day, user, items)
                         }
                         
-                        _uiState.value = _uiState.value.copy(isCacheLoaded = true)
+                        _uiState.value = _uiState.value.copy(
+                            isCacheLoaded = true,
+                            allRoutineItems = allRoutineItems // Store all routine items for full week view
+                        )
                         logger.debug(TAG, "Cached data for ${groupedByDay.keys.size} days")
                     },
                     onFailure = { error ->
