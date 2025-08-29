@@ -44,6 +44,7 @@ import com.om.diucampusschedule.domain.model.UserRegistrationForm
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
+import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 import com.om.diucampusschedule.ui.viewmodel.ValidationViewModel
 
@@ -180,6 +181,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
+                .run { ScreenConfig.run { withoutTopAppBar() } }
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally

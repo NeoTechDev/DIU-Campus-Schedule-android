@@ -4,22 +4,21 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +43,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -57,6 +57,8 @@ import coil.request.ImageRequest
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.navigation.Screen
+import com.om.diucampusschedule.ui.utils.ScreenConfig
+import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,9 +73,9 @@ fun TodayScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.statusBars)
+            .run { ScreenConfig.run { withTopAppBar() } }
     ) {
-        // Custom Top App Bar with minimal padding
+        // Custom Top App Bar with modern design
         CustomTopAppBar(
             user = authState.user,
             onProfileClick = {
@@ -87,18 +89,25 @@ fun TodayScreen(
             }
         )
         
+        // Subtle divider for modern look
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+        )
+        
         // Main content area (currently empty as requested)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
             // Content will be implemented later
             Text(
                 text = "Today Screen Content\nComing Soon...",
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -114,72 +123,60 @@ private fun CustomTopAppBar(
 ) {
     TopAppBar(
         title = {
-            // Left side: Menu + User profile section
+            // Left side: User profile section only
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { onProfileClick() },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Menu icon
-                IconButton(
-                    onClick = onMenuClick,
-                    modifier = Modifier.size(36.dp) // Reduce button size
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.nav_drawer_filled),
-                        contentDescription = "Menu",
-                        modifier = Modifier.size(18.dp), // Reduce icon size
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                // Clean profile picture
+                ProfilePicture(
+                    user = user,
+                    size = 36.dp
+                )
                 
-                // User profile section (clickable)
-                Row(
-                    modifier = Modifier
-                        .clickable { onProfileClick() }
-                        .padding(horizontal = 4.dp, vertical = 4.dp), // Reduce vertical padding
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Enhanced profile picture with AsyncImage
-                    ProfilePicture(
-                        user = user,
-                        size = 28.dp // Further reduce profile picture size
-                    )
-                    
-                    Spacer(modifier = Modifier.width(6.dp)) // Further reduce spacing
-                    
-                    // Enhanced user info with better UX
-                    UserInfoSection(
-                        user = user,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                Spacer(modifier = Modifier.width(10.dp))
+                
+                // Clean user info
+                UserInfoSection(
+                    user = user,
+                    modifier = Modifier.weight(1f)
+                )
             }
         },
         actions = {
-            // Right side: Notification icon (moved to actions for proper display)
+            // Right side: Notification + Menu icons
             IconButton(
-                onClick = onNotificationClick,
-                modifier = Modifier.size(36.dp) // Reduce button size
+                onClick = onNotificationClick
             ) {
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = "Notifications",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp) // Keep notification icon slightly larger
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(topbarIconSize)
+                )
+            }
+            
+            IconButton(
+                onClick = onMenuClick
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.nav_drawer_filled),
+                    contentDescription = "Menu",
+                    modifier = Modifier.size(topbarIconSize),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
+            containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
-            navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-            actionIconContentColor = MaterialTheme.colorScheme.onSurface
+            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        windowInsets = WindowInsets(0), // Remove default window insets
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp)
-            .height(50.dp) // Increase height slightly to accommodate "Active now" text
+        windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
+        modifier = Modifier.fillMaxWidth()
     )
 }
 
@@ -205,7 +202,7 @@ private fun ProfilePicture(
         targetValue = if (user?.role?.name == "STUDENT") {
             MaterialTheme.colorScheme.primary
         } else {
-            MaterialTheme.colorScheme.secondary
+            MaterialTheme.colorScheme.tertiary
         },
         animationSpec = tween(300),
         label = "background_color"
@@ -219,10 +216,15 @@ private fun ProfilePicture(
             .background(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        backgroundColor,
+                        backgroundColor.copy(alpha = 0.9f),
                         backgroundColor.copy(alpha = 0.7f)
                     )
                 )
+            )
+            .border(
+                width = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
+                shape = CircleShape
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -287,41 +289,33 @@ private fun UserInfoSection(
 ) {
     Column(
         modifier = modifier
-            .padding(vertical = 2.dp), // Add some vertical padding
-        verticalArrangement = Arrangement.spacedBy(1.dp) // Space between items
     ) {
-        // User name with enhanced styling
+        // User name - smaller and cleaner
         Text(
             text = user?.name ?: "User",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-        
-        // Enhanced subtitle with better formatting
+        // Department on second line
         Text(
-            text = getUserSubtitle(user),
+            text = user?.department ?: "",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            fontWeight = FontWeight.Medium
+            overflow = TextOverflow.Ellipsis
         )
-        
-        // Active status with better spacing and visibility
-        if (user != null) {
-            Text(
-                text = "Active now",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp // Slightly smaller to fit better
-                ),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                fontWeight = FontWeight.Normal,
-                maxLines = 1
-            )
-        }
+
+        // Batch-Section / Initial on first line
+        Text(
+            text = getUserBatchSection(user),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -330,29 +324,26 @@ private fun UserInfoSection(
  */
 private fun getUserInitials(user: User?): String {
     return if (user?.role?.name == "TEACHER") {
-        user.initial ?: "T"
+        user.initial.takeIf { !it.isNullOrBlank() } ?: "T"
     } else {
-        user?.name?.split(" ")?.take(2)?.mapNotNull { it.firstOrNull()?.uppercaseChar() }?.joinToString("") ?: "U"
+        user?.name?.split(" ")?.take(2)?.mapNotNull { it.firstOrNull()?.uppercaseChar() }?.joinToString("")?.takeIf { it.isNotBlank() } ?: "U"
     }
 }
 
 /**
- * Get user subtitle based on role
+ * Get batch-section for students or initial for teachers
  */
-private fun getUserSubtitle(user: User?): String {
+private fun getUserBatchSection(user: User?): String {
     return if (user?.role?.name == "STUDENT") {
-        val batch = user.batch ?: ""
-        val section = user.section ?: ""
-        val department = user.department ?: ""
-        "$batch-$section • $department"
+        val batch = user.batch.takeIf { !it.isNullOrBlank() } ?: ""
+        val section = user.section.takeIf { !it.isNullOrBlank() } ?: ""
+        val labSection = user.labSection.takeIf { !it.isNullOrBlank() } ?: ""
+        if (batch.isNotEmpty() && section.isNotEmpty()) {
+            "$batch-$section • $labSection"
+        } else ""
     } else {
-        val department = user?.department ?: ""
-        department
+        user?.initial.takeIf { !it.isNullOrBlank() } ?: ""
     }
-}
-
-private fun getProfilePictureUrl(user: User?): String {
-    return user?.profilePictureUrl ?: ""
 }
 
 @Preview(showBackground = true, showSystemUi = true)
