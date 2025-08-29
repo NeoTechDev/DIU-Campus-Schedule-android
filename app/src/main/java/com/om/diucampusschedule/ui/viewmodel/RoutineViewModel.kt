@@ -14,6 +14,7 @@ import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetActiveDaysUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetAllDaysUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetAllTimeSlotsUseCase
+import com.om.diucampusschedule.domain.usecase.routine.GetFullRoutineScheduleUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineForDayUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineUseCase
 import com.om.diucampusschedule.domain.usecase.routine.ObserveUserRoutineForDayUseCase
@@ -36,7 +37,9 @@ data class RoutineUiState(
     val isOffline: Boolean = false,
     val hasPendingSync: Boolean = false,
     val routineItems: List<RoutineItem> = emptyList(), // For selected day (backward compatibility)
-    val allRoutineItems: List<RoutineItem> = emptyList(), // All routine items for full week
+    val allRoutineItems: List<RoutineItem> = emptyList(), // All routine items for user's full week
+    val fullDatabaseRoutineItems: List<RoutineItem> = emptyList(), // Full database routine items for filtering
+    val filteredRoutineItems: List<RoutineItem> = emptyList(), // Filtered routine items
     val allTimeSlots: List<String> = emptyList(), // All time slots sorted chronologically
     val activeDays: List<String> = emptyList(),
     val allDays: List<String> = emptyList(), // All days including off days
@@ -44,7 +47,9 @@ data class RoutineUiState(
     val currentUser: User? = null,
     val error: AppError? = null,
     val lastSyncTime: Long = 0L,
-    val isCacheLoaded: Boolean = false // Track if initial cache is loaded
+    val isCacheLoaded: Boolean = false, // Track if initial cache is loaded
+    val currentFilter: RoutineFilter? = null, // Current applied filter
+    val isFiltered: Boolean = false // Whether a filter is currently applied
 )
 
 
@@ -58,6 +63,7 @@ class RoutineViewModel @Inject constructor(
     private val getActiveDaysUseCase: GetActiveDaysUseCase,
     private val getAllDaysUseCase: GetAllDaysUseCase,
     private val getAllTimeSlotsUseCase: GetAllTimeSlotsUseCase,
+    private val getFullRoutineScheduleUseCase: GetFullRoutineScheduleUseCase,
     private val syncRoutineUseCase: SyncRoutineUseCase,
     private val refreshRoutineUseCase: RefreshRoutineUseCase,
     private val networkMonitor: NetworkMonitor,
@@ -171,6 +177,9 @@ class RoutineViewModel @Inject constructor(
                     // Preload all days data for faster switching
                     preloadAllDaysData()
                     
+                    // Load full database routine for filtering
+                    loadFullDatabaseRoutine()
+                    
                     // Start observing routine for selected day (will be empty for off days)
                     observeRoutineForDay(selectedDay)
                 } else {
@@ -197,6 +206,9 @@ class RoutineViewModel @Inject constructor(
                             
                             // Preload all days data for faster switching
                             preloadAllDaysData()
+                            
+                            // Load full database routine for filtering
+                            loadFullDatabaseRoutine()
                             
                             // Start observing routine for selected day (will be empty for off days)
                             observeRoutineForDay(selectedDay)
@@ -399,6 +411,9 @@ class RoutineViewModel @Inject constructor(
                         // Load time slots
                         loadTimeSlots(user.department)
                         
+                        // Load full database routine for filtering
+                        loadFullDatabaseRoutine()
+                        
                         // Preload fresh data
                         preloadAllDaysData()
                         
@@ -586,6 +601,29 @@ class RoutineViewModel @Inject constructor(
             }
         }
     }
+    
+    private fun loadFullDatabaseRoutine() {
+        val user = currentUser ?: return
+        
+        viewModelScope.launch {
+            try {
+                logger.debug(TAG, "Loading full database routine for department: ${user.department}")
+                getFullRoutineScheduleUseCase(user.department).fold(
+                    onSuccess = { fullRoutineItems ->
+                        logger.info(TAG, "Loaded ${fullRoutineItems.size} full database routine items")
+                        _uiState.value = _uiState.value.copy(fullDatabaseRoutineItems = fullRoutineItems)
+                    },
+                    onFailure = { throwable ->
+                        logger.error(TAG, "Failed to load full database routine", throwable)
+                        // Don't set error state as it's not critical for filtering
+                    }
+                )
+            } catch (e: Exception) {
+                logger.error(TAG, "Error loading full database routine", e)
+                // Don't set error state as it's not critical for filtering
+            }
+        }
+    }
 
     fun clearError() {
         logger.debug(TAG, "Clearing error state")
@@ -671,6 +709,113 @@ class RoutineViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isCacheLoaded = false)
     }
 
+    // Filtering methods
+    fun applyFilter(filter: RoutineFilter) {
+        logger.debug(TAG, "Applying filter: ${filter.type} - ${filter.getDisplayText()}")
+        
+        val allItems = _uiState.value.fullDatabaseRoutineItems
+        
+        // If full database routine is not loaded yet, load it first
+        if (allItems.isEmpty()) {
+            logger.debug(TAG, "Full database routine not loaded yet, loading now...")
+            loadFullDatabaseRoutine()
+            return
+        }
+        val filteredItems = when (filter.type) {
+            FilterType.STUDENT -> {
+                allItems.filter { item ->
+                    // For student filter, match the provided criteria
+                    val batchMatches = if (filter.batch.isNullOrBlank()) {
+                        true // If no batch specified, don't filter by batch
+                    } else {
+                        item.batch.equals(filter.batch, ignoreCase = true)
+                    }
+                    
+                    val sectionMatches = if (filter.section.isNullOrBlank()) {
+                        true // If no section specified, don't filter by section
+                    } else {
+                        item.section.equals(filter.section, ignoreCase = true)
+                    }
+                    
+
+                    batchMatches && sectionMatches
+                }
+            }
+            FilterType.TEACHER -> {
+                allItems.filter { item ->
+                    // For teacher filter, initial must match exactly
+                    if (filter.teacherInitial.isNullOrBlank()) {
+                        false // Must provide a teacher initial
+                    } else {
+                        item.teacherInitial.equals(filter.teacherInitial, ignoreCase = true)
+                    }
+                }
+            }
+            FilterType.ROOM -> {
+                allItems.filter { item ->
+                    // For room filter, room must match exactly
+                    if (filter.room.isNullOrBlank()) {
+                        false // Must provide a room
+                    } else {
+                        item.room.equals(filter.room, ignoreCase = true)
+                    }
+                }
+            }
+        }
+        
+        _uiState.value = _uiState.value.copy(
+            filteredRoutineItems = filteredItems,
+            currentFilter = filter,
+            isFiltered = true
+        )
+        
+        // Debug logging for filtering
+        logger.debug(TAG, "Filter applied: ${filteredItems.size} items from ${allItems.size} total items match filter")
+        logger.debug(TAG, "Filter details - Type: ${filter.type}, Batch: '${filter.batch}', Section: '${filter.section}', Initial: '${filter.teacherInitial}', Room: '${filter.room}'")
+        
+        if (allItems.size <= 10) {
+            allItems.forEachIndexed { index, item ->
+                logger.debug(TAG, "Item $index: batch='${item.batch}', section='${item.section}', initial='${item.teacherInitial}', room='${item.room}', course='${item.courseCode}'")
+            }
+        }
+        
+        logger.info(TAG, "Filter applied: Found ${filteredItems.size} matches out of ${allItems.size} total items for ${filter.type} filter")
+    }
+
+    fun clearFilter() {
+        logger.debug(TAG, "Clearing filter")
+        _uiState.value = _uiState.value.copy(
+            filteredRoutineItems = emptyList(),
+            currentFilter = null,
+            isFiltered = false
+        )
+    }
+
+    fun getDisplayRoutineItems(): List<RoutineItem> {
+        return if (_uiState.value.isFiltered) {
+            _uiState.value.filteredRoutineItems
+        } else {
+            _uiState.value.allRoutineItems
+        }
+    }
+
+    fun getDefaultFilterText(): String {
+        val user = currentUser ?: return "All"
+        return when (user.role.name) {
+            "STUDENT" -> {
+                val batch = user.batch?.takeIf { it.isNotBlank() } ?: ""
+                val section = user.section?.takeIf { it.isNotBlank() } ?: ""
+                if (batch.isNotEmpty() && section.isNotEmpty()) {
+                    "$batch-$section"
+                } else "All"
+            }
+            "TEACHER" -> {
+                user.initial?.takeIf { it.isNotBlank() } ?: "All"
+            }
+            else -> "All"
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         logger.debug(TAG, "RoutineViewModel cleared")
@@ -680,4 +825,24 @@ class RoutineViewModel @Inject constructor(
 
 enum class ClassStatus {
     UPCOMING, ONGOING, COMPLETED, UNKNOWN
+}
+
+data class RoutineFilter(
+    val type: FilterType,
+    val batch: String? = null,
+    val section: String? = null,
+    val teacherInitial: String? = null,
+    val room: String? = null
+) {
+    fun getDisplayText(): String {
+        return when (type) {
+            FilterType.STUDENT -> "${batch}-${section}"
+            FilterType.TEACHER -> teacherInitial ?: ""
+            FilterType.ROOM -> room ?: ""
+        }
+    }
+}
+
+enum class FilterType {
+    STUDENT, TEACHER, ROOM
 }

@@ -39,9 +39,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -81,6 +83,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.UserRole
+import com.om.diucampusschedule.ui.components.FilterRoutinesBottomSheet
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
 import java.time.LocalTime
@@ -103,6 +106,7 @@ fun RoutineScreen(
     viewModel: RoutineViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showFilterSheet by remember { mutableStateOf(false) }
 
     // Debug logging
     LaunchedEffect(uiState) {
@@ -114,6 +118,8 @@ fun RoutineScreen(
         android.util.Log.d("RoutineScreen", "  - selectedDay: ${uiState.selectedDay}")
         android.util.Log.d("RoutineScreen", "  - routineItems: ${uiState.routineItems.size}")
         android.util.Log.d("RoutineScreen", "  - currentUser: ${uiState.currentUser?.name}")
+        android.util.Log.d("RoutineScreen", "  - isFiltered: ${uiState.isFiltered}")
+        android.util.Log.d("RoutineScreen", "  - filteredItems: ${uiState.filteredRoutineItems.size}")
     }
 
     // Animation states
@@ -142,24 +148,54 @@ fun RoutineScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         )
-                        if (uiState.currentUser != null) {
+                        // Filter indicator text
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FilterList,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                             Text(
-                                text = "${uiState.currentUser!!.department} • ${uiState.currentUser!!.role.name}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                text = if (uiState.isFiltered) {
+                                    uiState.currentFilter?.getDisplayText() ?: "Filtered"
+                                } else {
+                                    viewModel.getDefaultFilterText()
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
                 },
                 actions = {
-                    // Offline indicator
-                    if (uiState.isOffline) {
-                        Icon(
-                            imageVector = Icons.Default.CloudOff,
-                            contentDescription = "Offline Mode",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
+
+
+                    // Filter/Clear button
+                    if (uiState.isFiltered) {
+                        IconButton(
+                            onClick = { viewModel.clearFilter() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear Filter",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    } else {
+                        IconButton(
+                            onClick = { showFilterSheet = true }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FilterList,
+                                contentDescription = "Filter Routines",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
 
                     // Refresh button
@@ -180,6 +216,25 @@ fun RoutineScreen(
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
+            
+            // Offline indicator below top app bar
+            if (uiState.isOffline) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f))
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Offline Mode",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
 
             when {
                 uiState.isLoading && uiState.routineItems.isEmpty() -> {
@@ -217,7 +272,7 @@ fun RoutineScreen(
                         allDays = uiState.allDays,
                         activeDays = uiState.activeDays,
                         selectedDay = uiState.selectedDay,
-                        routineItems = uiState.allRoutineItems, // Use all routine items for full week view
+                        routineItems = viewModel.getDisplayRoutineItems(), // Use filtered or all routine items
                         allTimeSlots = uiState.allTimeSlots, // Pass the sorted time slots
                         isRefreshing = uiState.isRefreshing,
                         currentUser = uiState.currentUser,
@@ -227,6 +282,18 @@ fun RoutineScreen(
                 }
             }
         }
+    }
+    
+    // Filter Bottom Sheet
+    if (showFilterSheet) {
+        FilterRoutinesBottomSheet(
+            viewModel = viewModel,
+            onDismissRequest = { showFilterSheet = false },
+            onFilterApplied = { filter ->
+                viewModel.applyFilter(filter)
+                showFilterSheet = false
+            }
+        )
     }
 }
 
@@ -527,6 +594,8 @@ private fun TableRoutineView(
                         routineItems.filter { it.day.equals(day, ignoreCase = true) }
                     val firstClass = routinesForDay.minByOrNull { it.startTime ?: LocalTime.MIN }
                     val lastClass = routinesForDay.maxByOrNull { it.endTime ?: LocalTime.MAX }
+                    
+
 
                     if (routinesForDay.isNotEmpty()) {
                         Row(
