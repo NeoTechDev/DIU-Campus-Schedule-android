@@ -82,7 +82,6 @@ import androidx.navigation.compose.rememberNavController
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
-import com.om.diucampusschedule.ui.theme.RobotoFontFamily
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -93,10 +92,6 @@ private val AppPrimaryColorLight = Color(0xFF1A56DB)
 private val AppPrimaryColor = Color(0xFF1E3A8A)
 private val AppBackgroundColorLight = Color(0xFFF8FAFC)
 private val SoftBlue = Color(0xFF93C5FD)
-
-// Custom font family function
-@Composable
-private fun customFontFamily() = RobotoFontFamily
 
 // Time formatter for 12-hour format
 private val formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a", Locale.US)
@@ -497,10 +492,10 @@ private fun TableRoutineView(
                         ) {
                             Text(
                                 "Day/Time",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
                                 textAlign = TextAlign.Center,
-                                fontFamily = customFontFamily(),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -513,10 +508,10 @@ private fun TableRoutineView(
                             ) {
                                 Text(
                                     time,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
                                     textAlign = TextAlign.Center,
-                                    fontFamily = customFontFamily(),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
@@ -546,10 +541,10 @@ private fun TableRoutineView(
                             ) {
                                 Text(
                                     text = day.take(3).uppercase(),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
                                     textAlign = TextAlign.Center,
-                                    fontFamily = customFontFamily(),
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -595,10 +590,10 @@ private fun TableRoutineView(
                                             ) {
                                                 Text(
                                                     text = if (currentUser?.role == UserRole.TEACHER) "Counselling" else "Break",
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 14.sp,
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        fontWeight = FontWeight.Bold
+                                                    ),
                                                     color = if (!isSystemInDarkTheme()) Color.DarkGray else MaterialTheme.colorScheme.onSurface,
-                                                    fontFamily = customFontFamily(),
                                                     textAlign = TextAlign.Center
                                                 )
                                             }
@@ -629,10 +624,10 @@ private fun TableRoutineView(
                             ) {
                                 Text(
                                     text = day.take(3).uppercase(),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
                                     textAlign = TextAlign.Center,
-                                    fontFamily = customFontFamily(),
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -651,10 +646,11 @@ private fun TableRoutineView(
                             ) {
                                 Text(
                                     text = "OFF DAY",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    ),
                                     color = if (!isSystemInDarkTheme()) Color.Gray else MaterialTheme.colorScheme.onSurface,
-                                    fontFamily = customFontFamily(),
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -752,11 +748,11 @@ fun RoutineCell(
                     ) {
                         Text(
                             text = "${routine.courseCode} - ${routine.teacherInitial ?: ""}",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
                             color = Color.White,
-                            textAlign = TextAlign.Center,
-                            fontFamily = customFontFamily()
+                            textAlign = TextAlign.Center
                         )
                     }
                     Box(
@@ -792,11 +788,11 @@ fun RoutineCell(
                             ) {
                                 Text(
                                     text = routine.room ?: "",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
                                     color = Color.White,
-                                    textAlign = TextAlign.Center,
-                                    fontFamily = customFontFamily()
+                                    textAlign = TextAlign.Center
                                 )
                             }
                             Row(
@@ -822,11 +818,11 @@ fun RoutineCell(
                                 ) {
                                     Text(
                                         text = routine.batch ?: "",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
                                         color = SoftBlue,
-                                        textAlign = TextAlign.Center,
-                                        fontFamily = customFontFamily()
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                                 AnimatedVisibility(
@@ -841,11 +837,11 @@ fun RoutineCell(
                                 ) {
                                     Text(
                                         text = "-",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
                                         color = SoftBlue,
-                                        textAlign = TextAlign.Center,
-                                        fontFamily = customFontFamily()
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                                 AnimatedVisibility(
@@ -867,11 +863,11 @@ fun RoutineCell(
                                 ) {
                                     Text(
                                         text = routine.section ?: "",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
                                         color = SoftBlue,
-                                        textAlign = TextAlign.Center,
-                                        fontFamily = customFontFamily()
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                             }
