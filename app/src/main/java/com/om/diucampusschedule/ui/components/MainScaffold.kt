@@ -2,6 +2,7 @@ package com.om.diucampusschedule.ui.components
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -47,18 +48,14 @@ fun MainScaffold(
     if (showMainUI) {
         Scaffold(
             modifier = modifier,
-            topBar = {
-                MainTopAppBar(
-                    currentRoute = currentRoute,
-                    navController = navController
-                )
-            },
+            // topBar removed - individual screens will implement their own top app bars
             bottomBar = {
                 // Only show bottom nav for main app screens
                 if (isMainAppScreen(currentRoute)) {
                     DIUBottomNavigationBar(navController = navController)
                 }
-            }
+            },
+            contentWindowInsets = WindowInsets(0) // Remove all default window insets
         ) { paddingValues ->
             content(paddingValues)
         }

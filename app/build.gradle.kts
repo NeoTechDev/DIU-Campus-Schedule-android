@@ -91,7 +91,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     // Image Loading
-    implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation(libs.coil.compose)
 
     // Gson
     implementation("com.google.code.gson:gson:2.8.9")
