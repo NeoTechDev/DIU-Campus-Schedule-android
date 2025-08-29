@@ -19,6 +19,9 @@ interface RoutineRepository {
     // Get all active days for a user
     suspend fun getActiveDaysForUser(user: User): Result<List<String>>
     
+    // Get all time slots for a department
+    suspend fun getAllTimeSlotsForDepartment(department: String): Result<List<String>>
+    
     // Get the latest routine schedule for a department
     suspend fun getLatestScheduleForDepartment(department: String): Result<RoutineSchedule>
     

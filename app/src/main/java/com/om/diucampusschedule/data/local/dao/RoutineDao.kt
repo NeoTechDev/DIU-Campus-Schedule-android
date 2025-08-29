@@ -166,6 +166,31 @@ interface RoutineDao {
         teacherInitial: String = ""
     ): List<String>
     
+    @Query("""
+        SELECT DISTINCT time FROM routine_items 
+        WHERE scheduleId = :scheduleId 
+        AND department = :department 
+        ORDER BY 
+            CASE 
+                WHEN time LIKE '%AM%' THEN 
+                    CASE 
+                        WHEN CAST(SUBSTR(time, 1, INSTR(time, ':') - 1) AS INTEGER) = 12 THEN 0
+                        ELSE CAST(SUBSTR(time, 1, INSTR(time, ':') - 1) AS INTEGER)
+                    END
+                WHEN time LIKE '%PM%' THEN 
+                    CASE 
+                        WHEN CAST(SUBSTR(time, 1, INSTR(time, ':') - 1) AS INTEGER) = 12 THEN 12
+                        ELSE CAST(SUBSTR(time, 1, INSTR(time, ':') - 1) AS INTEGER) + 12
+                    END
+                ELSE 24
+            END,
+            CAST(SUBSTR(time, INSTR(time, ':') + 1, 2) AS INTEGER)
+    """)
+    suspend fun getAllTimeSlotsForDepartment(
+        scheduleId: String,
+        department: String
+    ): List<String>
+    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRoutineItems(items: List<RoutineEntity>)
     

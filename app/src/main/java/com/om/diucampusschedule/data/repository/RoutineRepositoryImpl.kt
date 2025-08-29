@@ -118,6 +118,42 @@ class RoutineRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getAllTimeSlotsForDepartment(department: String): Result<List<String>> {
+        return try {
+            android.util.Log.d("RoutineRepository", "Getting all time slots for department: $department")
+            
+            // First try to get from local storage
+            val localSchedule = localDataSource.getLatestScheduleForDepartment(department)
+            
+            if (localSchedule != null) {
+                val timeSlots = localDataSource.getAllTimeSlotsForDepartment(department)
+                android.util.Log.d("RoutineRepository", "Found ${timeSlots.size} time slots from cache")
+                
+                // Sync in background to ensure we have latest data
+                syncRoutineDataInBackground(department)
+                
+                Result.success(timeSlots)
+            } else {
+                // No local data, fetch from remote
+                android.util.Log.d("RoutineRepository", "No cached data, fetching from remote")
+                refreshFromRemote(department).fold(
+                    onSuccess = { _ ->
+                        val timeSlots = localDataSource.getAllTimeSlotsForDepartment(department)
+                        android.util.Log.d("RoutineRepository", "Found ${timeSlots.size} time slots from remote")
+                        Result.success(timeSlots)
+                    },
+                    onFailure = { error ->
+                        android.util.Log.e("RoutineRepository", "Remote fetch failed for time slots", error)
+                        Result.failure(error)
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("RoutineRepository", "Error getting time slots", e)
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getLatestScheduleForDepartment(department: String): Result<RoutineSchedule> {
         return try {
             // First try to get from local storage

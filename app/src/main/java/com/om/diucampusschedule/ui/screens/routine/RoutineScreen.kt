@@ -47,7 +47,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -194,7 +193,10 @@ fun RoutineScreen(
                 }
 
                 uiState.error != null && uiState.routineItems.isEmpty() -> {
-                    android.util.Log.d("RoutineScreen", "Showing ErrorContent: ${uiState.error!!.message}")
+                    android.util.Log.d(
+                        "RoutineScreen",
+                        "Showing ErrorContent: ${uiState.error!!.message}"
+                    )
                     ErrorContent(
                         error = uiState.error!!.message ?: "An unknown error occurred",
                         isOffline = uiState.isOffline,
@@ -204,17 +206,24 @@ fun RoutineScreen(
                 }
 
                 uiState.activeDays.isEmpty() -> {
-                    android.util.Log.d("RoutineScreen", "Showing EmptyContent (activeDays is empty)")
+                    android.util.Log.d(
+                        "RoutineScreen",
+                        "Showing EmptyContent (activeDays is empty)"
+                    )
                     EmptyContent()
                 }
 
                 else -> {
-                    android.util.Log.d("RoutineScreen", "Showing RoutineContent with ${uiState.routineItems.size} items")
+                    android.util.Log.d(
+                        "RoutineScreen",
+                        "Showing RoutineContent with ${uiState.routineItems.size} items"
+                    )
                     RoutineContent(
-            allDays = uiState.allDays,
+                        allDays = uiState.allDays,
                         activeDays = uiState.activeDays,
                         selectedDay = uiState.selectedDay,
-            routineItems = uiState.allRoutineItems, // Use all routine items for full week view
+                        routineItems = uiState.allRoutineItems, // Use all routine items for full week view
+                        allTimeSlots = uiState.allTimeSlots, // Pass the sorted time slots
                         isRefreshing = uiState.isRefreshing,
                         currentUser = uiState.currentUser,
                         onDaySelected = { day -> viewModel.selectDay(day) },
@@ -368,6 +377,7 @@ private fun RoutineContent(
     activeDays: List<String>,
     selectedDay: String,
     routineItems: List<RoutineItem>,
+    allTimeSlots: List<String>,
     isRefreshing: Boolean,
     currentUser: com.om.diucampusschedule.domain.model.User?,
     onDaySelected: (String) -> Unit,
@@ -387,7 +397,8 @@ private fun RoutineContent(
         // Table-style routine display - shows full weekly routine
         TableRoutineView(
             currentUser = currentUser,
-            routineItems = routineItems
+            routineItems = routineItems,
+            allTimeSlots = allTimeSlots
         )
     }
 }
@@ -395,22 +406,39 @@ private fun RoutineContent(
 @Composable
 private fun TableRoutineView(
     currentUser: com.om.diucampusschedule.domain.model.User?,
-    routineItems: List<RoutineItem>
+    routineItems: List<RoutineItem>,
+    allTimeSlots: List<String>
 ) {
     val days = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday")
-    
-    // Generate time slots from routine items
-    val startTimes = remember(routineItems) {
-        routineItems.mapNotNull { routine ->
+
+    // Use the pre-sorted time slots from database, fallback to routine-based generation if empty
+    val startTimes = if (allTimeSlots.isNotEmpty()) {
+        allTimeSlots.mapNotNull { timeSlot ->
             try {
-                val timeRange = routine.time.split(" - ")[0].trim()
-                timeRange
+                // Extract start time from the time slot (format: "08:30 AM - 10:00 AM")
+                timeSlot.split(" - ")[0].trim()
             } catch (e: Exception) {
                 null
             }
-        }.distinct().sorted()
+        }.distinct()
+    } else {
+        // Fallback to generating from routine items with proper sorting
+        routineItems.mapNotNull { routine ->
+            try {
+                routine.time.split(" - ")[0].trim()
+            } catch (e: Exception) {
+                null
+            }
+        }.distinct().sortedBy { timeString ->
+            try {
+                // Parse time string to LocalTime for proper chronological sorting
+                LocalTime.parse(timeString, formatter12HourUS)
+            } catch (e: Exception) {
+                LocalTime.MAX // Put invalid times at the end
+            }
+        }
     }
-    
+
     val scrollStateHorizontal = rememberScrollState()
     val scrollStateVertical = rememberScrollState()
 
@@ -444,8 +472,8 @@ private fun TableRoutineView(
         ) {
             Column(modifier = Modifier.verticalScroll(scrollStateVertical)) {
                 // Header row
-                    AnimatedVisibility(
-                        visible = true,
+                AnimatedVisibility(
+                    visible = true,
                     enter = scaleIn(
                         animationSpec = tween(
                             durationMillis = 400,
@@ -490,17 +518,18 @@ private fun TableRoutineView(
                                     textAlign = TextAlign.Center,
                                     fontFamily = customFontFamily(),
                                     color = MaterialTheme.colorScheme.onSurface
-                        )
+                                )
+                            }
+                        }
                     }
                 }
-            }
-        }
 
                 HorizontalDivider(thickness = 1.dp, color = Color.Gray)
 
                 // Days rows
                 days.forEachIndexed { index, day ->
-                    val routinesForDay = routineItems.filter { it.day.equals(day, ignoreCase = true) }
+                    val routinesForDay =
+                        routineItems.filter { it.day.equals(day, ignoreCase = true) }
                     val firstClass = routinesForDay.minByOrNull { it.startTime ?: LocalTime.MIN }
                     val lastClass = routinesForDay.maxByOrNull { it.endTime ?: LocalTime.MAX }
 
@@ -542,17 +571,20 @@ private fun TableRoutineView(
                                     } else {
                                         // Handle empty time slots
                                         var startTime: LocalTime? = null
-                                        try {
-                                            startTime = LocalTime.parse(time, formatter12HourUS)
+                                        startTime = try {
+                                            LocalTime.parse(time, formatter12HourUS)
                                         } catch (e: Exception) {
-                                            startTime = null
+                                            null
                                         }
                                         val firstClassTime = firstClass?.startTime ?: LocalTime.MIN
                                         val lastClassTime = lastClass?.endTime ?: LocalTime.MAX
 
-                                        if (startTime != null && startTime.isAfter(firstClassTime) && startTime.isBefore(lastClassTime)) {
+                                        if (startTime != null && startTime.isAfter(firstClassTime) && startTime.isBefore(
+                                                lastClassTime
+                                            )
+                                        ) {
                                             Box(
-        modifier = Modifier
+                                                modifier = Modifier
                                                     .width(110.dp)
                                                     .height(60.dp)
                                                     .background(
@@ -572,7 +604,7 @@ private fun TableRoutineView(
                                             }
                                         } else {
                                             Box(
-                modifier = Modifier
+                                                modifier = Modifier
                                                     .height(110.dp)
                                                     .padding(4.dp),
                                                 contentAlignment = Alignment.Center
@@ -582,7 +614,7 @@ private fun TableRoutineView(
                                 }
                             }
                         }
-                        Divider(color = Color.Gray, thickness = 1.dp)
+                        HorizontalDivider(thickness = 1.dp, color = Color.Gray)
                     } else {
                         // Display "OFF DAY" for days with no routines
                         Row(
@@ -594,8 +626,8 @@ private fun TableRoutineView(
                                     .width(110.dp)
                                     .padding(8.dp),
                                 contentAlignment = Alignment.Center
-                ) {
-                    Text(
+                            ) {
+                                Text(
                                     text = day.take(3).uppercase(),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.sp,
@@ -617,7 +649,7 @@ private fun TableRoutineView(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                        Text(
+                                Text(
                                     text = "OFF DAY",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp,
@@ -627,7 +659,7 @@ private fun TableRoutineView(
                                 )
                             }
                         }
-                        Divider(color = Color.Gray, thickness = 1.dp)
+                        HorizontalDivider(thickness = 1.dp, color = Color.Gray)
                     }
                 }
             }
@@ -657,14 +689,17 @@ fun RoutineCell(
         visible = cellVisible,
         enter = slideInVertically( // Slide in from bottom
             initialOffsetY = { it },
-            animationSpec = tween(durationMillis = 400, easing = EaseOutBack) // EaseOutBack for overshoot effect
+            animationSpec = tween(
+                durationMillis = 400,
+                easing = EaseOutBack
+            ) // EaseOutBack for overshoot effect
         ) + fadeIn(animationSpec = tween(durationMillis = 300, easing = EaseInOut)),
         exit = slideOutVertically( // Slide out to bottom
             targetOffsetY = { it },
             animationSpec = tween(durationMillis = 300, easing = EaseInOut)
         ) + fadeOut(animationSpec = tween(durationMillis = 250, easing = EaseInOut))
     ) {
-            Column(
+        Column(
             modifier = Modifier
                 .background(
                     color = Color.Transparent,
@@ -672,11 +707,11 @@ fun RoutineCell(
                 )
                 .padding(4.dp)
                 .scale(scale),
-                horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-                    Box(
-                        modifier = Modifier
+            Box(
+                modifier = Modifier
                     .width(120.dp)
                     .height(60.dp)
                     .background(
@@ -692,8 +727,8 @@ fun RoutineCell(
                         }
                     )
             ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier.padding(top = 2.dp)
                 ) {
@@ -702,10 +737,20 @@ fun RoutineCell(
                         visible = cellVisible,
                         enter = slideInHorizontally(
                             initialOffsetX = { -it },
-                            animationSpec = tween(durationMillis = 350, delayMillis = 50, easing = EaseInOut)
-                        ) + fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 50, easing = EaseInOut))
-                ) {
-                    Text(
+                            animationSpec = tween(
+                                durationMillis = 350,
+                                delayMillis = 50,
+                                easing = EaseInOut
+                            )
+                        ) + fadeIn(
+                            animationSpec = tween(
+                                durationMillis = 300,
+                                delayMillis = 50,
+                                easing = EaseInOut
+                            )
+                        )
+                    ) {
+                        Text(
                             text = "${routine.courseCode} - ${routine.teacherInitial ?: ""}",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 12.sp,
@@ -732,10 +777,20 @@ fun RoutineCell(
                                 visible = cellVisible,
                                 enter = slideInHorizontally(
                                     initialOffsetX = { it },
-                                    animationSpec = tween(durationMillis = 350, delayMillis = 100, easing = EaseInOut)
-                                ) + fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 100, easing = EaseInOut))
-                        ) {
-                            Text(
+                                    animationSpec = tween(
+                                        durationMillis = 350,
+                                        delayMillis = 100,
+                                        easing = EaseInOut
+                                    )
+                                ) + fadeIn(
+                                    animationSpec = tween(
+                                        durationMillis = 300,
+                                        delayMillis = 100,
+                                        easing = EaseInOut
+                                    )
+                                )
+                            ) {
+                                Text(
                                     text = routine.room ?: "",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp,
@@ -746,16 +801,26 @@ fun RoutineCell(
                             }
                             Row(
                                 horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 AnimatedVisibility(
                                     visible = cellVisible,
                                     enter = slideInHorizontally(
                                         initialOffsetX = { -it },
-                                        animationSpec = tween(durationMillis = 350, delayMillis = 150, easing = EaseInOut)
-                                    ) + fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 150, easing = EaseInOut))
+                                        animationSpec = tween(
+                                            durationMillis = 350,
+                                            delayMillis = 150,
+                                            easing = EaseInOut
+                                        )
+                                    ) + fadeIn(
+                                        animationSpec = tween(
+                                            durationMillis = 300,
+                                            delayMillis = 150,
+                                            easing = EaseInOut
+                                        )
+                                    )
                                 ) {
-                    Text(
+                                    Text(
                                         text = routine.batch ?: "",
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 14.sp,
@@ -766,9 +831,15 @@ fun RoutineCell(
                                 }
                                 AnimatedVisibility(
                                     visible = cellVisible,
-                                    enter = fadeIn(animationSpec = tween(durationMillis = 250, delayMillis = 200, easing = EaseInOut)) // Just fade for '-'
+                                    enter = fadeIn(
+                                        animationSpec = tween(
+                                            durationMillis = 250,
+                                            delayMillis = 200,
+                                            easing = EaseInOut
+                                        )
+                                    ) // Just fade for '-'
                                 ) {
-                    Text(
+                                    Text(
                                         text = "-",
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 14.sp,
@@ -781,22 +852,32 @@ fun RoutineCell(
                                     visible = cellVisible,
                                     enter = slideInHorizontally(
                                         initialOffsetX = { it },
-                                        animationSpec = tween(durationMillis = 350, delayMillis = 250, easing = EaseInOut)
-                                    ) + fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 250, easing = EaseInOut))
+                                        animationSpec = tween(
+                                            durationMillis = 350,
+                                            delayMillis = 250,
+                                            easing = EaseInOut
+                                        )
+                                    ) + fadeIn(
+                                        animationSpec = tween(
+                                            durationMillis = 300,
+                                            delayMillis = 250,
+                                            easing = EaseInOut
+                                        )
+                                    )
                                 ) {
-                    Text(
+                                    Text(
                                         text = routine.section ?: "",
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 14.sp,
                                         color = SoftBlue,
                                         textAlign = TextAlign.Center,
                                         fontFamily = customFontFamily()
-                    )
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
-            }
-        }
-    }
-}
             }
         }
     }

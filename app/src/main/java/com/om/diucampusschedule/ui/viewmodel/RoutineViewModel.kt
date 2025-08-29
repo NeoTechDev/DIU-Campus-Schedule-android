@@ -13,6 +13,7 @@ import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetActiveDaysUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetAllDaysUseCase
+import com.om.diucampusschedule.domain.usecase.routine.GetAllTimeSlotsUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineForDayUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineUseCase
 import com.om.diucampusschedule.domain.usecase.routine.ObserveUserRoutineForDayUseCase
@@ -36,6 +37,7 @@ data class RoutineUiState(
     val hasPendingSync: Boolean = false,
     val routineItems: List<RoutineItem> = emptyList(), // For selected day (backward compatibility)
     val allRoutineItems: List<RoutineItem> = emptyList(), // All routine items for full week
+    val allTimeSlots: List<String> = emptyList(), // All time slots sorted chronologically
     val activeDays: List<String> = emptyList(),
     val allDays: List<String> = emptyList(), // All days including off days
     val selectedDay: String = DayOfWeek.getCurrentDay().displayName,
@@ -55,6 +57,7 @@ class RoutineViewModel @Inject constructor(
     private val observeUserRoutineForDayUseCase: ObserveUserRoutineForDayUseCase,
     private val getActiveDaysUseCase: GetActiveDaysUseCase,
     private val getAllDaysUseCase: GetAllDaysUseCase,
+    private val getAllTimeSlotsUseCase: GetAllTimeSlotsUseCase,
     private val syncRoutineUseCase: SyncRoutineUseCase,
     private val refreshRoutineUseCase: RefreshRoutineUseCase,
     private val networkMonitor: NetworkMonitor,
@@ -145,6 +148,9 @@ class RoutineViewModel @Inject constructor(
             try {
                 // Load all days (including off days) and active days
                 val allDays = getAllDaysUseCase()
+                
+                // Load time slots for the department
+                loadTimeSlots(user.department)
                 
                 // Check cache first
                 val cachedActiveDays = cacheService.getCachedActiveDays(user)
@@ -390,6 +396,9 @@ class RoutineViewModel @Inject constructor(
                         // Reload active days and current routine
                         loadActiveDays()
                         
+                        // Load time slots
+                        loadTimeSlots(user.department)
+                        
                         // Preload fresh data
                         preloadAllDaysData()
                         
@@ -480,6 +489,9 @@ class RoutineViewModel @Inject constructor(
                 // Load all days (including off days) and active days with the new profile
                 val allDays = getAllDaysUseCase()
                 
+                // Load time slots for the department
+                loadTimeSlots(user.department)
+                
                 getActiveDaysUseCase(user).fold(
                     onSuccess = { activeDays ->
                         logger.info(TAG, "Loaded ${activeDays.size} active days for updated profile: $activeDays")
@@ -550,6 +562,27 @@ class RoutineViewModel @Inject constructor(
                 val error = AppError.fromThrowable(e)
                 logger.error(TAG, "Error reloading active days", e)
                 _uiState.value = _uiState.value.copy(error = error)
+            }
+        }
+    }
+    
+    private fun loadTimeSlots(department: String) {
+        viewModelScope.launch {
+            try {
+                logger.debug(TAG, "Loading time slots for department: $department")
+                getAllTimeSlotsUseCase(department).fold(
+                    onSuccess = { timeSlots ->
+                        logger.debug(TAG, "Loaded ${timeSlots.size} time slots")
+                        _uiState.value = _uiState.value.copy(allTimeSlots = timeSlots)
+                    },
+                    onFailure = { throwable ->
+                        logger.error(TAG, "Failed to load time slots", throwable)
+                        // Don't set error state for time slots as it's not critical
+                    }
+                )
+            } catch (e: Exception) {
+                logger.error(TAG, "Error loading time slots", e)
+                // Don't set error state for time slots as it's not critical
             }
         }
     }

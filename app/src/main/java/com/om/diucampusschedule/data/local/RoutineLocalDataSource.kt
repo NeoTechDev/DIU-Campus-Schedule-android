@@ -138,6 +138,15 @@ class RoutineLocalDataSource @Inject constructor(
         )
     }
 
+    suspend fun getAllTimeSlotsForDepartment(department: String): List<String> {
+        val schedule = getLatestScheduleForDepartment(department) ?: return emptyList()
+        
+        return routineDao.getAllTimeSlotsForDepartment(
+            scheduleId = schedule.id,
+            department = department
+        )
+    }
+
     // Sync status operations
     suspend fun updateSyncStatus(scheduleId: String, synced: Boolean) {
         routineDao.updateSyncStatus(scheduleId, synced, System.currentTimeMillis())
