@@ -192,6 +192,11 @@ fun RoutineScreen(
                 refreshRotation = refreshRotation,
                 onDownloadClick = { showDownloadSheet = true }
             )
+            // Subtle divider for modern look
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+            )
 
             // Offline indicator below top app bar
             if (uiState.isOffline) {
@@ -762,7 +767,7 @@ private fun CleanRoutineTopAppBar(
                     contentDescription = "Refresh",
                     modifier = Modifier
                         .graphicsLayer(rotationZ = refreshRotation)
-                        .size(topbarIconSize),
+                        .size(28.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -811,9 +816,9 @@ private fun RoutineInfoBar(
                 // Filter status with visual distinction
                 Text(
                     text = if (isFiltered) {
-                        "Filtered: ${currentFilter?.getDisplayText() ?: "Unknown"}"
+                        "Filtered: ${currentFilter?.getDisplayText()?.uppercase() ?: "Unknown"}"
                     } else {
-                        "Showing: $defaultFilterText"
+                        "Showing: ${defaultFilterText.uppercase()}"
                     },
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyLarge.copy(
