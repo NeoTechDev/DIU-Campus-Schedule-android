@@ -108,6 +108,7 @@ import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.theme.RobotoFontFamily
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
+import com.om.diucampusschedule.ui.viewmodel.FilterType
 import com.om.diucampusschedule.ui.viewmodel.RoutineFilter
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
 import kotlinx.coroutines.launch
@@ -343,6 +344,7 @@ fun RoutineScreen(
                         allTimeSlots = uiState.allTimeSlots, // Pass the sorted time slots
                         isRefreshing = uiState.isRefreshing,
                         currentUser = uiState.currentUser,
+                        currentFilter = uiState.currentFilter,
                         onDaySelected = { day -> viewModel.selectDay(day) },
                         onRefresh = { viewModel.refreshRoutine() },
                         onCourseClick = handleCourseClick
@@ -720,6 +722,7 @@ private fun RoutineContent(
     allTimeSlots: List<String>,
     isRefreshing: Boolean,
     currentUser: User?,
+    currentFilter: RoutineFilter?,
     onDaySelected: (String) -> Unit,
     onRefresh: () -> Unit,
     onCourseClick: (String) -> Unit = {}
@@ -738,6 +741,7 @@ private fun RoutineContent(
         // Table-style routine display - shows full weekly routine
         TableRoutineView(
             currentUser = currentUser,
+            currentFilter = currentFilter,
             routineItems = routineItems,
             allTimeSlots = allTimeSlots,
             onCourseClick = onCourseClick
@@ -918,6 +922,7 @@ private fun RoutineInfoBar(
 @Composable
 private fun TableRoutineView(
     currentUser: com.om.diucampusschedule.domain.model.User?,
+    currentFilter: RoutineFilter?,
     routineItems: List<RoutineItem>,
     allTimeSlots: List<String>,
     onCourseClick: (String) -> Unit = {}
@@ -1109,7 +1114,7 @@ private fun TableRoutineView(
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
-                                                    text = if (currentUser?.role == UserRole.TEACHER) "Counselling" else "Break",
+                                                    text = getBreakCounsellingText(currentUser, currentFilter),
                                                     style = MaterialTheme.typography.bodyMedium.copy(
                                                         fontWeight = FontWeight.Bold
                                                     ),
@@ -1408,6 +1413,30 @@ private fun slideInHorizontally(
         animationSpec = animationSpec,
         initialOffset = { IntOffset(x = initialOffsetX(it.width), y = 0) }
     )
+}
+
+/**
+ * Determines whether to show "Break" or "Counselling" based on filter context
+ * - When filtering by teacher (student viewing teacher's routine): show "Counselling"
+ * - When filtering by student (teacher viewing student's routine): show "Break" 
+ * - When no filter is applied: use logged-in user's role (current behavior)
+ */
+private fun getBreakCounsellingText(
+    currentUser: User?,
+    currentFilter: RoutineFilter?
+): String {
+    return when {
+        // When filter is applied, determine text based on filter type
+        currentFilter != null -> {
+            when (currentFilter.type) {
+                FilterType.TEACHER -> "Counselling" // Viewing teacher's schedule
+                FilterType.STUDENT -> "Break" // Viewing student's schedule  
+                FilterType.ROOM -> if (currentUser?.role == UserRole.TEACHER) "Counselling" else "Break"
+            }
+        }
+        // No filter applied, use logged-in user's role
+        else -> if (currentUser?.role == UserRole.TEACHER) "Counselling" else "Break"
+    }
 }
 
 @Preview(showBackground = true)

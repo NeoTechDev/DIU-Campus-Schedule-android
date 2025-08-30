@@ -891,9 +891,21 @@ class RoutineViewModel @Inject constructor(
                     val sectionMatches = if (filter.section.isNullOrBlank()) {
                         true // If no section specified, don't filter by section
                     } else {
-                        item.section.equals(filter.section, ignoreCase = true)
+                        // Use the same section matching logic as RoutineItem.matchesUser()
+                        val userSection = filter.section!!.trim().uppercase()
+                        val itemSection = item.section.trim().uppercase()
+                        
+                        when {
+                            // Exact section match (e.g., filter: "J", item: "J")
+                            itemSection == userSection -> true
+                            
+                            // User specified main section (e.g., "J") and item has lab sections (e.g., "J1", "J2")
+                            userSection.length == 1 && itemSection.startsWith(userSection) && 
+                            itemSection.length > 1 && itemSection.substring(1).all { it.isDigit() } -> true
+                            
+                            else -> false
+                        }
                     }
-                    
 
                     batchMatches && sectionMatches
                 }
@@ -929,6 +941,13 @@ class RoutineViewModel @Inject constructor(
         // Debug logging for filtering
         logger.debug(TAG, "Filter applied: ${filteredItems.size} items from ${allItems.size} total items match filter")
         logger.debug(TAG, "Filter details - Type: ${filter.type}, Batch: '${filter.batch}', Section: '${filter.section}', Initial: '${filter.teacherInitial}', Room: '${filter.room}'")
+        
+        // Debug: Show first few filtered items
+        if (filteredItems.isNotEmpty()) {
+            filteredItems.take(5).forEachIndexed { index, item ->
+                logger.debug(TAG, "Filtered item $index: courseCode='${item.courseCode}', batch='${item.batch}', section='${item.section}', initial='${item.teacherInitial}', room='${item.room}'")
+            }
+        }
         
         if (allItems.size <= 10) {
             allItems.forEachIndexed { index, item ->

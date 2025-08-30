@@ -135,7 +135,7 @@ fun FilterRoutinesBottomSheet(
                         isLoading = true
                         val filter = RoutineFilter(
                             type = FilterType.TEACHER,
-                            teacherInitial = teacherInitial.trim().lowercase()
+                            teacherInitial = teacherInitial.trim().uppercase()
                         )
                         android.util.Log.d("FilterBottomSheet", "Creating TEACHER filter: initial='${filter.teacherInitial}'")
                         onFilterApplied(filter)
@@ -284,7 +284,7 @@ fun FilterRoutinesBottomSheet(
                             errorMessage = errorMessage,
                             isLoading = isLoading,
                             onTeacherInitialChange = {
-                                teacherInitial = it.lowercase()
+                                teacherInitial = it.uppercase()
                                 if (errorMessage.isNotEmpty()) errorMessage = ""
                             }
                         )
@@ -585,7 +585,7 @@ private fun TeacherFilterContent(
         OutlinedTextField(
             value = teacherInitial,
             onValueChange = onTeacherInitialChange,
-            placeholder = { Text("e.g. \"mbm\"") },
+            placeholder = { Text("e.g. \"MBM\"") },
             isError = errorMessage.contains("Teacher", ignoreCase = true) || errorMessage.contains("initial", ignoreCase = true),
             supportingText = {
                 if (errorMessage.contains("Teacher", ignoreCase = true) || errorMessage.contains("initial", ignoreCase = true)) {
@@ -610,6 +610,7 @@ private fun TeacherFilterContent(
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Text,
+                capitalization = KeyboardCapitalization.Characters,
                 imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(
