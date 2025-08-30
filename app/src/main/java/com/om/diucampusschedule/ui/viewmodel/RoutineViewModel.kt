@@ -20,6 +20,7 @@ import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineUseCase
 import com.om.diucampusschedule.domain.usecase.routine.ObserveUserRoutineForDayUseCase
 import com.om.diucampusschedule.domain.usecase.routine.RefreshRoutineUseCase
 import com.om.diucampusschedule.domain.usecase.routine.SyncRoutineUseCase
+import com.om.diucampusschedule.domain.usecase.routine.CheckForUpdatesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,7 +50,9 @@ data class RoutineUiState(
     val lastSyncTime: Long = 0L,
     val isCacheLoaded: Boolean = false, // Track if initial cache is loaded
     val currentFilter: RoutineFilter? = null, // Current applied filter
-    val isFiltered: Boolean = false // Whether a filter is currently applied
+    val isFiltered: Boolean = false, // Whether a filter is currently applied
+    val hasAvailableUpdates: Boolean = false, // Whether updates are available
+    val updateMessage: String? = null // Message to show when updates are available
 )
 
 
@@ -66,6 +69,7 @@ class RoutineViewModel @Inject constructor(
     private val getFullRoutineScheduleUseCase: GetFullRoutineScheduleUseCase,
     private val syncRoutineUseCase: SyncRoutineUseCase,
     private val refreshRoutineUseCase: RefreshRoutineUseCase,
+    private val checkForUpdatesUseCase: CheckForUpdatesUseCase,
     private val networkMonitor: NetworkMonitor,
     private val logger: AppLogger,
     private val cacheService: RoutineCacheService
@@ -225,8 +229,16 @@ class RoutineViewModel @Inject constructor(
                     )
                 }
                 
-                // Sync in background
-                syncRoutineDataSilently()
+                // HYBRID STRATEGY: Check for updates after showing cached data
+                if (cachedActiveDays != null) {
+                    // Check for updates in background and notify user if available
+                    launch {
+                        checkForUpdatesAndNotify(user)
+                    }
+                } else {
+                    // Sync in background for fresh data load
+                    syncRoutineDataSilently()
+                }
                 
             } catch (e: Exception) {
                 val error = AppError.fromThrowable(e)
@@ -813,6 +825,78 @@ class RoutineViewModel @Inject constructor(
                 user.initial?.takeIf { it.isNotBlank() } ?: "All"
             }
             else -> "All"
+        }
+    }
+
+    private suspend fun checkForUpdatesAndNotify(user: User) {
+        try {
+            logger.debug(TAG, "Checking for updates in background")
+            
+            checkForUpdatesUseCase(user.department).fold(
+                onSuccess = { hasUpdates ->
+                    if (hasUpdates) {
+                        logger.info(TAG, "Updates available - notifying user")
+                        _uiState.value = _uiState.value.copy(
+                            hasAvailableUpdates = true,
+                            updateMessage = "New routine data is available. Pull down to refresh."
+                        )
+                        
+                        // Optionally auto-sync after a short delay
+                        viewModelScope.launch {
+                            kotlinx.coroutines.delay(2000) // Wait 2 seconds
+                            if (_uiState.value.hasAvailableUpdates) {
+                                logger.info(TAG, "Auto-syncing new data")
+                                performBackgroundSync(user)
+                            }
+                        }
+                    } else {
+                        logger.debug(TAG, "No updates available")
+                    }
+                },
+                onFailure = { error ->
+                    logger.warning(TAG, "Failed to check for updates in background", error)
+                }
+            )
+        } catch (e: Exception) {
+            logger.warning(TAG, "Error checking for updates", e)
+        }
+    }
+
+    private suspend fun performBackgroundSync(user: User) {
+        try {
+            syncRoutineUseCase(user.department).fold(
+                onSuccess = {
+                    logger.info(TAG, "Background sync completed - refreshing UI")
+                    
+                    // Clear cache and reload fresh data
+                    clearCache()
+                    
+                    // Reload active days
+                    getActiveDaysUseCase(user).fold(
+                        onSuccess = { activeDays ->
+                            cacheService.cacheActiveDays(user, activeDays)
+                            _uiState.value = _uiState.value.copy(
+                                activeDays = activeDays,
+                                hasAvailableUpdates = false,
+                                updateMessage = null,
+                                lastSyncTime = System.currentTimeMillis()
+                            )
+                            
+                            // Preload fresh data
+                            preloadAllDaysData()
+                            loadFullDatabaseRoutine()
+                        },
+                        onFailure = { error ->
+                            logger.warning(TAG, "Failed to reload active days after sync", error)
+                        }
+                    )
+                },
+                onFailure = { error ->
+                    logger.warning(TAG, "Background sync failed", error)
+                }
+            )
+        } catch (e: Exception) {
+            logger.warning(TAG, "Error during background sync", e)
         }
     }
 

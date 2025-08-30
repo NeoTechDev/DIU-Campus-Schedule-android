@@ -197,35 +197,65 @@ class RoutineRepositoryImpl @Inject constructor(
 
     override suspend fun syncRoutineData(department: String): Result<Unit> {
         return try {
-            // Get current local version
-            val localSchedule = localDataSource.getLatestScheduleForDepartment(department)
-            val currentVersion = localSchedule?.version ?: 0L
+            android.util.Log.d("RoutineRepository", "Starting sync for department: $department")
             
-            // Check if there are updates
+            // Get current local version - use the highest version between schedule and metadata
+            val localSchedule = localDataSource.getLatestScheduleForDepartment(department)
+            val localScheduleVersion = localSchedule?.version ?: 0L
+            
+            // Get the last known metadata version from local storage
+            val currentVersion = maxOf(localScheduleVersion, getLastKnownMetadataVersion())
+            
+            android.util.Log.d("RoutineRepository", "Current local version: $currentVersion (schedule: $localScheduleVersion)")
+            
+            // Check if there are updates (this now includes metadata version checking)
             remoteDataSource.checkForUpdates(department, currentVersion).fold(
                 onSuccess = { hasUpdates ->
+                    android.util.Log.d("RoutineRepository", "Has updates: $hasUpdates")
+                    
                     if (hasUpdates || localSchedule == null) {
                         // Fetch latest from remote
                         remoteDataSource.getLatestRoutineForDepartment(department).fold(
                             onSuccess = { remoteSchedule ->
+                                android.util.Log.d("RoutineRepository", "Successfully fetched remote schedule with ${remoteSchedule.schedule.size} items")
+                                
+                                // Update the schedule version with current metadata version if it's higher
+                                val metadataVersionResult = remoteDataSource.getCurrentMetadataVersion()
+                                val finalVersion = if (metadataVersionResult.isSuccess) {
+                                    maxOf(remoteSchedule.version, metadataVersionResult.getOrNull() ?: remoteSchedule.version)
+                                } else {
+                                    remoteSchedule.version
+                                }
+                                
+                                val updatedSchedule = remoteSchedule.copy(version = finalVersion)
+                                
                                 // Save to local storage
-                                localDataSource.saveSchedule(remoteSchedule)
+                                localDataSource.saveSchedule(updatedSchedule)
+                                
+                                // Store the metadata version for future comparisons
+                                storeLastKnownMetadataVersion(finalVersion)
+                                
+                                android.util.Log.d("RoutineRepository", "Sync completed successfully with version: $finalVersion")
                                 Result.success(Unit)
                             },
                             onFailure = { error ->
+                                android.util.Log.e("RoutineRepository", "Failed to fetch remote schedule", error)
                                 Result.failure(error)
                             }
                         )
                     } else {
                         // No updates needed
+                        android.util.Log.d("RoutineRepository", "No updates needed")
                         Result.success(Unit)
                     }
                 },
                 onFailure = { error ->
+                    android.util.Log.e("RoutineRepository", "Failed to check for updates", error)
                     Result.failure(error)
                 }
             )
         } catch (e: Exception) {
+            android.util.Log.e("RoutineRepository", "Sync error", e)
             Result.failure(e)
         }
     }
@@ -233,8 +263,10 @@ class RoutineRepositoryImpl @Inject constructor(
     override suspend fun checkForUpdates(department: String): Result<Boolean> {
         return try {
             val localSchedule = localDataSource.getLatestScheduleForDepartment(department)
-            val currentVersion = localSchedule?.version ?: 0L
+            val localScheduleVersion = localSchedule?.version ?: 0L
+            val currentVersion = maxOf(localScheduleVersion, getLastKnownMetadataVersion())
             
+            android.util.Log.d("RoutineRepository", "Checking updates with version: $currentVersion")
             remoteDataSource.checkForUpdates(department, currentVersion)
         } catch (e: Exception) {
             Result.failure(e)
@@ -289,5 +321,16 @@ class RoutineRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             // Ignore errors in background sync
         }
+    }
+
+    private fun getLastKnownMetadataVersion(): Long {
+        // This could be stored in SharedPreferences or local database
+        // For now, return 0 - in a real implementation, you'd retrieve this from persistent storage
+        return 0L
+    }
+
+    private fun storeLastKnownMetadataVersion(version: Long) {
+        // This should store the version in SharedPreferences or local database
+        // For now, this is a placeholder - in a real implementation, you'd persist this
     }
 }

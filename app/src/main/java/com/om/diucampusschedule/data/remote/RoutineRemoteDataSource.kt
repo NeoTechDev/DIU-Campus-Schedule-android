@@ -260,15 +260,67 @@ class RoutineRemoteDataSource @Inject constructor(
 
     suspend fun checkForUpdates(department: String, currentVersion: Long): Result<Boolean> {
         return try {
+            android.util.Log.d("RoutineDataSource", "Checking for updates - department: $department, currentVersion: $currentVersion")
+            
+            // Check both version-based updates and document count changes
             val querySnapshot = firestore.collection(ROUTINES_COLLECTION)
-                .whereEqualTo("department", department)
-                .whereGreaterThan("version", currentVersion)
-                .limit(1)
                 .get()
                 .await()
 
-            Result.success(querySnapshot.documents.isNotEmpty())
+            android.util.Log.d("RoutineDataSource", "Found ${querySnapshot.documents.size} total documents")
+
+            // Filter documents for the specific department and check for version updates
+            val departmentRoutines = querySnapshot.documents.filter { document ->
+                val documentData = document.data
+                
+                // Handle both new format (with nested data) and old format
+                val routineDepartment = if (documentData?.containsKey("data") == true) {
+                    val nestedData = documentData["data"] as? Map<String, Any>
+                    nestedData?.get("department") as? String
+                } else {
+                    documentData?.get("department") as? String
+                }
+                
+                routineDepartment == department
+            }
+
+            android.util.Log.d("RoutineDataSource", "Found ${departmentRoutines.size} documents for department: $department")
+
+            // Check for version-based updates
+            val hasVersionUpdates = departmentRoutines.any { document ->
+                val documentData = document.data
+                val documentVersion = if (documentData?.containsKey("data") == true) {
+                    // New format - version might be in nested data or at document level
+                    (documentData["version"] as? Long) ?: 
+                    ((documentData["data"] as? Map<String, Any>)?.get("version") as? Long) ?: 0L
+                } else {
+                    // Old format
+                    (documentData?.get("version") as? Long) ?: 0L
+                }
+                
+                android.util.Log.d("RoutineDataSource", "Document ${document.id} version: $documentVersion")
+                documentVersion > currentVersion
+            }
+
+            // Also check metadata version for deletions
+            val metadataDoc = firestore.collection("metadata").document("routine_version").get().await()
+            val metadataVersion = if (metadataDoc.exists()) {
+                (metadataDoc.data?.get("version") as? Long) ?: 0L
+            } else {
+                0L
+            }
+            
+            val hasMetadataUpdates = metadataVersion > currentVersion
+            
+            android.util.Log.d("RoutineDataSource", "Version updates: $hasVersionUpdates, Metadata updates: $hasMetadataUpdates")
+            android.util.Log.d("RoutineDataSource", "Metadata version: $metadataVersion vs current: $currentVersion")
+
+            val hasUpdates = hasVersionUpdates || hasMetadataUpdates
+            android.util.Log.d("RoutineDataSource", "Final result - Has updates: $hasUpdates")
+
+            Result.success(hasUpdates)
         } catch (e: Exception) {
+            android.util.Log.e("RoutineDataSource", "Error checking for updates", e)
             Result.failure(e)
         }
     }
@@ -332,6 +384,20 @@ class RoutineRemoteDataSource @Inject constructor(
                 .delete()
                 .await()
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getCurrentMetadataVersion(): Result<Long> {
+        return try {
+            val metadataDoc = firestore.collection("metadata").document("routine_version").get().await()
+            val version = if (metadataDoc.exists()) {
+                (metadataDoc.data?.get("version") as? Long) ?: 0L
+            } else {
+                0L
+            }
+            Result.success(version)
         } catch (e: Exception) {
             Result.failure(e)
         }
