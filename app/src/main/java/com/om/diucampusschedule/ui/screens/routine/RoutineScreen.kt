@@ -17,6 +17,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +28,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,17 +37,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.EventBusy
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -71,8 +73,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -81,10 +86,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.RoutineItem
+import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.components.FilterRoutinesBottomSheet
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
+import com.om.diucampusschedule.ui.utils.ScreenConfig
+import com.om.diucampusschedule.ui.viewmodel.RoutineFilter
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -143,84 +152,24 @@ fun RoutineScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
+                .run { ScreenConfig.run { withTopAppBar() } }
         ) {
-            // Top App Bar
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Class Routine",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                        // Filter indicator text
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FilterList,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = if (uiState.isFiltered) {
-                                    uiState.currentFilter?.getDisplayText() ?: "Filtered"
-                                } else {
-                                    viewModel.getDefaultFilterText()
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                },
-                actions = {
-
-
-                    // Filter/Clear button
-                    if (uiState.isFiltered) {
-                        IconButton(
-                            onClick = { viewModel.clearFilter() }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = "Clear Filter",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    } else {
-                        IconButton(
-                            onClick = { showFilterSheet = true }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FilterList,
-                                contentDescription = "Filter Routines",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    // Refresh button
-                    IconButton(
-                        onClick = { viewModel.refreshRoutine() },
-                        enabled = !uiState.isRefreshing
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            modifier = Modifier.graphicsLayer(rotationZ = refreshRotation),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+            // Clean Top App Bar - only essential info
+            CleanRoutineTopAppBar(
+                user = uiState.currentUser,
+                onRefreshClick = { viewModel.refreshRoutine() },
+                isRefreshing = uiState.isRefreshing,
+                refreshRotation = refreshRotation
+            )
+            
+            // Routine Info Bar - secondary information below top bar
+            RoutineInfoBar(
+                effectiveFrom = uiState.effectiveFrom,
+                isFiltered = uiState.isFiltered,
+                currentFilter = uiState.currentFilter,
+                defaultFilterText = viewModel.getDefaultFilterText(),
+                onFilterClick = { showFilterSheet = true },
+                onClearFilterClick = { viewModel.clearFilter() }
             )
             
             // Offline indicator below top app bar
@@ -264,7 +213,7 @@ fun RoutineScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = uiState.updateMessage!!,
+                            text = uiState.updateMessage ?: "",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium
@@ -563,6 +512,173 @@ private fun RoutineContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CleanRoutineTopAppBar(
+    user: User?,
+    onRefreshClick: () -> Unit,
+    isRefreshing: Boolean,
+    refreshRotation: Float
+) {
+    TopAppBar(
+        title = {
+            // Simple clean title section
+            Column {
+                Text(
+                    text = "Class Routine",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = user?.department ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        actions = {
+            // Only refresh button for clean design
+            IconButton(
+                onClick = onRefreshClick,
+                enabled = !isRefreshing
+            ) {
+                Icon(
+                                         imageVector = ImageVector.vectorResource(id = R.drawable.deep_sync),
+                    contentDescription = "Refresh",
+                    modifier = Modifier.graphicsLayer(rotationZ = refreshRotation),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun RoutineInfoBar(
+    effectiveFrom: String?,
+    isFiltered: Boolean,
+    currentFilter: RoutineFilter?,
+    defaultFilterText: String,
+    onFilterClick: () -> Unit,
+    onClearFilterClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Left side: Information
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Effective from date
+            if (!effectiveFrom.isNullOrBlank()) {
+                Text(
+                    text = "Effective from: $effectiveFrom",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Filter status with modern pill design
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = if (isFiltered) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                    .wrapContentWidth()
+            ) {
+                Text(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    text = if (isFiltered) {
+                        "Filtered: ${currentFilter?.getDisplayText() ?: "Invalid"}"
+                    } else {
+                        "View: $defaultFilterText"
+                    },
+                    color = if (isFiltered) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Right side: Action button
+        if (isFiltered) {
+            // Clear filter - outlined style
+            OutlinedButton(
+                onClick = onClearFilterClick,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = "Clear",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    )
+                )
+            }
+        } else {
+            // Filter button - filled style
+            Button(
+                onClick = onFilterClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = RoundedCornerShape(24.dp),
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 0.dp,
+                    pressedElevation = 2.dp
+                )
+            ) {
+                Text(
+                    text = "Filter",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    )
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun TableRoutineView(
     currentUser: com.om.diucampusschedule.domain.model.User?,
@@ -621,13 +737,13 @@ private fun TableRoutineView(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
-                .clip(shape = RoundedCornerShape(12.dp))
+                .padding(8.dp)
+                .clip(shape = RoundedCornerShape(8.dp))
                 .background(color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surface else AppBackgroundColorLight)
                 .border(
                     width = 2.dp,
                     color = AppPrimaryColorLight,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp)
                 )
         ) {
             Column(modifier = Modifier.verticalScroll(scrollStateVertical)) {
@@ -732,8 +848,7 @@ private fun TableRoutineView(
                                         }
                                     } else {
                                         // Handle empty time slots
-                                        var startTime: LocalTime? = null
-                                        startTime = try {
+                                        val startTime = try {
                                             LocalTime.parse(time, formatter12HourUS)
                                         } catch (e: Exception) {
                                             null
@@ -914,7 +1029,7 @@ fun RoutineCell(
                         )
                     ) {
                         Text(
-                            text = "${routine.courseCode} - ${routine.teacherInitial ?: ""}",
+                            text = "${routine.courseCode} - ${routine.teacherInitial.orEmpty()}",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.SemiBold
                             ),
@@ -954,7 +1069,7 @@ fun RoutineCell(
                                 )
                             ) {
                                 Text(
-                                    text = routine.room ?: "",
+                                    text = routine.room.orEmpty(),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold
                                     ),
@@ -984,7 +1099,7 @@ fun RoutineCell(
                                     )
                                 ) {
                                     Text(
-                                        text = routine.batch ?: "",
+                                        text = routine.batch.orEmpty(),
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontWeight = FontWeight.SemiBold
                                         ),
@@ -1029,7 +1144,7 @@ fun RoutineCell(
                                     )
                                 ) {
                                     Text(
-                                        text = routine.section ?: "",
+                                        text = routine.section.orEmpty(),
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontWeight = FontWeight.SemiBold
                                         ),

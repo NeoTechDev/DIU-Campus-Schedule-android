@@ -59,7 +59,8 @@ data class RoutineUiState(
     val isMaintenanceMode: Boolean = false, // Whether the system is in maintenance mode
     val maintenanceMessage: String? = null, // Message to show during maintenance
     val isSemesterBreak: Boolean = false, // Whether it's semester break
-    val updateType: String? = null // Type of maintenance update (maintenance_enabled, semester_break, etc.)
+    val updateType: String? = null, // Type of maintenance update (maintenance_enabled, semester_break, etc.)
+    val effectiveFrom: String? = null // Effective from date of the current routine
 )
 
 
@@ -729,7 +730,13 @@ class RoutineViewModel @Inject constructor(
                 getFullRoutineScheduleUseCase(user.department).fold(
                     onSuccess = { fullRoutineItems ->
                         logger.info(TAG, "Loaded ${fullRoutineItems.size} full database routine items")
-                        _uiState.value = _uiState.value.copy(fullDatabaseRoutineItems = fullRoutineItems)
+                        // Extract effectiveFrom from the first routine item
+                        val effectiveFrom = fullRoutineItems.firstOrNull()?.effectiveFrom?.takeIf { it.isNotBlank() }
+                        logger.debug(TAG, "Extracted effectiveFrom: $effectiveFrom")
+                        _uiState.value = _uiState.value.copy(
+                            fullDatabaseRoutineItems = fullRoutineItems,
+                            effectiveFrom = effectiveFrom
+                        )
                     },
                     onFailure = { throwable ->
                         logger.error(TAG, "Failed to load full database routine", throwable)

@@ -76,6 +76,7 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.volley)
     implementation(libs.androidx.foundation)
+    implementation(libs.material3)
     // implementation(libs.play.services.measurement.api) // Removed this line
     ksp(libs.hilt.compiler)
 
