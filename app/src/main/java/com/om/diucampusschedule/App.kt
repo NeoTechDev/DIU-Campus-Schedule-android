@@ -5,6 +5,7 @@ import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
 class App : Application() {
+    // This is a new comment
 
     override fun onCreate() {
         super.onCreate()

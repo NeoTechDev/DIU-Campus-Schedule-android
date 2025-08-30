@@ -219,6 +219,10 @@ class RoutineRepositoryImpl @Inject constructor(
                             onSuccess = { remoteSchedule ->
                                 android.util.Log.d("RoutineRepository", "Successfully fetched remote schedule with ${remoteSchedule.schedule.size} items")
                                 
+                                // IMPORTANT: Clear existing data first to handle deletions properly
+                                localDataSource.clearRoutinesForDepartment(department)
+                                android.util.Log.d("RoutineRepository", "Cleared existing local data before saving new data")
+                                
                                 // Update the schedule version with current metadata version if it's higher
                                 val metadataVersionResult = remoteDataSource.getCurrentMetadataVersion()
                                 val finalVersion = if (metadataVersionResult.isSuccess) {
@@ -229,7 +233,7 @@ class RoutineRepositoryImpl @Inject constructor(
                                 
                                 val updatedSchedule = remoteSchedule.copy(version = finalVersion)
                                 
-                                // Save to local storage
+                                // Save fresh data to local storage
                                 localDataSource.saveSchedule(updatedSchedule)
                                 
                                 // Store the metadata version for future comparisons
@@ -240,7 +244,22 @@ class RoutineRepositoryImpl @Inject constructor(
                             },
                             onFailure = { error ->
                                 android.util.Log.e("RoutineRepository", "Failed to fetch remote schedule", error)
-                                Result.failure(error)
+                                
+                                // Handle case where all routines might have been deleted
+                                if (error.message?.contains("No documents found", ignoreCase = true) == true) {
+                                    android.util.Log.w("RoutineRepository", "No remote data - clearing local data for deletions")
+                                    localDataSource.clearRoutinesForDepartment(department)
+                                    
+                                    // Update metadata version even for deletions
+                                    val metadataVersionResult = remoteDataSource.getCurrentMetadataVersion()
+                                    if (metadataVersionResult.isSuccess) {
+                                        storeLastKnownMetadataVersion(metadataVersionResult.getOrNull() ?: System.currentTimeMillis())
+                                    }
+                                    
+                                    Result.success(Unit)
+                                } else {
+                                    Result.failure(error)
+                                }
                             }
                         )
                     } else {
@@ -275,23 +294,55 @@ class RoutineRepositoryImpl @Inject constructor(
 
     override suspend fun refreshFromRemote(department: String): Result<RoutineSchedule> {
         return try {
+            android.util.Log.d("RoutineRepository", "Refreshing from remote for department: $department")
+            
             remoteDataSource.getLatestRoutineForDepartment(department).fold(
                 onSuccess = { remoteSchedule ->
-                    // Save to local storage
+                    android.util.Log.d("RoutineRepository", "Remote schedule fetched with ${remoteSchedule.schedule.size} items")
+                    
+                    // IMPORTANT: Clear existing data first to handle deletions
+                    localDataSource.clearRoutinesForDepartment(department)
+                    android.util.Log.d("RoutineRepository", "Cleared existing local data for department: $department")
+                    
+                    // Save fresh data to local storage
                     localDataSource.saveSchedule(remoteSchedule)
+                    android.util.Log.d("RoutineRepository", "Saved fresh schedule to local storage")
+                    
                     Result.success(remoteSchedule)
                 },
                 onFailure = { error ->
-                    // If remote fails, try to return local data
-                    val localSchedule = localDataSource.getLatestScheduleForDepartment(department)
-                    if (localSchedule != null) {
-                        Result.success(localSchedule)
+                    android.util.Log.e("RoutineRepository", "Remote fetch failed", error)
+                    
+                    // Check if this might be a "no data" scenario (all routines deleted)
+                    if (error.message?.contains("No documents found", ignoreCase = true) == true) {
+                        android.util.Log.w("RoutineRepository", "No remote data found - clearing local data")
+                        localDataSource.clearRoutinesForDepartment(department)
+                        
+                        // Return empty schedule instead of error
+                        val emptySchedule = RoutineSchedule(
+                            id = "",
+                            semester = "Unknown",
+                            department = department,
+                            effectiveFrom = "",
+                            schedule = emptyList(),
+                            version = System.currentTimeMillis(),
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        Result.success(emptySchedule)
                     } else {
-                        Result.failure(error)
+                        // If remote fails for other reasons, try to return local data
+                        val localSchedule = localDataSource.getLatestScheduleForDepartment(department)
+                        if (localSchedule != null) {
+                            android.util.Log.d("RoutineRepository", "Using local fallback data")
+                            Result.success(localSchedule)
+                        } else {
+                            Result.failure(error)
+                        }
                     }
                 }
             )
         } catch (e: Exception) {
+            android.util.Log.e("RoutineRepository", "Exception in refreshFromRemote", e)
             Result.failure(e)
         }
     }

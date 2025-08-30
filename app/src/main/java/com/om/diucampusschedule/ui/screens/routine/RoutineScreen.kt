@@ -297,7 +297,11 @@ fun RoutineScreen(
                         "RoutineScreen",
                         "Showing EmptyContent (activeDays is empty)"
                     )
-                    EmptyContent()
+                    EmptyContent(
+                        isMaintenanceMode = uiState.isMaintenanceMode,
+                        maintenanceMessage = uiState.maintenanceMessage,
+                        isSemesterBreak = uiState.isSemesterBreak
+                    )
                 }
 
                 else -> {
@@ -432,7 +436,11 @@ private fun ErrorContent(
 }
 
 @Composable
-private fun EmptyContent() {
+private fun EmptyContent(
+    isMaintenanceMode: Boolean = false,
+    maintenanceMessage: String? = null,
+    isSemesterBreak: Boolean = false
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -441,31 +449,94 @@ private fun EmptyContent() {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(24.dp)
         ) {
+            // Different icons and messages based on the state
+            val (icon, iconColor, title, message) = when {
+                isMaintenanceMode && isSemesterBreak -> {
+                    Quadruple(
+                        Icons.Default.EventBusy,
+                        MaterialTheme.colorScheme.primary,
+                        "Semester Break",
+                        maintenanceMessage ?: "Semester break is in progress. New semester routine will be available soon."
+                    )
+                }
+                isMaintenanceMode -> {
+                    Quadruple(
+                        Icons.Default.Refresh,
+                        MaterialTheme.colorScheme.tertiary,
+                        "System Maintenance",
+                        maintenanceMessage ?: "System is under maintenance. New routine will be available soon."
+                    )
+                }
+                else -> {
+                    Quadruple(
+                        Icons.Default.EventBusy,
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        "No Classes Scheduled",
+                        "Your routine will appear here once it's available."
+                    )
+                }
+            }
+
             Icon(
-                imageVector = Icons.Default.EventBusy,
+                imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                tint = iconColor
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "No Classes Scheduled",
+                text = title,
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = if (isMaintenanceMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Your routine will appear here once it's available.",
+                text = message,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
+
+            // Show additional info for maintenance mode
+            if (isMaintenanceMode) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isSemesterBreak) "Check back for new semester" else "Check back soon for updates",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -1002,3 +1073,6 @@ fun RoutineScreenPreview() {
         RoutineScreen(navController = rememberNavController())
     }
 }
+
+// Helper data class for multiple return values
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)

@@ -21,7 +21,10 @@ import com.om.diucampusschedule.domain.usecase.routine.ObserveUserRoutineForDayU
 import com.om.diucampusschedule.domain.usecase.routine.RefreshRoutineUseCase
 import com.om.diucampusschedule.domain.usecase.routine.SyncRoutineUseCase
 import com.om.diucampusschedule.domain.usecase.routine.CheckForUpdatesUseCase
+import com.om.diucampusschedule.domain.usecase.routine.ClearLocalDataUseCase
+import com.om.diucampusschedule.domain.usecase.routine.GetMaintenanceInfoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,7 +55,10 @@ data class RoutineUiState(
     val currentFilter: RoutineFilter? = null, // Current applied filter
     val isFiltered: Boolean = false, // Whether a filter is currently applied
     val hasAvailableUpdates: Boolean = false, // Whether updates are available
-    val updateMessage: String? = null // Message to show when updates are available
+    val updateMessage: String? = null, // Message to show when updates are available
+    val isMaintenanceMode: Boolean = false, // Whether the system is in maintenance mode
+    val maintenanceMessage: String? = null, // Message to show during maintenance
+    val isSemesterBreak: Boolean = false // Whether it's semester break
 )
 
 
@@ -70,6 +76,8 @@ class RoutineViewModel @Inject constructor(
     private val syncRoutineUseCase: SyncRoutineUseCase,
     private val refreshRoutineUseCase: RefreshRoutineUseCase,
     private val checkForUpdatesUseCase: CheckForUpdatesUseCase,
+    private val clearLocalDataUseCase: ClearLocalDataUseCase,
+    private val getMaintenanceInfoUseCase: GetMaintenanceInfoUseCase,
     private val networkMonitor: NetworkMonitor,
     private val logger: AppLogger,
     private val cacheService: RoutineCacheService
@@ -88,6 +96,13 @@ class RoutineViewModel @Inject constructor(
         logger.debug(TAG, "RoutineViewModel initialized")
         observeUserChanges()
         observeNetworkChanges()
+        
+        // Check maintenance mode immediately on ViewModel creation
+        viewModelScope.launch {
+            logger.debug(TAG, "Initial maintenance mode check on ViewModel init")
+            delay(500) // Small delay to ensure Firebase is ready
+            checkMaintenanceMode()
+        }
     }
 
     private fun observeUserChanges() {
@@ -229,15 +244,20 @@ class RoutineViewModel @Inject constructor(
                     )
                 }
                 
-                // HYBRID STRATEGY: Check for updates after showing cached data
-                if (cachedActiveDays != null) {
-                    // Check for updates in background and notify user if available
-                    launch {
+                // HYBRID STRATEGY: Always check maintenance mode first, then handle cached data
+                launch {
+                    // Check maintenance mode first - this should happen regardless of cached data
+                    checkMaintenanceMode()
+                    
+                    if (cachedActiveDays != null) {
+                        // Check for updates in background and notify user if available
+                        // Add a small delay to ensure admin dashboard changes have propagated
+                        kotlinx.coroutines.delay(1000)
                         checkForUpdatesAndNotify(user)
+                    } else {
+                        // Sync in background for fresh data load
+                        syncRoutineDataSilently()
                     }
-                } else {
-                    // Sync in background for fresh data load
-                    syncRoutineDataSilently()
                 }
                 
             } catch (e: Exception) {
@@ -255,8 +275,11 @@ class RoutineViewModel @Inject constructor(
     private fun observeRoutineForDay(day: String) {
         val user = currentUser ?: return
         
-        logger.debug(TAG, "Starting to observe routine for day: $day")
+        logger.debug(TAG, "Starting to observe routine for day: $day (forcing fresh data)")
         android.util.Log.d("RoutineViewModel", "User details - Name: ${user.name}, Department: ${user.department}, Batch: ${user.batch}, Section: ${user.section}, Role: ${user.role}")
+        
+        // Clear any existing cache for this day before observing
+        cacheService.clearCacheForUser(user)
         
         observeUserRoutineForDayUseCase(user, day)
             .catch { throwable ->
@@ -270,10 +293,15 @@ class RoutineViewModel @Inject constructor(
                 )
             }
             .onEach { routineItems ->
-                logger.debug(TAG, "Received ${routineItems.size} routine items for $day")
-                android.util.Log.d("RoutineViewModel", "Received ${routineItems.size} routine items for $day")
+                logger.debug(TAG, "Received ${routineItems.size} fresh routine items for $day")
+                android.util.Log.d("RoutineViewModel", "Received ${routineItems.size} fresh routine items for $day")
                 
-                // Cache the data using singleton cache service
+                // Log the items for debugging
+                routineItems.forEachIndexed { index, item ->
+                    android.util.Log.d("RoutineViewModel", "Item $index: ${item.courseCode} - ${item.time} - ${item.room}")
+                }
+                
+                // Cache the fresh data
                 cacheService.cacheRoutineForDay(day, user, routineItems)
                 
                 _uiState.value = _uiState.value.copy(
@@ -284,6 +312,8 @@ class RoutineViewModel @Inject constructor(
                     hasPendingSync = false,
                     lastSyncTime = System.currentTimeMillis()
                 )
+                
+                logger.debug(TAG, "UI updated with ${routineItems.size} items for day: $day")
             }
             .launchIn(viewModelScope)
     }
@@ -407,38 +437,100 @@ class RoutineViewModel @Inject constructor(
         val user = currentUser ?: return
         
         viewModelScope.launch {
-            logger.info(TAG, "Manual refresh triggered")
-            _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+            logger.info(TAG, "Manual refresh triggered - forcing complete reload")
+            _uiState.value = _uiState.value.copy(
+                isRefreshing = true, 
+                error = null,
+                hasAvailableUpdates = false,
+                updateMessage = null
+            )
             
-            // Clear cache to ensure fresh data
+            // Check maintenance mode first
+            checkMaintenanceMode()
+            
+            // STEP 1: Aggressively clear ALL caches and reset UI state
+            logger.debug(TAG, "Clearing all caches and resetting UI state")
             clearCache()
+            _uiState.value = _uiState.value.copy(
+                routineItems = emptyList(),
+                allRoutineItems = emptyList(),
+                fullDatabaseRoutineItems = emptyList(),
+                filteredRoutineItems = emptyList(),
+                activeDays = emptyList(),
+                isCacheLoaded = false,
+                isFiltered = false,
+                currentFilter = null
+            )
+            
+            // STEP 1.5: Clear local database to prevent fallback to cached data
+            logger.debug(TAG, "Clearing local database to prevent fallback")
+            clearLocalDataUseCase(user.department).fold(
+                onSuccess = {
+                    logger.debug(TAG, "Local database cleared successfully")
+                },
+                onFailure = { error ->
+                    logger.warning(TAG, "Failed to clear local database", error)
+                }
+            )
             
             try {
+                // STEP 2: Force refresh from remote (bypasses all caching)
                 refreshRoutineUseCase(user.department).fold(
-                    onSuccess = {
-                        logger.info(TAG, "Routine refresh completed successfully")
-                        // Reload active days and current routine
-                        loadActiveDays()
+                    onSuccess = { freshSchedule ->
+                        logger.info(TAG, "Manual refresh completed - got ${freshSchedule.schedule.size} fresh items")
                         
-                        // Load time slots
+                        // STEP 3: Wait a moment for database to be updated, then reload everything
+                        kotlinx.coroutines.delay(100) // Small delay to ensure database is updated
+                        
+                        // Reload everything from scratch with fresh data
+                        loadActiveDays()
                         loadTimeSlots(user.department)
                         
-                        // Load full database routine for filtering
+                        // STEP 4: Preload fresh data (this will use the fresh database data)
+                        preloadAllDaysData()
                         loadFullDatabaseRoutine()
                         
-                        // Preload fresh data
-                        preloadAllDaysData()
+                        // STEP 5: Force refresh the currently selected day with fresh data
+                        val selectedDay = _uiState.value.selectedDay
+                        
+                        // Instead of using observeRoutineForDay (which might use cache),
+                        // directly get fresh data from use case
+                        launch {
+                            getUserRoutineForDayUseCase(user, selectedDay).fold(
+                                onSuccess = { freshDayItems ->
+                                    logger.info(TAG, "Got ${freshDayItems.size} fresh items for day $selectedDay")
+                                    
+                                    // Update UI with fresh data
+                                    _uiState.value = _uiState.value.copy(
+                                        routineItems = freshDayItems,
+                                        isLoading = false,
+                                        isRefreshing = false
+                                    )
+                                    
+                                    // Cache the fresh data
+                                    cacheService.cacheRoutineForDay(selectedDay, user, freshDayItems)
+                                },
+                                onFailure = { error ->
+                                    logger.error(TAG, "Failed to get fresh day data", error)
+                                    // Fall back to observing (but cache is already cleared)
+                                    observeRoutineForDay(selectedDay)
+                                }
+                            )
+                        }
                         
                         _uiState.value = _uiState.value.copy(
                             isRefreshing = false,
                             isOffline = false,
                             hasPendingSync = false,
-                            lastSyncTime = System.currentTimeMillis()
+                            lastSyncTime = System.currentTimeMillis(),
+                            error = null
                         )
                         
+                        logger.info(TAG, "Manual refresh UI update completed")
                         logger.logUserAction("routine_refreshed", mapOf(
                             "department" to user.department,
-                            "success" to "true"
+                            "success" to "true",
+                            "items_count" to freshSchedule.schedule.size.toString()
                         ))
                     },
                     onFailure = { throwable ->
@@ -477,6 +569,10 @@ class RoutineViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 logger.debug(TAG, "Starting background sync for department: ${user.department}")
+                
+                // Check maintenance mode first
+                checkMaintenanceMode()
+                
                 syncRoutineUseCase(user.department).fold(
                     onSuccess = {
                         logger.info(TAG, "Background sync completed successfully")
@@ -648,6 +744,22 @@ class RoutineViewModel @Inject constructor(
         loadInitialData()
     }
 
+    // Public function to manually check maintenance mode (for testing)
+    fun checkMaintenanceStatus() {
+        viewModelScope.launch {
+            logger.info(TAG, "Manual maintenance check triggered")
+            checkMaintenanceMode()
+        }
+    }
+
+    // Function to be called when screen resumes (e.g., from onResume)
+    fun onScreenResumed() {
+        viewModelScope.launch {
+            logger.debug(TAG, "Screen resumed - checking maintenance mode")
+            checkMaintenanceMode()
+        }
+    }
+
     // Helper functions for UI
     fun getTodayRoutine(): List<RoutineItem> {
         val today = DayOfWeek.getCurrentDay().displayName
@@ -711,14 +823,28 @@ class RoutineViewModel @Inject constructor(
     }
 
     private fun clearCache() {
-        logger.debug(TAG, "Clearing routine cache")
+        logger.debug(TAG, "Aggressively clearing ALL routine caches")
         val user = currentUser
+        
+        // Clear in-memory cache
         if (user != null) {
             cacheService.clearCacheForUser(user)
         } else {
             cacheService.clearAllCache()
         }
-        _uiState.value = _uiState.value.copy(isCacheLoaded = false)
+        
+        // Reset UI state to force complete reload
+        _uiState.value = _uiState.value.copy(
+            isCacheLoaded = false,
+            routineItems = emptyList(),
+            allRoutineItems = emptyList(),
+            fullDatabaseRoutineItems = emptyList(),
+            filteredRoutineItems = emptyList(),
+            isFiltered = false,
+            currentFilter = null
+        )
+        
+        logger.debug(TAG, "Cache clearing completed - UI state reset")
     }
 
     // Filtering methods
@@ -841,11 +967,11 @@ class RoutineViewModel @Inject constructor(
                             updateMessage = "New routine data is available. Pull down to refresh."
                         )
                         
-                        // Optionally auto-sync after a short delay
+                        // Auto-sync immediately for critical updates like deletions (no delay for app launch)
                         viewModelScope.launch {
-                            kotlinx.coroutines.delay(2000) // Wait 2 seconds
+                            kotlinx.coroutines.delay(500) // Shorter delay for app launch
                             if (_uiState.value.hasAvailableUpdates) {
-                                logger.info(TAG, "Auto-syncing new data")
+                                logger.info(TAG, "Auto-syncing new data immediately (potential deletions detected)")
                                 performBackgroundSync(user)
                             }
                         }
@@ -864,39 +990,164 @@ class RoutineViewModel @Inject constructor(
 
     private suspend fun performBackgroundSync(user: User) {
         try {
-            syncRoutineUseCase(user.department).fold(
+            logger.info(TAG, "Starting aggressive background sync for potential deletions/updates")
+            
+            // STEP 0: Check for maintenance mode first
+            checkMaintenanceMode()
+            
+            // Use the same aggressive approach as manual refresh
+            // STEP 1: Clear all caches and local data first
+            logger.debug(TAG, "Background sync: Clearing all caches and local data")
+            clearCache()
+            
+            // Clear local database to prevent fallback to cached data
+            clearLocalDataUseCase(user.department).fold(
                 onSuccess = {
-                    logger.info(TAG, "Background sync completed - refreshing UI")
+                    logger.debug(TAG, "Background sync: Local database cleared successfully")
+                },
+                onFailure = { error ->
+                    logger.warning(TAG, "Background sync: Failed to clear local database", error)
+                }
+            )
+            
+            // STEP 2: Force refresh from remote (same as manual refresh)
+            refreshRoutineUseCase(user.department).fold(
+                onSuccess = { freshSchedule ->
+                    logger.info(TAG, "Background sync completed - got ${freshSchedule.schedule.size} fresh items")
                     
-                    // Clear cache and reload fresh data
-                    clearCache()
+                    // STEP 3: Wait a moment for database to be updated
+                    kotlinx.coroutines.delay(100)
                     
-                    // Reload active days
+                    // Reload everything from scratch with fresh data
                     getActiveDaysUseCase(user).fold(
                         onSuccess = { activeDays ->
+                            logger.info(TAG, "Background sync: Reloaded active days: $activeDays")
+                            
+                            // Cache the fresh active days
                             cacheService.cacheActiveDays(user, activeDays)
+                            
+                            // Update UI state with fresh data
                             _uiState.value = _uiState.value.copy(
                                 activeDays = activeDays,
                                 hasAvailableUpdates = false,
                                 updateMessage = null,
-                                lastSyncTime = System.currentTimeMillis()
+                                lastSyncTime = System.currentTimeMillis(),
+                                isLoading = false
                             )
                             
-                            // Preload fresh data
+                            // Preload fresh data for all days
                             preloadAllDaysData()
                             loadFullDatabaseRoutine()
+                            
+                            // STEP 4: Get fresh data for currently selected day (same as manual refresh)
+                            val selectedDay = _uiState.value.selectedDay
+
+                            viewModelScope.launch {
+                                getUserRoutineForDayUseCase(user, selectedDay).fold(
+                                    onSuccess = { freshDayItems ->
+                                        logger.info(TAG, "Background sync: Got ${freshDayItems.size} fresh items for day $selectedDay")
+                                        
+                                        // Update UI with fresh data
+                                        _uiState.value = _uiState.value.copy(
+                                            routineItems = freshDayItems,
+                                            isLoading = false
+                                        )
+                                        
+                                        // Cache the fresh data
+                                        cacheService.cacheRoutineForDay(selectedDay, user, freshDayItems)
+                                        
+                                        logger.info(TAG, "Background sync UI refresh completed successfully")
+                                    },
+                                    onFailure = { error ->
+                                        logger.error(TAG, "Background sync: Failed to get fresh day data", error)
+                                        // Fall back to observing (but cache is already cleared)
+                                        observeRoutineForDay(selectedDay)
+                                    }
+                                )
+                            }
                         },
                         onFailure = { error ->
-                            logger.warning(TAG, "Failed to reload active days after sync", error)
+                            logger.error(TAG, "Background sync: Failed to reload active days", error)
+                            _uiState.value = _uiState.value.copy(
+                                hasAvailableUpdates = false,
+                                updateMessage = "Background sync failed. Please try manual refresh.",
+                                error = AppError.fromThrowable(error)
+                            )
                         }
                     )
                 },
                 onFailure = { error ->
-                    logger.warning(TAG, "Background sync failed", error)
+                    logger.warning(TAG, "Background sync: Remote refresh failed", error)
+                    _uiState.value = _uiState.value.copy(
+                        hasAvailableUpdates = false,
+                        updateMessage = "Background sync failed. Please try manual refresh.",
+                        error = AppError.fromThrowable(error)
+                    )
                 }
             )
         } catch (e: Exception) {
-            logger.warning(TAG, "Error during background sync", e)
+            logger.error(TAG, "Error during background sync", e)
+            _uiState.value = _uiState.value.copy(
+                hasAvailableUpdates = false,
+                updateMessage = "Background sync error. Please try manual refresh.",
+                error = AppError.fromThrowable(e)
+            )
+        }
+    }
+
+    private suspend fun checkMaintenanceMode() {
+        try {
+            logger.debug(TAG, "Checking maintenance mode status from Firebase")
+            
+            getMaintenanceInfoUseCase().fold(
+                onSuccess = { maintenanceInfo ->
+                    logger.info(TAG, "Maintenance info: isMaintenanceMode=${maintenanceInfo.isMaintenanceMode}, message=${maintenanceInfo.maintenanceMessage}, isSemesterBreak=${maintenanceInfo.isSemesterBreak}")
+                    
+                    if (maintenanceInfo.isMaintenanceMode) {
+                        logger.info(TAG, "Maintenance mode enabled - updating UI to show maintenance state")
+                        _uiState.value = _uiState.value.copy(
+                            isMaintenanceMode = true,
+                            maintenanceMessage = maintenanceInfo.maintenanceMessage,
+                            isSemesterBreak = maintenanceInfo.isSemesterBreak,
+                            routineItems = emptyList(),
+                            activeDays = emptyList(),
+                            allRoutineItems = emptyList(),
+                            filteredRoutineItems = emptyList(),
+                            fullDatabaseRoutineItems = emptyList(),
+                            isLoading = false,
+                            isRefreshing = false,
+                            error = null
+                        )
+                    } else {
+                        logger.info(TAG, "Maintenance mode disabled - clearing maintenance state")
+                        _uiState.value = _uiState.value.copy(
+                            isMaintenanceMode = false,
+                            maintenanceMessage = null,
+                            isSemesterBreak = false
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    logger.warning(TAG, "Failed to fetch maintenance info from Firebase", error)
+                    // Fallback: check if we have no routines locally
+                    val user = currentUser ?: return
+                    getActiveDaysUseCase(user).fold(
+                        onSuccess = { activeDays ->
+                            if (activeDays.isEmpty()) {
+                                logger.info(TAG, "No active days found - might be maintenance mode (fallback)")
+                                _uiState.value = _uiState.value.copy(
+                                    isMaintenanceMode = true,
+                                    maintenanceMessage = "System is under maintenance. New routine will be available soon.",
+                                    isSemesterBreak = false
+                                )
+                            }
+                        },
+                        onFailure = { /* ignore fallback errors */ }
+                    )
+                }
+            )
+        } catch (e: Exception) {
+            logger.error(TAG, "Error checking maintenance mode", e)
         }
     }
 

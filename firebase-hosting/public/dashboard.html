@@ -280,6 +280,16 @@
             </div>
         </div>
 
+        <!-- Maintenance Control -->
+        <div class="card">
+            <h2>🔧 Maintenance Control</h2>
+            <p>Manage maintenance mode for routine updates and semester transitions.</p>
+            <button class="btn" onclick="enableMaintenanceMode()">🔧 Enable Maintenance Mode</button>
+            <button class="btn" onclick="disableMaintenanceMode()">✅ Disable Maintenance Mode</button>
+            <button class="btn btn-danger" onclick="setSemesterBreak()">🏖️ Set Semester Break</button>
+            <div id="maintenanceStatus" class="status"></div>
+        </div>
+
         <!-- Version Management -->
         <div class="card">
             <h2>🔄 Version Management</h2>
@@ -438,14 +448,17 @@
                     department: department
                 });
 
-                // Update version metadata
+                // Update version metadata and clear maintenance mode
                 await db.collection('metadata').doc('routine_version').set({
                     version: Date.now(),
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
                     uploadedBy: 'admin',
                     effectiveFrom: effectiveFrom,
                     semester: semester,
-                    department: department
+                    department: department,
+                    maintenanceMode: false,
+                    maintenanceMessage: null,
+                    updateType: 'routine_uploaded'
                 }, { merge: true });
 
                 showStatus('uploadStatus', 
@@ -557,7 +570,9 @@
                         lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
                         updatedBy: 'admin',
                         updateType: 'routine_deleted',
-                        deletedRoutineId: docId
+                        deletedRoutineId: docId,
+                        maintenanceMode: true,
+                        maintenanceMessage: 'Routine is being updated. New schedule will be available soon.'
                     }, { merge: true });
                     
                     showStatus('versionStatus', '✅ Routine deleted successfully! Apps will be notified of the update.', false);
@@ -606,7 +621,9 @@
                             lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
                             updatedBy: 'admin',
                             updateType: 'all_routines_deleted',
-                            deletedCount: querySnapshot.size
+                            deletedCount: querySnapshot.size,
+                            maintenanceMode: true,
+                            maintenanceMessage: 'System maintenance in progress. New routines will be uploaded soon.'
                         }, { merge: true });
                         
                         showStatus('versionStatus', '✅ All routines deleted successfully! Apps will be notified of the update.', false);
@@ -617,6 +634,64 @@
                         console.error('Error deleting routines:', error);
                         showStatus('versionStatus', `❌ Delete failed: ${error.message}`, true);
                     }
+                }
+            }
+        }
+
+        async function enableMaintenanceMode() {
+            const message = prompt('Enter maintenance message for users:', 'System maintenance in progress. New routines will be uploaded soon.');
+            if (message) {
+                try {
+                    await db.collection('metadata').doc('routine_version').set({
+                        version: Date.now(),
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: 'admin',
+                        updateType: 'maintenance_enabled',
+                        maintenanceMode: true,
+                        maintenanceMessage: message
+                    }, { merge: true });
+                    
+                    showStatus('maintenanceStatus', '✅ Maintenance mode enabled! Apps will show maintenance message.', false);
+                } catch (error) {
+                    showStatus('maintenanceStatus', `❌ Failed to enable maintenance mode: ${error.message}`, true);
+                }
+            }
+        }
+
+        async function disableMaintenanceMode() {
+            try {
+                await db.collection('metadata').doc('routine_version').set({
+                    version: Date.now(),
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedBy: 'admin',
+                    updateType: 'maintenance_disabled',
+                    maintenanceMode: false,
+                    maintenanceMessage: null
+                }, { merge: true });
+                
+                showStatus('maintenanceStatus', '✅ Maintenance mode disabled! Apps will return to normal.', false);
+            } catch (error) {
+                showStatus('maintenanceStatus', `❌ Failed to disable maintenance mode: ${error.message}`, true);
+            }
+        }
+
+        async function setSemesterBreak() {
+            const message = prompt('Enter semester break message:', 'Semester break is in progress. New semester routine will be available soon.');
+            if (message) {
+                try {
+                    await db.collection('metadata').doc('routine_version').set({
+                        version: Date.now(),
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: 'admin',
+                        updateType: 'semester_break',
+                        maintenanceMode: true,
+                        maintenanceMessage: message,
+                        semesterBreak: true
+                    }, { merge: true });
+                    
+                    showStatus('maintenanceStatus', '✅ Semester break mode enabled! Apps will show break message.', false);
+                } catch (error) {
+                    showStatus('maintenanceStatus', `❌ Failed to set semester break: ${error.message}`, true);
                 }
             }
         }

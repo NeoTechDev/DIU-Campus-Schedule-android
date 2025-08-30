@@ -403,6 +403,41 @@ class RoutineRemoteDataSource @Inject constructor(
         }
     }
 
+    data class MaintenanceInfo(
+        val isMaintenanceMode: Boolean = false,
+        val maintenanceMessage: String? = null,
+        val isSemesterBreak: Boolean = false,
+        val updateType: String? = null
+    )
+
+    suspend fun getMaintenanceInfo(): Result<MaintenanceInfo> {
+        return try {
+            android.util.Log.d("RoutineDataSource", "Fetching maintenance info from Firestore metadata/routine_version")
+            val metadataDoc = firestore.collection("metadata").document("routine_version").get().await()
+            
+            if (metadataDoc.exists()) {
+                val data = metadataDoc.data
+                android.util.Log.d("RoutineDataSource", "Metadata document exists with data: $data")
+                
+                val maintenanceInfo = MaintenanceInfo(
+                    isMaintenanceMode = data?.get("maintenanceMode") as? Boolean ?: false,
+                    maintenanceMessage = data?.get("maintenanceMessage") as? String,
+                    isSemesterBreak = data?.get("semesterBreak") as? Boolean ?: false,
+                    updateType = data?.get("updateType") as? String
+                )
+                
+                android.util.Log.d("RoutineDataSource", "Maintenance info fetched: $maintenanceInfo")
+                Result.success(maintenanceInfo)
+            } else {
+                android.util.Log.w("RoutineDataSource", "Metadata document does not exist - returning default maintenance info")
+                Result.success(MaintenanceInfo())
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("RoutineDataSource", "Error fetching maintenance info", e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun getAllRoutinesForDepartment(department: String): Result<List<RoutineSchedule>> {
         return try {
             val querySnapshot = firestore.collection(ROUTINES_COLLECTION)
