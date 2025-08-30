@@ -364,9 +364,9 @@ private fun FilterTypeSelector(
     onTypeSelected: (FilterType) -> Unit
 ) {
     val filterOptions = listOf(
-        FilterOption(FilterType.STUDENT, "Student", Icons.Default.Person),
-        FilterOption(FilterType.TEACHER, "Teacher", Icons.Default.School),
-        FilterOption(FilterType.ROOM, "Room", Icons.Default.Place)
+        FilterOption(FilterType.STUDENT, "Student", ImageVector.vectorResource(id = R.drawable.student)),
+        FilterOption(FilterType.TEACHER, "Teacher", ImageVector.vectorResource(id = R.drawable.teacher)),
+        FilterOption(FilterType.ROOM, "Room", ImageVector.vectorResource(id = R.drawable.location_filled))
     )
 
     Surface(

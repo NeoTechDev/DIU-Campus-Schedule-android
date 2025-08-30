@@ -21,7 +21,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,7 +40,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,6 +62,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -116,10 +115,10 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 // Custom colors for the table design
-private val AppPrimaryColorLight = Color(0xFF1A56DB)
-private val AppPrimaryColor = Color(0xFF1E3A8A)
-private val AppBackgroundColorLight = Color(0xFFF8FAFC)
-private val SoftBlue = Color(0xFF93C5FD)
+private val AppPrimaryColorLight = Color(0xFF3B82F6)
+private val AppPrimaryColor = Color(0xFF1A56DB)
+private val AppBackgroundColorLight = Color(0xFFF8FAFD)
+private val SoftBlue = Color(0xFFE0F2FE)
 
 // Time formatter for 12-hour format
 private val formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a", Locale.US)
@@ -787,110 +786,101 @@ private fun RoutineInfoBar(
     onFilterClick: () -> Unit,
     onClearFilterClick: () -> Unit
 ) {
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 8.dp)
+            .padding(top= 8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 1.dp
     ) {
-        // Left side: Information
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Effective from date
-            if (!effectiveFrom.isNullOrBlank()) {
-                Text(
-                    text = "Effective from: $effectiveFrom",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Filter status with modern pill design
-            Box(
-                modifier = Modifier
-                    .background(
-                        color = if (isFiltered) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        },
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                    .wrapContentWidth()
+            // Main content
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+
+                // Filter status with visual distinction
                 Text(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                     text = if (isFiltered) {
-                        "Filtered: ${currentFilter?.getDisplayText()?.uppercase() ?: "Invalid"}"
+                        "Filtered: ${currentFilter?.getDisplayText() ?: "Unknown"}"
                     } else {
-                        "View: ${defaultFilterText.uppercase()}"
+                        "Showing: $defaultFilterText"
                     },
-                    color = if (isFiltered) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Medium
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Bold
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-            }
-        }
 
-        Spacer(modifier = Modifier.width(16.dp))
+                // Effective date with proper sizing
+                if (!effectiveFrom.isNullOrBlank()) {
+                    Text(
+                        text = "Effective From: $effectiveFrom",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
-        // Right side: Action button
-        if (isFiltered) {
-            // Clear filter - outlined style
-            OutlinedButton(
-                onClick = onClearFilterClick,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                ),
-                shape = RoundedCornerShape(24.dp),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    text = "Clear",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Medium
-                    )
-                )
             }
-        } else {
-            // Filter button - filled style
-            Button(
-                onClick = onFilterClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = RoundedCornerShape(24.dp),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 0.dp,
-                    pressedElevation = 2.dp
-                )
-            ) {
-                Text(
-                    text = "Filter",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Medium
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Action button with proper presence
+            if (isFiltered) {
+                Button(
+                    onClick = onClearFilterClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 0.dp
                     )
-                )
+                ) {
+                    Text(
+                        text = "Clear Filter",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
+            } else {
+                Button(
+                    onClick = onFilterClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 0.dp
+                    )
+                ) {
+                    Text(
+                        text = "Filter",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
             }
         }
     }
@@ -955,12 +945,12 @@ private fun TableRoutineView(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(8.dp)
-                .clip(shape = RoundedCornerShape(8.dp))
+                .clip(shape = RoundedCornerShape(20.dp))
                 .background(color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surface else AppBackgroundColorLight)
                 .border(
                     width = 2.dp,
                     color = AppPrimaryColorLight,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(20.dp)
                 )
         ) {
             Column(modifier = Modifier.verticalScroll(scrollStateVertical)) {
