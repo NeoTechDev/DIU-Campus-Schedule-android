@@ -419,11 +419,21 @@ class RoutineRemoteDataSource @Inject constructor(
                 val data = metadataDoc.data
                 android.util.Log.d("RoutineDataSource", "Metadata document exists with data: $data")
                 
+                // Debug individual fields
+                val maintenanceMode = data?.get("maintenanceMode") as? Boolean ?: false
+                val maintenanceMessage = data?.get("maintenanceMessage") as? String
+                val semesterBreak = data?.get("semesterBreak") as? Boolean ?: false
+                val updateType = data?.get("updateType") as? String
+                
+                android.util.Log.d("RoutineDataSource", "Raw maintenanceMode: ${data?.get("maintenanceMode")} -> $maintenanceMode")
+                android.util.Log.d("RoutineDataSource", "Raw semesterBreak: ${data?.get("semesterBreak")} -> $semesterBreak")
+                android.util.Log.d("RoutineDataSource", "Raw updateType: ${data?.get("updateType")} -> $updateType")
+                
                 val maintenanceInfo = MaintenanceInfo(
-                    isMaintenanceMode = data?.get("maintenanceMode") as? Boolean ?: false,
-                    maintenanceMessage = data?.get("maintenanceMessage") as? String,
-                    isSemesterBreak = data?.get("semesterBreak") as? Boolean ?: false,
-                    updateType = data?.get("updateType") as? String
+                    isMaintenanceMode = maintenanceMode,
+                    maintenanceMessage = maintenanceMessage,
+                    isSemesterBreak = semesterBreak,
+                    updateType = updateType
                 )
                 
                 android.util.Log.d("RoutineDataSource", "Maintenance info fetched: $maintenanceInfo")

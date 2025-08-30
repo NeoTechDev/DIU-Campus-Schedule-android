@@ -73,6 +73,94 @@ exports.triggerRoutineUpdate = functions.https.onCall(async (data, context) => {
   }
 });
 
+// Trigger when metadata/routine_version document is updated
+exports.onMetadataUpdate = functions.firestore
+  .document('metadata/routine_version')
+  .onUpdate(async (change, context) => {
+    const newData = change.after.data();
+    const oldData = change.before.data();
+    
+    // Check if version changed (indicating a routine update)
+    if (newData.version !== oldData.version) {
+      console.log(`Metadata version updated: ${oldData.version} -> ${newData.version}`);
+      console.log(`Update type: ${newData.updateType}`);
+      
+      try {
+        // Determine notification content based on update type
+        let title = 'Schedule Updated';
+        let body = 'Your class schedule has been updated';
+        
+        if (newData.updateType === 'routine_deleted') {
+          title = 'Schedule Update';
+          body = newData.maintenanceMessage || 'Your schedule is being updated. New schedule will be available soon.';
+        } else if (newData.updateType === 'all_routines_deleted') {
+          title = 'System Maintenance';
+          body = newData.maintenanceMessage || 'System maintenance in progress. New routines will be uploaded soon.';
+        } else if (newData.updateType === 'maintenance_enabled') {
+          title = 'System Maintenance';
+          body = newData.maintenanceMessage || 'System is under maintenance. Please check back later.';
+        } else if (newData.updateType === 'semester_break') {
+          title = 'Semester Break';
+          body = newData.maintenanceMessage || 'Semester break is in progress. New semester routine will be available soon.';
+        } else if (newData.updateType === 'routine_uploaded') {
+          title = 'New Schedule Available';
+          body = 'Your class schedule has been updated with new information.';
+        } else if (newData.updateType === 'manual_trigger') {
+          title = 'Schedule Refresh';
+          body = 'Please refresh your app to see the latest schedule updates.';
+        }
+        
+        // Send notifications to all departments (since metadata affects all)
+        const routinesSnapshot = await db.collection('routines').get();
+        const departments = new Set();
+        
+        routinesSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          if (data.department) {
+            departments.add(data.department);
+          }
+        });
+        
+        // If no routines found, send to common departments
+        if (departments.size === 0) {
+          departments.add('Software Engineering');
+          departments.add('Computer Science');
+          departments.add('Electrical Engineering');
+        }
+        
+        // Send notifications to all departments
+        const promises = Array.from(departments).map(department => 
+          sendRoutineUpdateNotifications(department, {
+            title,
+            body,
+            department,
+            version: newData.version,
+            updateType: newData.updateType
+          })
+        );
+        
+        await Promise.all(promises);
+        
+        // Log the update
+        await logSystemEvent('metadata_update_notification', {
+          updateType: newData.updateType,
+          oldVersion: oldData.version,
+          newVersion: newData.version,
+          departmentsNotified: Array.from(departments),
+          timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log(`Notifications sent to ${departments.size} departments for metadata update`);
+        return { success: true };
+      } catch (error) {
+        console.error('Error processing metadata update:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to process metadata update');
+      }
+    }
+    
+    return { success: true, message: 'No version change detected' };
+  });
+
 // HTTP function to upload routine data (developer only)
 exports.uploadRoutineData = functions.https.onCall(async (data, context) => {
   // Check if user is developer

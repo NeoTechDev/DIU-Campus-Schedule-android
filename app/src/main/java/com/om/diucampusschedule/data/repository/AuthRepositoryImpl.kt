@@ -11,17 +11,22 @@ import com.om.diucampusschedule.domain.model.SignUpRequest
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRegistrationForm
 import com.om.diucampusschedule.domain.repository.AuthRepository
+import com.om.diucampusschedule.domain.usecase.notification.UpdateFCMTokenUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val remoteDataSource: AuthRemoteDataSource,
-    private val localDataSource: AuthLocalDataSource
+    private val localDataSource: AuthLocalDataSource,
+    private val updateFCMTokenUseCase: UpdateFCMTokenUseCase
 ) : AuthRepository {
 
     override suspend fun signIn(request: SignInRequest): Result<User> {
@@ -29,9 +34,24 @@ class AuthRepositoryImpl @Inject constructor(
             val result = remoteDataSource.signIn(request)
             if (result.isSuccess) {
                 val userDto = result.getOrThrow()
+                val user = userDto.toDomainModel()
+                
                 // Cache user locally
                 localDataSource.saveUser(userDto)
-                Result.success(userDto.toDomainModel())
+                
+                // Update FCM token in background for push notifications
+                CoroutineScope(Dispatchers.IO).launch {
+                    updateFCMTokenUseCase(user).fold(
+                        onSuccess = { token ->
+                            android.util.Log.d("AuthRepository", "FCM token updated on sign in: ${token.take(20)}...")
+                        },
+                        onFailure = { error ->
+                            android.util.Log.w("AuthRepository", "Failed to update FCM token on sign in", error)
+                        }
+                    )
+                }
+                
+                Result.success(user)
             } else {
                 result.map { it.toDomainModel() }
             }

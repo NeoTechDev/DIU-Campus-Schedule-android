@@ -187,17 +187,37 @@ class FirebaseMessagingService : FirebaseMessagingService() {
     private fun sendTokenToServer(token: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // TODO: Implement token sending to your server
-                // This would typically involve calling your backend API
-                // to associate the token with the current user
-                
                 val currentUser = getCurrentUserUseCase()
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
                     val user = currentUser.getOrThrow()!!
-                    logger.info(TAG, "Should send FCM token to server for user: ${user.id}")
+                    logger.info(TAG, "Sending FCM token to Firestore for user: ${user.id}")
                     
-                    // Example API call:
-                    // apiService.updateUserFCMToken(user.id, token)
+                    // Store FCM token in Firestore for push notifications
+                    val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    val tokenData = mapOf(
+                        "token" to token,
+                        "userId" to user.id,
+                        "department" to user.department,
+                        "batch" to user.batch,
+                        "section" to user.section,
+                        "enabled" to true,
+                        "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+                        "deviceInfo" to mapOf(
+                            "platform" to "android",
+                            "appVersion" to getAppVersion()
+                        )
+                    )
+                    
+                    // Use user ID as document ID to ensure one token per user
+                    firestore.collection("fcm_tokens")
+                        .document(user.id)
+                        .set(tokenData)
+                        .addOnSuccessListener {
+                            logger.info(TAG, "FCM token successfully stored in Firestore")
+                        }
+                        .addOnFailureListener { exception ->
+                            logger.error(TAG, "Failed to store FCM token in Firestore", exception)
+                        }
                 } else {
                     logger.debug(TAG, "User not authenticated - will send token later")
                 }
@@ -205,6 +225,15 @@ class FirebaseMessagingService : FirebaseMessagingService() {
             } catch (e: Exception) {
                 logger.error(TAG, "Failed to send FCM token to server", e)
             }
+        }
+    }
+    
+    private fun getAppVersion(): String {
+        return try {
+            val packageInfo = packageManager.getPackageInfo(packageName, 0)
+            packageInfo.versionName ?: "unknown"
+        } catch (e: Exception) {
+            "unknown"
         }
     }
 

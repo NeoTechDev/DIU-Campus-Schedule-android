@@ -287,6 +287,7 @@
             <button class="btn" onclick="enableMaintenanceMode()">🔧 Enable Maintenance Mode</button>
             <button class="btn" onclick="disableMaintenanceMode()">✅ Disable Maintenance Mode</button>
             <button class="btn btn-danger" onclick="setSemesterBreak()">🏖️ Set Semester Break</button>
+            <button class="btn" onclick="clearMaintenanceData()" style="background: #6c757d;">🧹 Clear All Maintenance Data</button>
             <div id="maintenanceStatus" class="status"></div>
         </div>
 
@@ -648,7 +649,8 @@
                         updatedBy: 'admin',
                         updateType: 'maintenance_enabled',
                         maintenanceMode: true,
-                        maintenanceMessage: message
+                        maintenanceMessage: message,
+                        semesterBreak: false // Regular maintenance, not semester break
                     }, { merge: true });
                     
                     showStatus('maintenanceStatus', '✅ Maintenance mode enabled! Apps will show maintenance message.', false);
@@ -666,7 +668,8 @@
                     updatedBy: 'admin',
                     updateType: 'maintenance_disabled',
                     maintenanceMode: false,
-                    maintenanceMessage: null
+                    maintenanceMessage: null,
+                    semesterBreak: false // Explicitly clear semester break when disabling maintenance
                 }, { merge: true });
                 
                 showStatus('maintenanceStatus', '✅ Maintenance mode disabled! Apps will return to normal.', false);
@@ -692,6 +695,26 @@
                     showStatus('maintenanceStatus', '✅ Semester break mode enabled! Apps will show break message.', false);
                 } catch (error) {
                     showStatus('maintenanceStatus', `❌ Failed to set semester break: ${error.message}`, true);
+                }
+            }
+        }
+
+        async function clearMaintenanceData() {
+            if (confirm('This will clear all maintenance settings and return the app to normal. Continue?')) {
+                try {
+                    await db.collection('metadata').doc('routine_version').set({
+                        version: Date.now(),
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: 'admin',
+                        updateType: 'maintenance_cleared',
+                        maintenanceMode: false,
+                        maintenanceMessage: null,
+                        semesterBreak: false
+                    }, { merge: true });
+                    
+                    showStatus('maintenanceStatus', '✅ All maintenance data cleared! Apps will return to normal.', false);
+                } catch (error) {
+                    showStatus('maintenanceStatus', `❌ Failed to clear maintenance data: ${error.message}`, true);
                 }
             }
         }

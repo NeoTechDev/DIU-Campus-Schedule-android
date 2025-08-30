@@ -58,7 +58,8 @@ data class RoutineUiState(
     val updateMessage: String? = null, // Message to show when updates are available
     val isMaintenanceMode: Boolean = false, // Whether the system is in maintenance mode
     val maintenanceMessage: String? = null, // Message to show during maintenance
-    val isSemesterBreak: Boolean = false // Whether it's semester break
+    val isSemesterBreak: Boolean = false, // Whether it's semester break
+    val updateType: String? = null // Type of maintenance update (maintenance_enabled, semester_break, etc.)
 )
 
 
@@ -171,6 +172,15 @@ class RoutineViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             try {
+                // Check maintenance mode FIRST before loading any data
+                checkMaintenanceMode()
+                
+                // If we're in maintenance mode, don't load routine data
+                if (_uiState.value.isMaintenanceMode) {
+                    logger.info(TAG, "Maintenance mode detected - skipping routine data load")
+                    return@launch
+                }
+                
                 // Load all days (including off days) and active days
                 val allDays = getAllDaysUseCase()
                 
@@ -1103,12 +1113,16 @@ class RoutineViewModel @Inject constructor(
                 onSuccess = { maintenanceInfo ->
                     logger.info(TAG, "Maintenance info: isMaintenanceMode=${maintenanceInfo.isMaintenanceMode}, message=${maintenanceInfo.maintenanceMessage}, isSemesterBreak=${maintenanceInfo.isSemesterBreak}")
                     
+                    // Always update maintenance state based on Firebase data
+                    logger.info(TAG, "Updating UI maintenance state - isMaintenanceMode: ${maintenanceInfo.isMaintenanceMode}, isSemesterBreak: ${maintenanceInfo.isSemesterBreak}")
+                    
                     if (maintenanceInfo.isMaintenanceMode) {
                         logger.info(TAG, "Maintenance mode enabled - updating UI to show maintenance state")
                         _uiState.value = _uiState.value.copy(
                             isMaintenanceMode = true,
                             maintenanceMessage = maintenanceInfo.maintenanceMessage,
                             isSemesterBreak = maintenanceInfo.isSemesterBreak,
+                            updateType = maintenanceInfo.updateType,
                             routineItems = emptyList(),
                             activeDays = emptyList(),
                             allRoutineItems = emptyList(),
@@ -1116,14 +1130,16 @@ class RoutineViewModel @Inject constructor(
                             fullDatabaseRoutineItems = emptyList(),
                             isLoading = false,
                             isRefreshing = false,
-                            error = null
+                            error = null // Always clear errors when in maintenance mode
                         )
                     } else {
                         logger.info(TAG, "Maintenance mode disabled - clearing maintenance state")
                         _uiState.value = _uiState.value.copy(
                             isMaintenanceMode = false,
                             maintenanceMessage = null,
-                            isSemesterBreak = false
+                            isSemesterBreak = false, // Clear semester break when maintenance is fully disabled
+                            updateType = null,
+                            error = null // Also clear errors when maintenance is cleared
                         )
                     }
                 },

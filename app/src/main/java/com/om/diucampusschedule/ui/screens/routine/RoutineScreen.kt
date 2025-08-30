@@ -107,6 +107,12 @@ fun RoutineScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showFilterSheet by remember { mutableStateOf(false) }
+    
+    // Only trigger maintenance check when screen is first composed
+    LaunchedEffect(Unit) {
+        android.util.Log.d("RoutineScreen", "Screen composed - triggering onScreenResumed")
+        viewModel.onScreenResumed()
+    }
 
     // Debug logging
     LaunchedEffect(uiState) {
@@ -279,6 +285,20 @@ fun RoutineScreen(
                     LoadingContent()
                 }
 
+                // Check maintenance mode FIRST, before error states
+                uiState.isMaintenanceMode || uiState.activeDays.isEmpty() -> {
+                    android.util.Log.d(
+                        "RoutineScreen",
+                        "Showing EmptyContent - maintenance: ${uiState.isMaintenanceMode}, activeDays empty: ${uiState.activeDays.isEmpty()}"
+                    )
+                    EmptyContent(
+                        isMaintenanceMode = uiState.isMaintenanceMode,
+                        maintenanceMessage = uiState.maintenanceMessage,
+                        isSemesterBreak = uiState.isSemesterBreak,
+                        updateType = uiState.updateType
+                    )
+                }
+
                 uiState.error != null && uiState.routineItems.isEmpty() -> {
                     android.util.Log.d(
                         "RoutineScreen",
@@ -289,18 +309,6 @@ fun RoutineScreen(
                         isOffline = uiState.isOffline,
                         onRetry = { viewModel.retryLastAction() },
                         onDismiss = { viewModel.clearError() }
-                    )
-                }
-
-                uiState.activeDays.isEmpty() -> {
-                    android.util.Log.d(
-                        "RoutineScreen",
-                        "Showing EmptyContent (activeDays is empty)"
-                    )
-                    EmptyContent(
-                        isMaintenanceMode = uiState.isMaintenanceMode,
-                        maintenanceMessage = uiState.maintenanceMessage,
-                        isSemesterBreak = uiState.isSemesterBreak
                     )
                 }
 
@@ -439,7 +447,8 @@ private fun ErrorContent(
 private fun EmptyContent(
     isMaintenanceMode: Boolean = false,
     maintenanceMessage: String? = null,
-    isSemesterBreak: Boolean = false
+    isSemesterBreak: Boolean = false,
+    updateType: String? = null
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -449,9 +458,13 @@ private fun EmptyContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(24.dp)
         ) {
-            // Different icons and messages based on the state
+            // Debug logging for maintenance state
+            android.util.Log.d("EmptyContent", "Maintenance state - isMaintenanceMode: $isMaintenanceMode, isSemesterBreak: $isSemesterBreak, updateType: $updateType, message: $maintenanceMessage")
+            
+            // Different icons and messages based on the state - use updateType for accurate detection
             val (icon, iconColor, title, message) = when {
-                isMaintenanceMode && isSemesterBreak -> {
+                updateType == "semester_break" -> {
+                    android.util.Log.d("EmptyContent", "Showing SEMESTER BREAK content (from updateType)")
                     Quadruple(
                         Icons.Default.EventBusy,
                         MaterialTheme.colorScheme.primary,
@@ -459,7 +472,8 @@ private fun EmptyContent(
                         maintenanceMessage ?: "Semester break is in progress. New semester routine will be available soon."
                     )
                 }
-                isMaintenanceMode -> {
+                updateType == "maintenance_enabled" || (isMaintenanceMode && !isSemesterBreak) -> {
+                    android.util.Log.d("EmptyContent", "Showing SYSTEM MAINTENANCE content (from updateType or flags)")
                     Quadruple(
                         Icons.Default.Refresh,
                         MaterialTheme.colorScheme.tertiary,
@@ -467,7 +481,17 @@ private fun EmptyContent(
                         maintenanceMessage ?: "System is under maintenance. New routine will be available soon."
                     )
                 }
+                isMaintenanceMode && isSemesterBreak -> {
+                    android.util.Log.d("EmptyContent", "Showing SEMESTER BREAK content (from flags fallback)")
+                    Quadruple(
+                        Icons.Default.EventBusy,
+                        MaterialTheme.colorScheme.primary,
+                        "Semester Break", 
+                        maintenanceMessage ?: "Semester break is in progress. New semester routine will be available soon."
+                    )
+                }
                 else -> {
+                    android.util.Log.d("EmptyContent", "Showing NO CLASSES content")
                     Quadruple(
                         Icons.Default.EventBusy,
                         MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
@@ -503,40 +527,6 @@ private fun EmptyContent(
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
-
-            // Show additional info for maintenance mode
-            if (isMaintenanceMode) {
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isSemesterBreak) "Check back for new semester" else "Check back soon for updates",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
         }
     }
 }
