@@ -1,5 +1,9 @@
 package com.om.diucampusschedule.ui.screens.routine
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.EaseInOut
@@ -39,6 +43,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -58,6 +63,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -66,6 +72,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +81,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -90,11 +98,19 @@ import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
+import com.om.diucampusschedule.ui.components.DownloadOptionsBottomSheet
 import com.om.diucampusschedule.ui.components.FilterRoutinesBottomSheet
+import com.om.diucampusschedule.ui.components.GenerationProgressDialog
+import com.om.diucampusschedule.ui.components.SuccessDialog
+import com.om.diucampusschedule.ui.components.generateRoutineImage
+import com.om.diucampusschedule.ui.components.generateRoutinePdf
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
+import com.om.diucampusschedule.ui.theme.RobotoFontFamily
 import com.om.diucampusschedule.ui.utils.ScreenConfig
+import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.RoutineFilter
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
+import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -108,6 +124,7 @@ private val SoftBlue = Color(0xFF93C5FD)
 // Time formatter for 12-hour format
 private val formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a", Locale.US)
 
+@RequiresApi(Build.VERSION_CODES.Q)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoutineScreen(
@@ -116,6 +133,20 @@ fun RoutineScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showFilterSheet by remember { mutableStateOf(false) }
+    var showDownloadSheet by remember { mutableStateOf(false) }
+    var showProgressDialog by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var progressTitle by remember { mutableStateOf("") }
+    var progressMessage by remember { mutableStateOf("") }
+    var progressType by remember { mutableStateOf("PDF") }
+    var isPdfGenerating by remember { mutableStateOf(false) }
+    var isImageGenerating by remember { mutableStateOf(false) }
+    var generatedFileUri by remember { mutableStateOf<Uri?>(null) }
+    var generatedFileName by remember { mutableStateOf("") }
+    
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     
     // Only trigger maintenance check when screen is first composed
     LaunchedEffect(Unit) {
@@ -159,8 +190,77 @@ fun RoutineScreen(
                 user = uiState.currentUser,
                 onRefreshClick = { viewModel.refreshRoutine() },
                 isRefreshing = uiState.isRefreshing,
-                refreshRotation = refreshRotation
+                refreshRotation = refreshRotation,
+                onDownloadClick = { showDownloadSheet = true }
             )
+
+            // Offline indicator below top app bar
+            if (uiState.isOffline) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f))
+                        .padding(horizontal = 16.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Offline Mode",
+                        fontFamily = RobotoFontFamily,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 12.sp,
+                        lineHeight = 10.sp
+                    )
+                }
+            }
+
+            // Minimal update notification
+            if (uiState.hasAvailableUpdates && uiState.updateMessage != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            RoundedCornerShape(0.dp)
+                        )
+                        .clickable { viewModel.refreshRoutine() }
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Subtle indicator dot
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary,
+                                    CircleShape
+                                )
+                        )
+
+                        // Compact message
+                        Text(
+                            text = "Updates available",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        // Subtle call to action
+                        Text(
+                            text = "Tap to refresh",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+                }
+            }
             
             // Routine Info Bar - secondary information below top bar
             RoutineInfoBar(
@@ -171,62 +271,6 @@ fun RoutineScreen(
                 onFilterClick = { showFilterSheet = true },
                 onClearFilterClick = { viewModel.clearFilter() }
             )
-            
-            // Offline indicator below top app bar
-            if (uiState.isOffline) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f))
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Offline Mode",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-            
-            // Update notification below offline indicator
-            if (uiState.hasAvailableUpdates && uiState.updateMessage != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .clickable { viewModel.refreshRoutine() },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = uiState.updateMessage ?: "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    Text(
-                        text = "TAP TO UPDATE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
 
             when {
                 uiState.isLoading && uiState.routineItems.isEmpty() -> {
@@ -281,6 +325,167 @@ fun RoutineScreen(
             }
         }
     }
+    
+    // Helper functions for generation
+    fun generatePdf() {
+        coroutineScope.launch {
+            isPdfGenerating = true
+            progressType = "PDF"
+            progressTitle = "Generating PDF"
+            progressMessage = "Please wait while we create your PDF document..."
+            showProgressDialog = true
+            
+            val displayItems = viewModel.getDisplayRoutineItems()
+            val currentUser = uiState.currentUser
+            val role = when (currentUser?.role?.name) {
+                "STUDENT" -> "Student"
+                "TEACHER" -> "Teacher"
+                else -> "Student"
+            }
+            
+            val startTimes = uiState.allTimeSlots.mapNotNull { timeSlot ->
+                try {
+                    timeSlot.split(" - ")[0].trim()
+                } catch (e: Exception) {
+                    null
+                }
+            }.distinct()
+            
+            generateRoutinePdf(
+                context = context,
+                routineItems = displayItems,
+                role = role,
+                batch = currentUser?.batch ?: "",
+                section = currentUser?.section ?: "",
+                teacherInitial = currentUser?.initial ?: "",
+                room = "",
+                startTimes = startTimes,
+                effectiveFrom = uiState.effectiveFrom,
+                snackbarHostState = snackbarHostState,
+                onPdfSaved = { uri, fileName ->
+                    generatedFileUri = uri
+                    generatedFileName = fileName
+                    showProgressDialog = false
+                    showSuccessDialog = true
+                    isPdfGenerating = false
+                }
+            )
+        }
+    }
+    
+    fun generateImage() {
+        coroutineScope.launch {
+            isImageGenerating = true
+            progressType = "Image"
+            progressTitle = "Generating Image"
+            progressMessage = "Please wait while we create your image..."
+            showProgressDialog = true
+            
+            val displayItems = viewModel.getDisplayRoutineItems()
+            val currentUser = uiState.currentUser
+            val role = when (currentUser?.role?.name) {
+                "STUDENT" -> "Student"
+                "TEACHER" -> "Teacher"
+                else -> "Student"
+            }
+            
+            val startTimes = uiState.allTimeSlots.mapNotNull { timeSlot ->
+                try {
+                    timeSlot.split(" - ")[0].trim()
+                } catch (e: Exception) {
+                    null
+                }
+            }.distinct()
+            
+            generateRoutineImage(
+                context = context,
+                routineItems = displayItems,
+                role = role,
+                batch = currentUser?.batch ?: "",
+                section = currentUser?.section ?: "",
+                teacherInitial = currentUser?.initial ?: "",
+                room = "",
+                startTimes = startTimes,
+                effectiveFrom = uiState.effectiveFrom,
+                snackbarHostState = snackbarHostState,
+                onImageSaved = { uri, fileName ->
+                    generatedFileUri = uri
+                    generatedFileName = fileName
+                    showProgressDialog = false
+                    showSuccessDialog = true
+                    isImageGenerating = false
+                }
+            )
+        }
+    }
+    
+    fun shareFile(uri: Uri) {
+        val shareIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_STREAM, uri)
+            type = if (generatedFileName.endsWith(".pdf")) "application/pdf" else "image/*"
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(shareIntent, "Share $generatedFileName"))
+    }
+    
+    fun viewFile(uri: Uri) {
+        val viewIntent = Intent().apply {
+            action = Intent.ACTION_VIEW
+            setDataAndType(uri, if (generatedFileName.endsWith(".pdf")) "application/pdf" else "image/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            context.startActivity(viewIntent)
+        } catch (e: Exception) {
+            shareFile(uri) // Fallback to share if no viewer app available
+        }
+    }
+    
+    // Download Options Bottom Sheet
+    if (showDownloadSheet) {
+        DownloadOptionsBottomSheet(
+            isVisible = showDownloadSheet,
+            onDismiss = { showDownloadSheet = false },
+            onPdfClick = { generatePdf() },
+            onImageClick = { generateImage() },
+            isPdfGenerating = isPdfGenerating,
+            isImageGenerating = isImageGenerating
+        )
+    }
+    
+    // Progress Dialog
+    GenerationProgressDialog(
+        isVisible = showProgressDialog,
+        title = progressTitle,
+        message = progressMessage,
+        type = progressType,
+        onDismissRequest = { }
+    )
+    
+    // Success Dialog
+    SuccessDialog(
+        isVisible = showSuccessDialog,
+        title = if (progressType == "PDF") "PDF Generated Successfully!" else "Image Generated Successfully!",
+        message = if (progressType == "PDF") 
+            "Your PDF document has been saved to Downloads and is ready for sharing." 
+        else 
+            "Your image has been saved to Pictures and is ready for sharing.",
+        type = progressType,
+        onDismiss = { 
+            showSuccessDialog = false
+            generatedFileUri = null
+            generatedFileName = ""
+        },
+        onShare = { 
+            generatedFileUri?.let { shareFile(it) }
+            showSuccessDialog = false
+        },
+        onView = { 
+            generatedFileUri?.let { viewFile(it) }
+            showSuccessDialog = false
+        }
+    )
     
     // Filter Bottom Sheet
     if (showFilterSheet) {
@@ -488,7 +693,7 @@ private fun RoutineContent(
     routineItems: List<RoutineItem>,
     allTimeSlots: List<String>,
     isRefreshing: Boolean,
-    currentUser: com.om.diucampusschedule.domain.model.User?,
+    currentUser: User?,
     onDaySelected: (String) -> Unit,
     onRefresh: () -> Unit
 ) {
@@ -518,7 +723,8 @@ private fun CleanRoutineTopAppBar(
     user: User?,
     onRefreshClick: () -> Unit,
     isRefreshing: Boolean,
-    refreshRotation: Float
+    refreshRotation: Float,
+    onDownloadClick: () -> Unit
 ) {
     TopAppBar(
         title = {
@@ -538,15 +744,26 @@ private fun CleanRoutineTopAppBar(
             }
         },
         actions = {
+            // Routine Generate Button
+            IconButton(onClick = onDownloadClick) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(id = R.drawable.share_square_24),
+                    contentDescription = "Generate",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(topbarIconSize)
+                )
+            }
             // Only refresh button for clean design
             IconButton(
                 onClick = onRefreshClick,
                 enabled = !isRefreshing
             ) {
                 Icon(
-                                         imageVector = ImageVector.vectorResource(id = R.drawable.deep_sync),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.deep_sync),
                     contentDescription = "Refresh",
-                    modifier = Modifier.graphicsLayer(rotationZ = refreshRotation),
+                    modifier = Modifier
+                        .graphicsLayer(rotationZ = refreshRotation)
+                        .size(topbarIconSize),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -611,9 +828,9 @@ private fun RoutineInfoBar(
                 Text(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                     text = if (isFiltered) {
-                        "Filtered: ${currentFilter?.getDisplayText() ?: "Invalid"}"
+                        "Filtered: ${currentFilter?.getDisplayText()?.uppercase() ?: "Invalid"}"
                     } else {
-                        "View: $defaultFilterText"
+                        "View: ${defaultFilterText.uppercase()}"
                     },
                     color = if (isFiltered) {
                         MaterialTheme.colorScheme.primary
