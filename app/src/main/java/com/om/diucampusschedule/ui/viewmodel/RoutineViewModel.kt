@@ -6,6 +6,7 @@ import com.om.diucampusschedule.core.cache.RoutineCacheService
 import com.om.diucampusschedule.core.error.AppError
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.core.network.NetworkMonitor
+import com.om.diucampusschedule.core.service.CourseNameService
 import com.om.diucampusschedule.domain.model.DayOfWeek
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.RoutineSchedule
@@ -82,7 +83,8 @@ class RoutineViewModel @Inject constructor(
     private val getMaintenanceInfoUseCase: GetMaintenanceInfoUseCase,
     private val networkMonitor: NetworkMonitor,
     private val logger: AppLogger,
-    private val cacheService: RoutineCacheService
+    private val cacheService: RoutineCacheService,
+    private val courseNameService: CourseNameService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RoutineUiState())
@@ -1172,6 +1174,13 @@ class RoutineViewModel @Inject constructor(
         } catch (e: Exception) {
             logger.error(TAG, "Error checking maintenance mode", e)
         }
+    }
+
+    /**
+     * Get course name for a given course code
+     */
+    suspend fun getCourseName(courseCode: String): String? {
+        return courseNameService.getCourseName(courseCode)
     }
 
     override fun onCleared() {

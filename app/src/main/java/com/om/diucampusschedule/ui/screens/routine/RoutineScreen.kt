@@ -3,6 +3,7 @@ package com.om.diucampusschedule.ui.screens.routine
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -177,6 +178,26 @@ fun RoutineScreen(
         label = "refreshRotation"
     )
 
+    // Course click handler for showing course name toast
+    val handleCourseClick: (String) -> Unit = { courseCode ->
+        coroutineScope.launch {
+            val courseName = viewModel.getCourseName(courseCode)
+            if (courseName != null) {
+                Toast.makeText(
+                    context,
+                    courseName,
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                Toast.makeText(
+                    context,
+                    "Course name not available",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
     DIUCampusScheduleTheme {
         Column(
             modifier = Modifier
@@ -323,7 +344,8 @@ fun RoutineScreen(
                         isRefreshing = uiState.isRefreshing,
                         currentUser = uiState.currentUser,
                         onDaySelected = { day -> viewModel.selectDay(day) },
-                        onRefresh = { viewModel.refreshRoutine() }
+                        onRefresh = { viewModel.refreshRoutine() },
+                        onCourseClick = handleCourseClick
                     )
                 }
             }
@@ -699,7 +721,8 @@ private fun RoutineContent(
     isRefreshing: Boolean,
     currentUser: User?,
     onDaySelected: (String) -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onCourseClick: (String) -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
@@ -716,7 +739,8 @@ private fun RoutineContent(
         TableRoutineView(
             currentUser = currentUser,
             routineItems = routineItems,
-            allTimeSlots = allTimeSlots
+            allTimeSlots = allTimeSlots,
+            onCourseClick = onCourseClick
         )
     }
 }
@@ -895,7 +919,8 @@ private fun RoutineInfoBar(
 private fun TableRoutineView(
     currentUser: com.om.diucampusschedule.domain.model.User?,
     routineItems: List<RoutineItem>,
-    allTimeSlots: List<String>
+    allTimeSlots: List<String>,
+    onCourseClick: (String) -> Unit = {}
 ) {
     val days = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday")
 
@@ -1055,7 +1080,8 @@ private fun TableRoutineView(
                                     if (timeSlots.isNotEmpty()) {
                                         timeSlots.forEach { routine ->
                                             RoutineCell(
-                                                routine = routine
+                                                routine = routine,
+                                                onCourseClick = onCourseClick
                                             )
                                         }
                                     } else {
@@ -1160,7 +1186,8 @@ private fun TableRoutineView(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoutineCell(
-    routine: RoutineItem
+    routine: RoutineItem,
+    onCourseClick: (String) -> Unit = {}
 ) {
     var cellVisible by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -1213,7 +1240,7 @@ fun RoutineCell(
                         interactionSource = interactionSource,
                         indication = null,
                         onClick = {
-
+                            onCourseClick(routine.courseCode)
                         }
                     )
             ) {
