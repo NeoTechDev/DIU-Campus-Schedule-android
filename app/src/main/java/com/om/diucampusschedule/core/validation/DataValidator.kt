@@ -300,6 +300,7 @@ object DataValidator {
 
     /**
      * URL validation (for profile pictures)
+     * Accepts both HTTP/HTTPS URLs and local content URIs
      */
     fun validateUrl(url: String?): ValidationResult {
         val errors = mutableListOf<String>()
@@ -307,7 +308,9 @@ object DataValidator {
         if (!url.isNullOrBlank()) {
             when {
                 url.length > 2048 -> errors.add("URL is too long (max 2048 characters)")
-                !url.matches(Regex("^https?://.*")) -> errors.add("URL must start with http:// or https://")
+                // Accept HTTP/HTTPS URLs and content:// URIs for local images
+                !url.matches(Regex("^(https?://.*|content://.*|file://.*)")) -> 
+                    errors.add("URL must be a valid web URL (http/https) or local content URI")
                 url.contains(" ") -> errors.add("URL cannot contain spaces")
             }
         }

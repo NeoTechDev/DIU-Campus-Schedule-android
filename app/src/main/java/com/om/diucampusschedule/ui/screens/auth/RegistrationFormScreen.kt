@@ -1,5 +1,7 @@
 package com.om.diucampusschedule.ui.screens.auth
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,13 +13,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -45,6 +50,8 @@ import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 import com.om.diucampusschedule.ui.viewmodel.ValidationViewModel
+import com.om.diucampusschedule.util.ImageUploadUtil
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +79,53 @@ fun RegistrationFormScreen(
     
     // Network connectivity state
     val isConnected = rememberConnectivityState()
+    
+    // State for image upload
+    var isUploadingImage by remember { mutableStateOf(false) }
+    
+    // Coroutine scope for image upload
+    val scope = rememberCoroutineScope()
+    
+    // Context for image upload
+    val context = LocalContext.current
+    
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            scope.launch {
+                isUploadingImage = true
+                try {
+                    // Upload image to Firebase Storage
+                    val uploadResult = ImageUploadUtil.uploadProfilePicture(
+                        context = context,
+                        imageUri = selectedUri
+                    )
+                    
+                    uploadResult.fold(
+                        onSuccess = { downloadUrl ->
+                            // Delete previous image if it was from Firebase Storage
+                            if (profilePictureUrl.isNotEmpty() && !ImageUploadUtil.isLocalUri(profilePictureUrl)) {
+                                ImageUploadUtil.deleteProfilePicture(profilePictureUrl)
+                            }
+                            
+                            // Update profile picture URL with the new Firebase Storage URL
+                            profilePictureUrl = downloadUrl
+                        },
+                        onFailure = { exception ->
+                            // Handle upload error - could show a snackbar or toast
+                            android.util.Log.e("RegistrationFormScreen", "Image upload failed", exception)
+                            // For now, fallback to local URI
+                            profilePictureUrl = selectedUri.toString()
+                        }
+                    )
+                } finally {
+                    isUploadingImage = false
+                }
+            }
+        }
+    }
 
     // Load validation data when department changes
     LaunchedEffect(department) {
@@ -225,40 +279,75 @@ fun RegistrationFormScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .size(120.dp)
-                                    .clip(CircleShape)
-                                    .border(
-                                        3.dp,
-                                        MaterialTheme.colorScheme.primary,
-                                        CircleShape
-                                    )
-                                    .clickable {
-                                        // TODO: Implement image picker
-                                    },
+                                modifier = Modifier.size(120.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (profilePictureUrl.isNotBlank()) {
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(LocalContext.current)
-                                            .data(profilePictureUrl)
-                                            .crossfade(true)
-                                            .build(),
-                                        contentDescription = "Profile Picture",
-                                        modifier = Modifier
-                                            .fillMaxSize() // since parent Box is already clipped to circle and sized
-                                            .clip(CircleShape),
-                                        contentScale = ContentScale.Crop,
-                                        placeholder = painterResource(R.drawable.ic_person_placeholder), // add a drawable placeholder
-                                        error = painterResource(R.drawable.ic_person_placeholder)        // fallback if load fails
-                                    )
-                                } else {
-                                    Icon(
-                                        Icons.Default.Person,
-                                        contentDescription = "Add Profile Picture",
-                                        modifier = Modifier.size(60.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
+                                Box(
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape)
+                                        .border(
+                                            3.dp,
+                                            MaterialTheme.colorScheme.primary,
+                                            CircleShape
+                                        )
+                                        .clickable {
+                                            imagePickerLauncher.launch("image/*")
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (profilePictureUrl.isNotBlank()) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalContext.current)
+                                                .data(profilePictureUrl)
+                                                .crossfade(true)
+                                                .build(),
+                                            contentDescription = "Profile Picture",
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(CircleShape),
+                                            contentScale = ContentScale.Crop,
+                                            placeholder = painterResource(R.drawable.ic_person_placeholder),
+                                            error = painterResource(R.drawable.ic_person_placeholder)
+                                        )
+                                    } else {
+                                        Icon(
+                                            Icons.Default.Person,
+                                            contentDescription = "Add Profile Picture",
+                                            modifier = Modifier.size(60.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                
+                                // Camera icon overlay
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .align(Alignment.BottomEnd)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .clickable { 
+                                            if (!isUploadingImage) {
+                                                imagePickerLauncher.launch("image/*")
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isUploadingImage) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            color = Color.White,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.CameraAlt,
+                                            contentDescription = "Change Photo",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
                                 }
                             }
                             

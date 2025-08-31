@@ -16,12 +16,14 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.capitalize
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +49,8 @@ import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 import com.om.diucampusschedule.ui.viewmodel.ValidationViewModel
+import com.om.diucampusschedule.util.ImageUploadUtil
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,6 +90,12 @@ fun ProfileScreen(
         GoogleSignIn.getClient(context, gso)
     }
     
+    // State for image upload
+    var isUploadingImage by remember { mutableStateOf(false) }
+    
+    // Coroutine scope for image upload
+    val scope = rememberCoroutineScope()
+    
     // Network connectivity state
     val isConnected = rememberConnectivityState()
     
@@ -115,8 +125,37 @@ fun ProfileScreen(
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
-            profilePictureUrl = it.toString()
+        uri?.let { selectedUri ->
+            scope.launch {
+                isUploadingImage = true
+                try {
+                    // Upload image to Firebase Storage
+                    val uploadResult = ImageUploadUtil.uploadProfilePicture(
+                        context = context,
+                        imageUri = selectedUri
+                    )
+                    
+                    uploadResult.fold(
+                        onSuccess = { downloadUrl ->
+                            // Delete previous image if it was from Firebase Storage
+                            if (profilePictureUrl.isNotEmpty() && !ImageUploadUtil.isLocalUri(profilePictureUrl)) {
+                                ImageUploadUtil.deleteProfilePicture(profilePictureUrl)
+                            }
+                            
+                            // Update profile picture URL with the new Firebase Storage URL
+                            profilePictureUrl = downloadUrl
+                        },
+                        onFailure = { exception ->
+                            // Handle upload error - could show a snackbar or toast
+                            android.util.Log.e("ProfileScreen", "Image upload failed", exception)
+                            // For now, fallback to local URI
+                            profilePictureUrl = selectedUri.toString()
+                        }
+                    )
+                } finally {
+                    isUploadingImage = false
+                }
+            }
         }
     }
     
@@ -257,15 +296,27 @@ fun ProfileScreen(
                                     .align(Alignment.BottomEnd)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary)
-                                    .clickable { imagePickerLauncher.launch("image/*") },
+                                    .clickable { 
+                                        if (!isUploadingImage) {
+                                            imagePickerLauncher.launch("image/*")
+                                        }
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.CameraAlt,
-                                    contentDescription = "Change Photo",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                if (isUploadingImage) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = "Change Photo",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -274,7 +325,7 @@ fun ProfileScreen(
                     
                     // Name and Role
                     Text(
-                        text = if (name.isNotEmpty()) name else "User Name",
+                        text = name.ifEmpty { "User Name" },
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -283,7 +334,7 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     
                     Text(
-                        text = "${role.name} • $department",
+                        text = "${role.name.lowercase().capitalize()} • $department",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
@@ -870,7 +921,7 @@ private fun ProfileField(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = if (value.isNotEmpty()) value else "Not set",
+                    text = value.ifEmpty { "Not set" },
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (value.isNotEmpty()) MaterialTheme.colorScheme.onSurface 
                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
