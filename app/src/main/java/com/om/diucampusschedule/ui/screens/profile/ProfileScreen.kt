@@ -2,6 +2,9 @@ package com.om.diucampusschedule.ui.screens.profile
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,7 +23,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.capitalize
@@ -28,6 +34,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -62,7 +70,7 @@ fun ProfileScreen(
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val validationState by validationViewModel.uiState.collectAsStateWithLifecycle()
     val user = authState.user
-    
+
     // State for editing
     var isEditing by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
@@ -73,13 +81,13 @@ fun ProfileScreen(
     var section by remember { mutableStateOf("") }
     var labSection by remember { mutableStateOf("") }
     var initial by remember { mutableStateOf("") }
-    
+
     // Validation states
     var nameError by remember { mutableStateOf<String?>(null) }
     var batchError by remember { mutableStateOf<String?>(null) }
     var sectionError by remember { mutableStateOf<String?>(null) }
     var initialError by remember { mutableStateOf<String?>(null) }
-    
+
     // Google Sign-In client for sign out
     val context = LocalContext.current
     val googleSignInClient = remember {
@@ -89,16 +97,16 @@ fun ProfileScreen(
             .build()
         GoogleSignIn.getClient(context, gso)
     }
-    
+
     // State for image upload
     var isUploadingImage by remember { mutableStateOf(false) }
-    
+
     // Coroutine scope for image upload
     val scope = rememberCoroutineScope()
-    
+
     // Network connectivity state
     val isConnected = rememberConnectivityState()
-    
+
     // Initialize form with current user data
     LaunchedEffect(user) {
         user?.let {
@@ -112,7 +120,7 @@ fun ProfileScreen(
             initial = it.initial
         }
     }
-    
+
     // Auto-dismiss success message after 3 seconds
     LaunchedEffect(authState.successMessage) {
         if (authState.successMessage != null) {
@@ -120,7 +128,7 @@ fun ProfileScreen(
             viewModel.clearSuccessMessage()
         }
     }
-    
+
     // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -129,26 +137,20 @@ fun ProfileScreen(
             scope.launch {
                 isUploadingImage = true
                 try {
-                    // Upload image to Firebase Storage
                     val uploadResult = ImageUploadUtil.uploadProfilePicture(
                         context = context,
                         imageUri = selectedUri
                     )
-                    
+
                     uploadResult.fold(
                         onSuccess = { downloadUrl ->
-                            // Delete previous image if it was from Firebase Storage
                             if (profilePictureUrl.isNotEmpty() && !ImageUploadUtil.isLocalUri(profilePictureUrl)) {
                                 ImageUploadUtil.deleteProfilePicture(profilePictureUrl)
                             }
-                            
-                            // Update profile picture URL with the new Firebase Storage URL
                             profilePictureUrl = downloadUrl
                         },
                         onFailure = { exception ->
-                            // Handle upload error - could show a snackbar or toast
                             android.util.Log.e("ProfileScreen", "Image upload failed", exception)
-                            // For now, fallback to local URI
                             profilePictureUrl = selectedUri.toString()
                         }
                     )
@@ -158,688 +160,763 @@ fun ProfileScreen(
             }
         }
     }
-    
+
     // Show sign out confirmation dialog
     var showSignOutDialog by remember { mutableStateOf(false) }
-    
+
     // Load validation data when user or department changes
     LaunchedEffect(user?.department) {
         user?.department?.let { department ->
             validationViewModel.loadValidationData(department)
         }
     }
-    
+
     // Get current validation data
     val validationData = validationState.validationData
-    
+
     // Validation functions using DynamicDataValidator
     fun validateName(value: String): String? {
         val result = DataValidator.validateName(value)
         return if (result.isValid) null else result.getErrorMessage()
     }
-    
+
     fun validateBatch(value: String): String? {
         val result = DynamicDataValidator.validateBatch(value, validationData)
         return if (result.isValid) null else result.getErrorMessage()
     }
-    
+
     fun validateSection(value: String): String? {
         val result = DynamicDataValidator.validateSection(value, batch, validationData)
         return if (result.isValid) null else result.getErrorMessage()
     }
-    
 
-    
     fun validateInitial(value: String): String? {
         val result = DynamicDataValidator.validateTeacherInitial(value, validationData)
         return if (result.isValid) null else result.getErrorMessage()
     }
-    
+
     // Check if all validations pass
     fun isFormValid(): Boolean {
         val currentNameError = validateName(name)
         val currentBatchError = if (role == UserRole.STUDENT) validateBatch(batch) else null
         val currentSectionError = if (role == UserRole.STUDENT) validateSection(section) else null
         val currentInitialError = if (role == UserRole.TEACHER) validateInitial(initial) else null
-        
+
         nameError = currentNameError
         batchError = currentBatchError
         sectionError = currentSectionError
         initialError = currentInitialError
-        
-        return currentNameError == null && 
-               currentBatchError == null && 
-               currentSectionError == null && 
-               currentInitialError == null &&
-               // For students, lab section must be selected if section is provided
-               (role != UserRole.STUDENT || section.isBlank() || labSection.isNotBlank())
+
+        return currentNameError == null &&
+                currentBatchError == null &&
+                currentSectionError == null &&
+                currentInitialError == null &&
+                (role != UserRole.STUDENT || section.isBlank() || labSection.isNotBlank())
     }
-    
+
     DIUCampusScheduleTheme {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .run { ScreenConfig.run { withoutTopAppBar() } }
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Network Status
-            NetworkStatusMessage(
-                isConnected = isConnected,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            // Header
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+            // Main content
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .run { ScreenConfig.run { withoutTopAppBar() } }
+                    .verticalScroll(rememberScrollState())
             ) {
+                // Network Status (only if not connected)
+                if (!isConnected) {
+                    NetworkStatusMessage(
+                        isConnected = isConnected,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+
+                // Profile Header with modern design
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp),
+                        .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Profile Picture
+                    // Profile Picture with gradient border
                     Box(
-                        modifier = Modifier.size(120.dp),
+                        modifier = Modifier.size(90.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (profilePictureUrl.isNotEmpty()) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(profilePictureUrl)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier
-                                    .size(120.dp)
-                                    .clip(CircleShape)
-                                    .border(
-                                        4.dp,
-                                        MaterialTheme.colorScheme.primary,
-                                        CircleShape
-                                    ),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(120.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                    .border(
-                                        4.dp,
-                                        MaterialTheme.colorScheme.primary,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Default Profile",
-                                    modifier = Modifier.size(60.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                        // Gradient border
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .drawBehind {
+                                    val gradient = Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFF6366F1),
+                                            Color(0xFF8B5CF6),
+                                            Color(0xFFEC4899),
+                                            Color(0xFFF59E0B)
+                                        ),
+                                        start = Offset(0f, 0f),
+                                        end = Offset(size.width, size.height)
+                                    )
+                                    drawCircle(
+                                        brush = gradient,
+                                        style = Stroke(width = 4.dp.toPx())
+                                    )
+                                }
+                        )
+
+                        // Profile picture content
+                        Box(
+                            modifier = Modifier.size(80.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (profilePictureUrl.isNotEmpty()) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(profilePictureUrl)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
                                 )
-                            }
-                        }
-                        
-                        // Camera icon for editing
-                        if (isEditing) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .align(Alignment.BottomEnd)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                                    .clickable { 
-                                        if (!isUploadingImage) {
-                                            imagePickerLauncher.launch("image/*")
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (isUploadingImage) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.linearGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.surfaceVariant,
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                                                )
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Icon(
-                                        imageVector = Icons.Default.CameraAlt,
-                                        contentDescription = "Change Photo",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(20.dp)
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "Default Profile",
+                                        modifier = Modifier.size(36.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                }
+                            }
+
+                            // Edit camera icon with modern design
+                            if (isEditing) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .align(Alignment.BottomEnd)
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.linearGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.primary,
+                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                                )
+                                            )
+                                        )
+                                        .clickable {
+                                            if (!isUploadingImage) {
+                                                imagePickerLauncher.launch("image/*")
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isUploadingImage) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(14.dp),
+                                            color = Color.White,
+                                            strokeWidth = 1.5.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.CameraAlt,
+                                            contentDescription = "Change Photo",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Name and Role
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Name with enhanced typography
                     Text(
                         text = name.ifEmpty { "User Name" },
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    
+
                     Spacer(modifier = Modifier.height(4.dp))
-                    
-                    Text(
-                        text = "${role.name.lowercase().capitalize()} • $department",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Edit/Save/Cancel buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = if (isEditing) Arrangement.spacedBy(12.dp) else Arrangement.Center
-            ) {
-                if (isEditing) {
-                    // Cancel button
-                    OutlinedButton(
-                        onClick = {
-                            isEditing = false
-                            // Reset form to original values
-                            user?.let {
-                                name = it.name
-                                profilePictureUrl = it.profilePictureUrl
-                                department = it.department
-                                role = it.role
-                                batch = it.batch
-                                section = it.section
-                                labSection = it.labSection
-                                initial = it.initial
-                            }
-                            // Clear validation errors
-                            nameError = null
-                            batchError = null
-                            sectionError = null
-                            initialError = null
-                        },
-                        modifier = Modifier.weight(1f)
+
+                    // Role and Department with modern chip design
+                    Surface(
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Cancel,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                        Text(
+                            text = "${role.name.lowercase().capitalize()} • $department",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Cancel")
                     }
-                    
-                    // Save button
-                    Button(
-                        onClick = {
-                            if (isFormValid()) {
-                                val form = UserRegistrationForm(
-                                    name = name.trim(),
-                                    profilePictureUrl = profilePictureUrl,
-                                    department = department,
-                                    role = role,
-                                    batch = batch.trim().uppercase(),
-                                    section = section.trim().uppercase(),
-                                    labSection = labSection.trim().uppercase(),
-                                    initial = initial.trim().uppercase()
-                                )
-                                viewModel.updateUserProfile(form)
-                                isEditing = false
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        enabled = !authState.isLoading && isFormValid() && isConnected
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Modern Edit/Save/Cancel Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = if (isEditing) Arrangement.spacedBy(12.dp) else Arrangement.Center
                     ) {
-                        if (authState.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = Color.White
-                            )
+                        if (isEditing) {
+                            OutlinedButton(
+                                onClick = {
+                                    isEditing = false
+                                    user?.let {
+                                        name = it.name
+                                        profilePictureUrl = it.profilePictureUrl
+                                        department = it.department
+                                        role = it.role
+                                        batch = it.batch
+                                        section = it.section
+                                        labSection = it.labSection
+                                        initial = it.initial
+                                    }
+                                    nameError = null
+                                    batchError = null
+                                    sectionError = null
+                                    initialError = null
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                            ) {
+                                Text("Cancel", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium))
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (isFormValid()) {
+                                        val form = UserRegistrationForm(
+                                            name = name.trim(),
+                                            profilePictureUrl = profilePictureUrl,
+                                            department = department,
+                                            role = role,
+                                            batch = batch.trim().uppercase(),
+                                            section = section.trim().uppercase(),
+                                            labSection = labSection.trim().uppercase(),
+                                            initial = initial.trim().uppercase()
+                                        )
+                                        viewModel.updateUserProfile(form)
+                                        isEditing = false
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp),
+                                enabled = !authState.isLoading && isFormValid() && isConnected,
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                if (authState.isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = Color.White,
+                                        strokeWidth = 1.5.dp
+                                    )
+                                } else {
+                                    Text("Save", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium))
+                                }
+                            }
                         } else {
-                            Icon(
-                                imageVector = Icons.Default.Save,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Save")
+                            Button(
+                                onClick = { isEditing = true },
+                                modifier = Modifier.height(40.dp),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Edit Profile", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium))
+                            }
                         }
-                    }
-                } else {
-                    // Edit button
-                    Button(
-                        onClick = { isEditing = true }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Edit Profile")
                     }
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Profile Information Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
+
+                // Profile Information with modern card design
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Text(
-                        text = "Profile Information",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    
-                    // Name Field
-                    ProfileField(
-                        label = "Full Name",
-                        value = name,
-                        onValueChange = { name = it },
-                        isEditing = isEditing,
-                        icon = Icons.Default.Person,
-                        errorMessage = nameError,
-                        onValidate = { input ->
-                            val error = validateName(input)
-                            nameError = error
-                            error
-                        }
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Department Field
-                    ProfileField(
-                        label = "Department",
-                        value = department,
-                        onValueChange = { department = it },
-                        isEditing = false, // Keep department read-only for now
-                        icon = Icons.Default.School
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Role Selection
-                    Text(
-                        text = "Role",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    
-                    if (isEditing) {
-                        Column {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { 
-                                        role = UserRole.STUDENT
-                                        // Clear validation errors when role changes
-                                        batchError = null
-                                        sectionError = null
-                                        initialError = null
-                                    }
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                RadioButton(
-                                    selected = role == UserRole.STUDENT,
-                                    onClick = { role = UserRole.STUDENT }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Student",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Profile Information",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        // Name Field
+                        ModernProfileInfoItem(
+                            label = "Name",
+                            value = name,
+                            onValueChange = { name = it },
+                            isEditing = isEditing,
+                            icon = Icons.Default.Person,
+                            errorMessage = nameError,
+                            onValidate = { input ->
+                                val error = validateName(input)
+                                nameError = error
+                                error
                             }
-                            
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { 
-                                        role = UserRole.TEACHER
-                                        // Clear validation errors and student data when role changes
-                                        batchError = null
-                                        sectionError = null
-                                        initialError = null
-                                        batch = ""
-                                        section = ""
-                                        labSection = ""
-                                    }
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                RadioButton(
-                                    selected = role == UserRole.TEACHER,
-                                                                            onClick = { 
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Department Field
+                        ModernProfileInfoItem(
+                            label = "Department",
+                            value = department,
+                            onValueChange = { },
+                            isEditing = false,
+                            icon = Icons.Default.School
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Role Selection with modern chips
+                        Column {
+                            Text(
+                                text = "Role",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            if (isEditing) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    FilterChip(
+                                        onClick = {
+                                            role = UserRole.STUDENT
+                                            batchError = null
+                                            sectionError = null
+                                            initialError = null
+                                        },
+                                        label = {
+                                            Text("Student", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium))
+                                        },
+                                        selected = role == UserRole.STUDENT,
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+
+                                    FilterChip(
+                                        onClick = {
                                             role = UserRole.TEACHER
-                                            // Clear validation errors and student data when role changes
                                             batchError = null
                                             sectionError = null
                                             initialError = null
                                             batch = ""
                                             section = ""
                                             labSection = ""
-                                        }
+                                        },
+                                        label = {
+                                            Text("Teacher", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium))
+                                        },
+                                        selected = role == UserRole.TEACHER,
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                }
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                ) {
+                                    Text(
+                                        text = role.name.lowercase().capitalize(),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Loading indicator for validation data
+                        if (validationState.isLoading) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    strokeWidth = 1.5.dp
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Teacher",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-                    } else {
-                        Text(
-                            text = role.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Role-specific fields
-                    // Show loading indicator if validation data is loading
-                    if (validationState.isLoading) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
                                     text = "Loading validation data...",
-                                    style = MaterialTheme.typography.bodyMedium
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-                    
-                    if (role == UserRole.STUDENT) {
-                        // Student fields
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(modifier = Modifier.weight(1f)) {
-                                ProfileField(
-                                    label = "Batch",
-                                    value = batch,
-                                    onValueChange = { batch = it },
-                                    isEditing = isEditing,
-                                    icon = Icons.Default.Groups,
-                                    keyboardType = KeyboardType.Number,
-                                    placeholder = "59",
-                                    errorMessage = batchError,
-                                    onValidate = { input ->
-                                        val error = validateBatch(input)
-                                        batchError = error
-                                        error
-                                    },
-                                    helperText = if (validationData.validBatches.isNotEmpty()) {
-                                        "Available batches: ${validationData.validBatches.sorted().joinToString(", ")}"
-                                    } else null
-                                )
-                            }
-                            
-                            Box(modifier = Modifier.weight(1f)) {
-                                ProfileField(
-                                    label = "Section",
-                                    value = section,
-                                    onValueChange = { newValue ->
-                                        section = newValue
-                                        // Clear lab section when section changes
-                                        if (labSection.isNotBlank()) {
-                                            val expectedLabSections = validationData.getLabSectionsForMainSection(newValue)
-                                            if (!expectedLabSections.contains(labSection)) {
-                                                labSection = ""
-                                            }
+
+                        // Role-specific fields
+                        if (role == UserRole.STUDENT) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    ModernProfileInfoItem(
+                                        label = "Batch",
+                                        value = batch,
+                                        onValueChange = { batch = it },
+                                        isEditing = isEditing,
+                                        icon = Icons.Default.Groups,
+                                        keyboardType = KeyboardType.Number,
+                                        placeholder = "41",
+                                        errorMessage = batchError,
+                                        onValidate = { input ->
+                                            val error = validateBatch(input)
+                                            batchError = error
+                                            error
                                         }
-                                    },
-                                    isEditing = isEditing,
-                                    icon = Icons.Default.Class,
-                                    placeholder = "A",
-                                    errorMessage = sectionError,
-                                    onValidate = { input ->
-                                        val error = validateSection(input)
-                                        sectionError = error
-                                        error
-                                    },
-                                    helperText = if (batch.isNotBlank() && validationData.getSectionsForBatch(batch).isNotEmpty()) {
-                                        "Available sections for batch $batch: ${validationData.getSectionsForBatch(batch).sorted().joinToString(", ")}"
-                                    } else null
-                                )
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        // Lab Section Selection
-                        Column {
-                            Text(
-                                text = "Lab Section",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                            
-                            if (isEditing) {
-                                LabSectionChipGroup(
-                                    mainSection = section,
-                                    selectedLabSection = labSection,
-                                    onLabSectionSelected = { selectedLabSection ->
-                                        labSection = selectedLabSection
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    enabled = section.isNotBlank(),
-                                    showLabel = false
-                                )
-                            } else {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Science,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    Spacer(modifier = Modifier.width(12.dp))
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    ModernProfileInfoItem(
+                                        label = "Section",
+                                        value = section,
+                                        onValueChange = { newValue ->
+                                            section = newValue
+                                            if (labSection.isNotBlank()) {
+                                                val expectedLabSections = validationData.getLabSectionsForMainSection(newValue)
+                                                if (!expectedLabSections.contains(labSection)) {
+                                                    labSection = ""
+                                                }
+                                            }
+                                        },
+                                        isEditing = isEditing,
+                                        icon = Icons.Default.Class,
+                                        placeholder = "J",
+                                        errorMessage = sectionError,
+                                        onValidate = { input ->
+                                            val error = validateSection(input)
+                                            sectionError = error
+                                            error
+                                        }
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Lab Section
+                            Column {
+                                Text(
+                                    text = "Lab Section",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+
+                                if (isEditing) {
+                                    LabSectionChipGroup(
+                                        mainSection = section,
+                                        selectedLabSection = labSection,
+                                        onLabSectionSelected = { selectedLabSection ->
+                                            labSection = selectedLabSection
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        enabled = section.isNotBlank(),
+                                        showLabel = false
+                                    )
+                                } else {
                                     if (labSection.isNotEmpty()) {
                                         LabSectionChipDisplay(
                                             selectedLabSection = labSection
                                         )
                                     } else {
-                                        Text(
-                                            text = "Not selected",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                        )
+                                        Surface(
+                                            shape = RoundedCornerShape(16.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                        ) {
+                                            Text(
+                                                text = "Not selected",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
+                        } else {
+                            // Teacher fields
+                            ModernProfileInfoItem(
+                                label = "Initial",
+                                value = initial,
+                                onValueChange = { initial = it },
+                                isEditing = isEditing,
+                                icon = Icons.Default.Badge,
+                                placeholder = "MBM",
+                                errorMessage = initialError,
+                                onValidate = { input ->
+                                    val error = validateInitial(input)
+                                    initialError = error
+                                    error
+                                }
+                            )
                         }
-                    } else {
-                        // Teacher fields
-                        ProfileField(
-                            label = "Initial",
-                            value = initial,
-                            onValueChange = { initial = it },
-                            isEditing = isEditing,
-                            icon = Icons.Default.Badge,
-                            placeholder = "ABC",
-                            errorMessage = initialError,
-                            onValidate = { input ->
-                                val error = validateInitial(input)
-                                initialError = error
-                                error
-                            },
-                            helperText = if (validationData.validTeacherInitials.isNotEmpty()) {
-                                "Available teacher initials: ${validationData.validTeacherInitials.sorted().joinToString(", ")}"
-                            } else null
-                        )
                     }
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Actions Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "Account Actions",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    
-                    // Sign Out Button
-                    OutlinedButton(
-                        onClick = { showSignOutDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = isConnected,
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Sign Out")
-                    }
-                }
-            }
-            
-            // Error Message
-            if (authState.error != null) {
+
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Account section with modern design
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        text = authState.error!!,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-            
-            // Success Message
-            if (authState.successMessage != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f)
-                    )
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = authState.successMessage!!,
-                            color = Color(0xFF2E7D32),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
+                            text = "Account",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(bottom = 12.dp)
                         )
-                        Text(
-                            text = "Your routine will update automatically",
-                            color = Color(0xFF2E7D32).copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
+
+                        OutlinedButton(
+                            onClick = { showSignOutDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp),
+                            enabled = isConnected,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Sign Out", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium))
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+
+            // Floating Success/Error Messages at the top
+            AnimatedVisibility(
+                visible = authState.error != null || authState.successMessage != null,
+                enter = slideInVertically(
+                    initialOffsetY = { -it },
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                ) + fadeIn(),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it },
+                    animationSpec = tween(300)
+                ) + fadeOut(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .zIndex(10f)
+                    .padding(12.dp)
+            ) {
+                when {
+                    authState.error != null -> {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Error,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = authState.error!!,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
+                                )
+                            }
+                        }
+                    }
+
+                    authState.successMessage != null -> {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFF4CAF50).copy(alpha = 0.15f)
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = authState.successMessage!!,
+                                        color = Color(0xFF2E7D32),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
+                                    )
+                                    Text(
+                                        text = "Your routine will update automatically",
+                                        color = Color(0xFF2E7D32).copy(alpha = 0.8f),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                        modifier = Modifier.padding(top = 1.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
-    
-    // Sign Out Confirmation Dialog
+
+    // Modern Sign Out Dialog
     if (showSignOutDialog) {
         AlertDialog(
             onDismissRequest = { showSignOutDialog = false },
             title = {
-                Text("Sign Out")
+                Text(
+                    "Sign Out",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                )
             },
             text = {
-                Text("Are you sure you want to sign out?")
+                Text(
+                    "Are you sure you want to sign out?",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
+                )
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         showSignOutDialog = false
                         viewModel.signOutWithGoogle(googleSignInClient)
                         navController.navigate(Screen.Welcome.route) {
                             popUpTo(0) { inclusive = true }
                         }
-                    }
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
-                    Text("Sign Out")
+                    Text(
+                        "Sign Out",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium)
+                    )
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showSignOutDialog = false }
+                    onClick = { showSignOutDialog = false },
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium)
+                    )
                 }
-            }
+            },
+            shape = RoundedCornerShape(28.dp)
         )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProfileField(
+private fun ModernProfileInfoItem(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
@@ -848,17 +925,19 @@ private fun ProfileField(
     keyboardType: KeyboardType = KeyboardType.Text,
     placeholder: String = "",
     errorMessage: String? = null,
-    helperText: String? = null,
     onValidate: ((String) -> String?)? = null
 ) {
     Column {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
+
         if (isEditing) {
             OutlinedTextField(
                 value = value,
@@ -867,65 +946,68 @@ private fun ProfileField(
                     onValidate?.invoke(newValue)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(placeholder) },
+                placeholder = {
+                    Text(
+                        placeholder,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                },
                 leadingIcon = {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp),
                 isError = errorMessage != null,
-                supportingText = when {
-                    errorMessage != null -> {
-                        {
-                            Text(
-                                text = errorMessage,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
+                supportingText = if (errorMessage != null) {
+                    {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp)
+                        )
                     }
-                    helperText != null -> {
-                        {
-                            Text(
-                                text = helperText,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                    else -> null
-                },
+                } else null,
+                shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                     errorBorderColor = MaterialTheme.colorScheme.error,
-                    errorLabelColor = MaterialTheme.colorScheme.error,
-                    errorLeadingIconColor = MaterialTheme.colorScheme.error
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 )
             )
         } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = value.ifEmpty { "Not set" },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (value.isNotEmpty()) MaterialTheme.colorScheme.onSurface 
-                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(12.dp)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = value.ifEmpty { "Not set" },
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = if (value.isNotEmpty()) FontWeight.Medium else FontWeight.Normal,
+                            fontSize = 13.sp
+                        ),
+                        color = if (value.isNotEmpty()) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
             }
         }
     }
