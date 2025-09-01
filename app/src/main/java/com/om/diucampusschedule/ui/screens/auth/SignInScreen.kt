@@ -3,30 +3,65 @@ package com.om.diucampusschedule.ui.screens.auth
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -44,6 +79,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,7 +88,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.om.diucampusschedule.R
@@ -74,29 +109,29 @@ fun SignInScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var isEmailFocused by remember { mutableStateOf(false) }
     var isPasswordFocused by remember { mutableStateOf(false) }
-    
+
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
-    
+
     // Network connectivity state
     val isConnected = rememberConnectivityState()
-    
+
     // Animation states
-    val formScale by animateFloatAsState(
-        targetValue = if (authState.isLoading) 0.98f else 1f,
+    val contentOffset by animateIntAsState(
+        targetValue = if (authState.isLoading) 8 else 0,
         animationSpec = tween(300),
-        label = "formScale"
+        label = "contentOffset"
     )
-    
-    val titleAlpha by animateFloatAsState(
-        targetValue = if (authState.isLoading) 0.7f else 1f,
+
+    val formAlpha by animateFloatAsState(
+        targetValue = if (authState.isLoading) 0.8f else 1f,
         animationSpec = tween(300),
-        label = "titleAlpha"
+        label = "formAlpha"
     )
-    
+
     // Configure Google Sign-In
     val googleSignInOptions = remember {
         try {
@@ -111,11 +146,11 @@ fun SignInScreen(
                 .build()
         }
     }
-    
+
     val googleSignInClient = remember {
         GoogleSignIn.getClient(context, googleSignInOptions)
     }
-    
+
     // Google Sign-In launcher
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -145,152 +180,129 @@ fun SignInScreen(
 
     DIUCampusScheduleTheme {
         Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Background Image with Gradient Overlay
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.welcome_screen_bg),
-                    contentDescription = "DIU Campus Background",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    alpha = 0.3f
-                )
-
-                // Gradient Overlay
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
-                                )
-                            )
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.02f),
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.surface
                         )
+                    )
                 )
-            }
+        ) {
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp)
                     .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Network Status
-                NetworkStatusMessage(
-                    isConnected = isConnected,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                // App Logo/Icon (placeholder)
+                // Hero Image Section
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                                )
-                            )
-                        )
-                        .graphicsLayer(alpha = titleAlpha),
+                        .fillMaxWidth()
+                        .height(240.dp)
+                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.School,
-                        contentDescription = "DIU Campus Schedule",
-                        tint = Color.White,
-                        modifier = Modifier.size(40.dp)
+                    // Background image
+                    Image(
+                        painter = painterResource(id = R.drawable.signin_top),
+                        contentDescription = "Students connecting and learning together",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    // Dark overlay for better contrast
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.4f),  // top darker
+                                        Color.Black.copy(alpha = 0.15f)  // bottom lighter
+                                    )
+                                )
+                            )
+                    )
+
+                    // NetworkStatusMessage as overlay on top of image
+                    NetworkStatusMessage(
+                        isConnected = isConnected,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 48.dp)
                     )
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Title with animation
-                AnimatedVisibility(
-                    visible = true,
-                    enter = slideInVertically(
-                        initialOffsetY = { -40 },
-                        animationSpec = tween(600, delayMillis = 200)
-                    ) + fadeIn(animationSpec = tween(600, delayMillis = 200))
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Welcome Back!",
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 32.sp
-                            ),
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .padding(bottom = 8.dp)
-                                .graphicsLayer(alpha = titleAlpha)
-                        )
 
+                // Content section with padding
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Title Section (removed extra spacer)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(top = 24.dp, bottom = 24.dp)
+                    ) {
+                        // Modern Typography - Contextual for post-welcome flow
                         Text(
-                            text = "Sign in to your account",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontSize = 16.sp
+                            text = "Let's Connect With Us!",
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 28.sp
                             ),
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            modifier = Modifier
-                                .padding(bottom = 32.dp)
-                                .graphicsLayer(alpha = titleAlpha)
+                            color = MaterialTheme.colorScheme.onBackground,
+                            textAlign = TextAlign.Center
                         )
                     }
-                }
 
-                // Sign In Form with enhanced animation
-                AnimatedVisibility(
-                    visible = true,
-                    enter = slideInVertically(
-                        initialOffsetY = { 60 },
-                        animationSpec = tween(600, delayMillis = 400)
-                    ) + fadeIn(animationSpec = tween(600, delayMillis = 400))
-                ) {
-                    Card(
+                    // Modern Form Layout with optimized spacing
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .scale(formScale),
-                        shape = RoundedCornerShape(20.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                        )
+                            .graphicsLayer(alpha = formAlpha)
+                            .offset(y = contentOffset.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier.padding(28.dp),
-                            verticalArrangement = Arrangement.spacedBy(20.dp)
-                        ) {
-                            // Email Field with enhanced styling
+                        // Email Field with modern styling
+                        Column {
+                            Text(
+                                text = "Email Address",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+
                             OutlinedTextField(
                                 value = email,
-                                onValueChange = { 
+                                onValueChange = {
                                     email = it
-                                    viewModel.clearError() // Clear error on typing
+                                    viewModel.clearError()
                                 },
-                                label = { 
+                                placeholder = {
                                     Text(
-                                        "Email Address",
-                                        color = if (isEmailFocused) MaterialTheme.colorScheme.primary 
-                                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                    ) 
+                                        "Enter your email",
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = if (isEmailFocused) Icons.Filled.Email else Icons.Outlined.Email,
+                                        imageVector = Icons.Outlined.Email,
                                         contentDescription = "Email",
-                                        tint = if (isEmailFocused) MaterialTheme.colorScheme.primary 
-                                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        tint = if (isEmailFocused) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 },
                                 keyboardOptions = KeyboardOptions(
@@ -307,51 +319,61 @@ fun SignInScreen(
                                         isEmailFocused = focusState.isFocused
                                     },
                                 singleLine = true,
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(16.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                    focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
                                 )
                             )
+                        }
 
-                            // Password Field with enhanced styling
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Password Field with modern styling
+                        Column {
+                            Text(
+                                text = "Password",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+
                             OutlinedTextField(
                                 value = password,
-                                onValueChange = { 
+                                onValueChange = {
                                     password = it
-                                    viewModel.clearError() // Clear error on typing
+                                    viewModel.clearError()
                                 },
-                                label = { 
+                                placeholder = {
                                     Text(
-                                        "Password",
-                                        color = if (isPasswordFocused) MaterialTheme.colorScheme.primary 
-                                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                    ) 
+                                        "Enter your password",
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = if (isPasswordFocused) Icons.Filled.Lock else Icons.Outlined.Lock,
+                                        imageVector = Icons.Outlined.Lock,
                                         contentDescription = "Password",
-                                        tint = if (isPasswordFocused) MaterialTheme.colorScheme.primary 
-                                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        tint = if (isPasswordFocused) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 },
                                 trailingIcon = {
                                     IconButton(
-                                        onClick = { passwordVisible = !passwordVisible },
-                                        modifier = Modifier.scale(
-                                            animateFloatAsState(
-                                                targetValue = if (passwordVisible) 1.1f else 1f,
-                                                animationSpec = tween(150),
-                                                label = "passwordVisibilityScale"
-                                            ).value
-                                        )
+                                        onClick = { passwordVisible = !passwordVisible }
                                     ) {
                                         Icon(
                                             imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                                             contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 },
@@ -361,7 +383,7 @@ fun SignInScreen(
                                     imeAction = ImeAction.Done
                                 ),
                                 keyboardActions = KeyboardActions(
-                                    onDone = { 
+                                    onDone = {
                                         keyboardController?.hide()
                                         focusManager.clearFocus()
                                         if (email.isNotBlank() && password.isNotBlank()) {
@@ -376,290 +398,234 @@ fun SignInScreen(
                                         isPasswordFocused = focusState.isFocused
                                     },
                                 singleLine = true,
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(16.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                    focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
                                 )
                             )
+                        }
 
-                            // Error Message with animation
-                            AnimatedVisibility(
-                                visible = authState.error != null,
-                                enter = slideInVertically(
-                                    initialOffsetY = { -20 },
-                                    animationSpec = tween(300)
-                                ) + fadeIn(animationSpec = tween(300)),
-                                exit = slideOutVertically(
-                                    targetOffsetY = { -20 },
-                                    animationSpec = tween(300)
-                                ) + fadeOut(animationSpec = tween(300))
-                            ) {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
-                                    ),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.ErrorOutline,
-                                            contentDescription = "Error",
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = authState.error ?: "",
-                                            color = MaterialTheme.colorScheme.error,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Forgot Password with enhanced styling
+                        // Error Message with clean styling
+                        AnimatedVisibility(
+                            visible = authState.error != null,
+                            enter = slideInVertically(
+                                initialOffsetY = { -20 },
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300)),
+                            exit = slideOutVertically(
+                                targetOffsetY = { -20 },
+                                animationSpec = tween(300)
+                            ) + fadeOut(animationSpec = tween(300))
+                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(
-                                    onClick = {
-                                        keyboardController?.hide()
-                                        focusManager.clearFocus()
-                                        navController.navigate(Screen.ForgotPassword.route)
-                                    },
-                                    modifier = Modifier.padding(0.dp)
-                                ) {
-                                    Text(
-                                        text = "Forgot Password?",
-                                        color = MaterialTheme.colorScheme.primary,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.Medium
-                                        )
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
+                                        shape = RoundedCornerShape(12.dp)
                                     )
-                                }
-                            }
-
-                            // Enhanced Sign In Button
-                            val buttonScale by animateFloatAsState(
-                                targetValue = if (authState.isLoading) 0.98f else 1f,
-                                animationSpec = tween(150),
-                                label = "buttonScale"
-                            )
-                            
-                            Button(
-                                onClick = {
-                                    keyboardController?.hide()
-                                    focusManager.clearFocus()
-                                    viewModel.clearError()
-                                    viewModel.signIn(email, password)
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp)
-                                    .scale(buttonScale),
-                                enabled = !authState.isLoading && email.isNotBlank() && password.isNotBlank() && isConnected,
-                                shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                ),
-                                elevation = ButtonDefaults.buttonElevation(
-                                    defaultElevation = 4.dp,
-                                    pressedElevation = 2.dp,
-                                    disabledElevation = 0.dp
-                                )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                if (authState.isLoading) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            strokeWidth = 2.dp
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "Signing In...",
-                                            style = MaterialTheme.typography.labelLarge.copy(
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.SemiBold
-                                            ),
-                                            color = MaterialTheme.colorScheme.onPrimary
-                                        )
-                                    }
-                                } else {
-                                    Row(
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Login,
-                                            contentDescription = "Sign In",
-                                            modifier = Modifier.size(20.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimary
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "Sign In",
-                                            style = MaterialTheme.typography.labelLarge.copy(
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.SemiBold
-                                            ),
-                                            color = MaterialTheme.colorScheme.onPrimary
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Enhanced Divider with animation
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                HorizontalDivider(
-                                    modifier = Modifier.weight(1f),
-                                    thickness = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                Icon(
+                                    imageVector = Icons.Default.ErrorOutline,
+                                    contentDescription = "Error",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
                                 )
                                 Text(
-                                    text = "OR",
-                                    modifier = Modifier.padding(horizontal = 20.dp),
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontWeight = FontWeight.Medium,
-                                        letterSpacing = 1.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                                HorizontalDivider(
-                                    modifier = Modifier.weight(1f),
-                                    thickness = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                    text = authState.error ?: "",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
+                        }
 
-                            // Enhanced Google Sign In Button
-                            OutlinedButton(
+                        // Forgot Password link
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 0.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(
                                 onClick = {
                                     keyboardController?.hide()
                                     focusManager.clearFocus()
-                                    viewModel.clearError()
-                                    val signInIntent = googleSignInClient.signInIntent
-                                    googleSignInLauncher.launch(signInIntent)
+                                    navController.navigate(Screen.ForgotPassword.route)
                                 },
-                                enabled = isConnected,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(
-                                    1.5.dp,
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                                ),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                    contentColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                elevation = ButtonDefaults.buttonElevation(
-                                    defaultElevation = 2.dp,
-                                    pressedElevation = 4.dp
-                                )
+                                modifier = Modifier.padding(0.dp)
                             ) {
+                                Text(
+                                    text = "Forgot password?",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                )
+                            }
+                        }
+
+                        // Sign In Button
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                                viewModel.clearError()
+                                viewModel.signIn(email, password)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            enabled = !authState.isLoading && email.isNotBlank() && password.isNotBlank() && isConnected,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                            )
+                        ) {
+                            if (authState.isLoading) {
                                 Row(
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Google icon placeholder (using colorful circle)
-                                    Box(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                brush = Brush.linearGradient(
-                                                    colors = listOf(
-                                                        Color(0xFF4285F4), // Google Blue
-                                                        Color(0xFF34A853), // Google Green
-                                                        Color(0xFFFBBC05), // Google Yellow
-                                                        Color(0xFFEA4335)  // Google Red
-                                                    )
-                                                )
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "G",
-                                            color = Color.White,
-                                            style = MaterialTheme.typography.labelMedium.copy(
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        )
-                                    }
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        strokeWidth = 2.dp
+                                    )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(
-                                        text = "Continue with Google",
+                                        text = "Signing In...",
                                         style = MaterialTheme.typography.labelLarge.copy(
                                             fontSize = 16.sp,
-                                            fontWeight = FontWeight.Medium
+                                            fontWeight = FontWeight.SemiBold
                                         ),
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
+                            } else {
+                                Text(
+                                    text = "Sign In",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
                             }
                         }
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                // Enhanced Sign Up Link with animation
-                AnimatedVisibility(
-                    visible = true,
-                    enter = slideInVertically(
-                        initialOffsetY = { 40 },
-                        animationSpec = tween(600, delayMillis = 800)
-                    ) + fadeIn(animationSpec = tween(600, delayMillis = 800))
-                ) {
-                    Card(
-                        modifier = Modifier
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
+                        // Divider
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            HorizontalDivider(
+                                modifier = Modifier.weight(1f),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            )
+                            Text(
+                                text = "or",
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.weight(1f),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Google Sign In Button
+                        OutlinedButton(
+                            onClick = {
                                 keyboardController?.hide()
                                 focusManager.clearFocus()
-                                navController.navigate(Screen.SignUp.route)
+                                viewModel.clearError()
+                                val signInIntent = googleSignInClient.signInIntent
+                                googleSignInLauncher.launch(signInIntent)
                             },
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
+                            enabled = isConnected,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                            ),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Transparent,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Google icon
+                                Image(
+                                    painter = painterResource(id = R.drawable.google_logo),
+                                    contentDescription = "Google Logo",
+                                    modifier = Modifier.size(20.dp)
+                                )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Text(
+                                    text = "Sign in with Google",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        // Sign Up Link
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         Row(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    keyboardController?.hide()
+                                    focusManager.clearFocus()
+                                    navController.navigate(Screen.SignUp.route)
+                                }
+                                .padding(8.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Don't have an account? ",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                             )
                             Text(
                                 text = "Sign Up",
                                 style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.SemiBold
                                 ),
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -672,21 +638,23 @@ fun SignInScreen(
                             )
                         }
                     }
+
+                    // Focus handling
+                    LaunchedEffect(Unit) {
+                        emailFocusRequester.requestFocus()
+                    }
                 }
-            }
-            
-            // Focus handling
-            LaunchedEffect(Unit) {
-                emailFocusRequester.requestFocus()
             }
         }
     }
 }
 
-
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun SignInScreenPreview() {
-    val navController = rememberNavController()
-    SignInScreen(navController = navController)
+    DIUCampusScheduleTheme {
+        SignInScreen(
+            navController = rememberNavController()
+        )
+    }
 }

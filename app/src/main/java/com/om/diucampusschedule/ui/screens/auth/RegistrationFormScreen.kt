@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -197,43 +198,27 @@ fun RegistrationFormScreen(
 
     DIUCampusScheduleTheme {
         Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Background Image with Gradient Overlay
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.welcome_screen_bg),
-                    contentDescription = "DIU Campus Background",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    alpha = 0.3f
-                )
-
-                // Gradient Overlay
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
-                                )
-                            )
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.02f),
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.surface
                         )
+                    )
                 )
-            }
+        ) {
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp)
+                    .padding(horizontal = 24.dp)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(50.dp))
                 
                 // Network Status
                 NetworkStatusMessage(
@@ -241,281 +226,400 @@ fun RegistrationFormScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Title
-                Text(
-                    text = "Complete Your Profile",
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 28.sp
-                    ),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                Text(
-                    text = "Help us customize your experience",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 16.sp
-                    ),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(bottom = 32.dp)
-                )
-
-                // Registration Form
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                // Modern Header
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(bottom = 24.dp)
                 ) {
+                    Text(
+                        text = "Complete Your Profile",
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 28.sp
+                        ),
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Help us customize your experience",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    )
+                }
+
+                // Modern Form Layout
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Profile Picture Section with modern styling
                     Column(
-                        modifier = Modifier.padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Profile Picture Section
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxWidth()
+                        Box(
+                            modifier = Modifier.size(120.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Box(
-                                modifier = Modifier.size(120.dp),
+                                modifier = Modifier
+                                    .size(120.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                            )
+                                        )
+                                    )
+                                    .border(
+                                        2.dp,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                        CircleShape
+                                    )
+                                    .clickable {
+                                        imagePickerLauncher.launch("image/*")
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(120.dp)
-                                        .clip(CircleShape)
-                                        .border(
-                                            3.dp,
-                                            MaterialTheme.colorScheme.primary,
-                                            CircleShape
-                                        )
-                                        .clickable {
-                                            imagePickerLauncher.launch("image/*")
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (profilePictureUrl.isNotBlank()) {
-                                        AsyncImage(
-                                            model = ImageRequest.Builder(LocalContext.current)
-                                                .data(profilePictureUrl)
-                                                .crossfade(true)
-                                                .build(),
-                                            contentDescription = "Profile Picture",
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(CircleShape),
-                                            contentScale = ContentScale.Crop,
-                                            placeholder = painterResource(R.drawable.ic_person_placeholder),
-                                            error = painterResource(R.drawable.ic_person_placeholder)
-                                        )
-                                    } else {
-                                        Icon(
-                                            Icons.Default.Person,
-                                            contentDescription = "Add Profile Picture",
-                                            modifier = Modifier.size(60.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                                
-                                // Camera icon overlay
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .align(Alignment.BottomEnd)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary)
-                                        .clickable { 
-                                            if (!isUploadingImage) {
-                                                imagePickerLauncher.launch("image/*")
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (isUploadingImage) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(16.dp),
-                                            color = Color.White,
-                                            strokeWidth = 2.dp
-                                        )
-                                    } else {
-                                        Icon(
-                                            imageVector = Icons.Default.CameraAlt,
-                                            contentDescription = "Change Photo",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
+                                if (profilePictureUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(LocalContext.current)
+                                            .data(profilePictureUrl)
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = "Profile Picture",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop,
+                                        placeholder = painterResource(R.drawable.ic_person_placeholder),
+                                        error = painterResource(R.drawable.ic_person_placeholder)
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = "Add Profile Picture",
+                                        modifier = Modifier.size(60.dp),
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                    )
                                 }
                             }
                             
-                            Text(
-                                text = "Tap to add photo",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
+                            // Modern camera icon overlay
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .align(Alignment.BottomEnd)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .clickable { 
+                                        if (!isUploadingImage) {
+                                            imagePickerLauncher.launch("image/*")
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isUploadingImage) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = "Change Photo",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
                         }
+                        
+                        Text(
+                            text = "Tap to add photo",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
 
-                        // Name Field
+                    // Name Field with modern styling
+                    Column {
+                        Text(
+                            text = "Full Name",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
                         OutlinedTextField(
                             value = name,
                             onValueChange = { newValue ->
                                 name = newValue
                                 nameError = validateName(newValue)
                             },
-                            label = { Text("Full Name") },
+                            placeholder = { 
+                                Text(
+                                    "Enter your full name",
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                ) 
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             isError = nameError != null,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                errorBorderColor = MaterialTheme.colorScheme.error
+                            ),
                             supportingText = if (nameError != null) {
                                 { Text(text = nameError!!, color = MaterialTheme.colorScheme.error) }
                             } else null
                         )
+                    }
 
-                        // Department Field (Read-only for now)
+                    // Department Field with modern styling
+                    Column {
+                        Text(
+                            text = "Department",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
                         OutlinedTextField(
                             value = department,
                             onValueChange = { department = it },
-                            label = { Text("Department") },
+                            placeholder = { 
+                                Text(
+                                    "Your department",
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                ) 
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            readOnly = true
+                            readOnly = true,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                disabledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
+                            )
                         )
+                    }
 
-                        // Role Selection
-                        Column {
+                    // Modern Role Selection
+                    Column {
+                        Text(
+                            text = "I am a:",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Student Radio Button
+                            Row(
+                                modifier = Modifier
+                                    .clickable { role = UserRole.STUDENT }
+                                    .background(
+                                        color = if (role == UserRole.STUDENT) 
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                        else Color.Transparent,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = role == UserRole.STUDENT,
+                                    onClick = { role = UserRole.STUDENT },
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Student",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = if (role == UserRole.STUDENT) FontWeight.Medium else FontWeight.Normal
+                                    ),
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                            
+                            // Teacher Radio Button
+                            Row(
+                                modifier = Modifier
+                                    .clickable { role = UserRole.TEACHER }
+                                    .background(
+                                        color = if (role == UserRole.TEACHER) 
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                        else Color.Transparent,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = role == UserRole.TEACHER,
+                                    onClick = { role = UserRole.TEACHER },
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Teacher",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = if (role == UserRole.TEACHER) FontWeight.Medium else FontWeight.Normal
+                                    ),
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                        }
+                    }
+
+                    // Student-specific fields
+                    if (role == UserRole.STUDENT) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
                             Text(
-                                text = "I am a:",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface
+                                text = "Student Information",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                             
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                // Student Radio Button
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.clickable { 
-                                        role = UserRole.STUDENT
-                                        // Clear teacher-specific validation errors
-                                        initialError = null
-                                    }
-                                ) {
-                                    RadioButton(
-                                        selected = role == UserRole.STUDENT,
-                                        onClick = { 
-                                            role = UserRole.STUDENT
-                                            // Clear teacher-specific validation errors
-                                            initialError = null
-                                        }
-                                    )
-                                    Text(
-                                        text = "Student",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(start = 4.dp)
-                                    )
-                                }
-
-                                // Teacher Radio Button
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.clickable { 
-                                        role = UserRole.TEACHER
-                                        // Clear student-specific validation errors and data
-                                        batchError = null
-                                        sectionError = null
-                                        batch = ""
-                                        section = ""
-                                        labSection = ""
-                                    }
-                                ) {
-                                    RadioButton(
-                                        selected = role == UserRole.TEACHER,
-                                        onClick = { 
-                                            role = UserRole.TEACHER
-                                            // Clear student-specific validation errors and data
-                                            batchError = null
-                                            sectionError = null
-                                            batch = ""
-                                            section = ""
-                                            labSection = ""
-                                        }
-                                    )
-                                    Text(
-                                        text = "Teacher",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(start = 4.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        // Student-specific fields
-                        if (role == UserRole.STUDENT) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                OutlinedTextField(
-                                    value = batch,
-                                    onValueChange = { newValue ->
-                                        batch = newValue
-                                        batchError = validateBatch(newValue)
-                                        // Re-validate section when batch changes
-                                        if (section.isNotBlank()) {
-                                            sectionError = validateSection(section)
-                                        }
-                                    },
-                                    label = { Text("Batch") },
-                                    placeholder = { Text("59") },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    isError = batchError != null,
-                                    supportingText = when {
-                                        batchError != null -> {
-                                            { Text(text = batchError!!, color = MaterialTheme.colorScheme.error) }
-                                        }
-                                        validationData.validBatches.isNotEmpty() -> {
-                                            { Text(text = "Available: ${validationData.validBatches.sorted().joinToString(", ")}", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                                        }
-                                        else -> null
-                                    }
-                                )
-
-                                OutlinedTextField(
-                                    value = section,
-                                    onValueChange = { newValue ->
-                                        section = newValue
-                                        sectionError = validateSection(newValue)
-                                        // Clear lab section when section changes
-                                        if (labSection.isNotBlank()) {
-                                            val expectedLabSections = validationData.getLabSectionsForMainSection(newValue)
-                                            if (!expectedLabSections.contains(labSection)) {
-                                                labSection = ""
+                                // Batch Field
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Batch",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.padding(bottom = 4.dp)
+                                    )
+                                    
+                                    OutlinedTextField(
+                                        value = batch,
+                                        onValueChange = { newValue ->
+                                            batch = newValue
+                                            batchError = validateBatch(newValue)
+                                            if (section.isNotBlank()) {
+                                                sectionError = validateSection(section)
                                             }
-                                        }
-                                    },
-                                    label = { Text("Section") },
-                                    placeholder = { Text("A") },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    isError = sectionError != null,
-                                    supportingText = when {
-                                        sectionError != null -> {
-                                            { Text(text = sectionError!!, color = MaterialTheme.colorScheme.error) }
-                                        }
-                                        batch.isNotBlank() && validationData.getSectionsForBatch(batch).isNotEmpty() -> {
-                                            { Text(text = "For batch $batch: ${validationData.getSectionsForBatch(batch).sorted().joinToString(", ")}", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                                        }
-                                        else -> null
+                                        },
+                                        placeholder = { Text("59", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        isError = batchError != null,
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                            focusedContainerColor = Color.Transparent,
+                                            unfocusedContainerColor = Color.Transparent,
+                                            errorBorderColor = MaterialTheme.colorScheme.error
+                                        )
+                                    )
+                                    
+                                    if (batchError != null) {
+                                        Text(
+                                            text = batchError!!,
+                                            color = MaterialTheme.colorScheme.error,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    } else if (validationData.validBatches.isNotEmpty()) {
+                                        Text(
+                                            text = "Available: ${validationData.validBatches.sorted().joinToString(", ")}",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
                                     }
-                                )
+                                }
+
+                                // Section Field
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Section",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.padding(bottom = 4.dp)
+                                    )
+                                    
+                                    OutlinedTextField(
+                                        value = section,
+                                        onValueChange = { newValue ->
+                                            section = newValue
+                                            sectionError = validateSection(newValue)
+                                            if (labSection.isNotBlank()) {
+                                                val expectedLabSections = validationData.getLabSectionsForMainSection(newValue)
+                                                if (!expectedLabSections.contains(labSection)) {
+                                                    labSection = ""
+                                                }
+                                            }
+                                        },
+                                        placeholder = { Text("A", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        isError = sectionError != null,
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                            focusedContainerColor = Color.Transparent,
+                                            unfocusedContainerColor = Color.Transparent,
+                                            errorBorderColor = MaterialTheme.colorScheme.error
+                                        )
+                                    )
+                                    
+                                    if (sectionError != null) {
+                                        Text(
+                                            text = sectionError!!,
+                                            color = MaterialTheme.colorScheme.error,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    } else if (batch.isNotBlank() && validationData.getSectionsForBatch(batch).isNotEmpty()) {
+                                        Text(
+                                            text = "For batch $batch: ${validationData.getSectionsForBatch(batch).sorted().joinToString(", ")}",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    }
+                                }
                             }
 
                             // Lab Section Chip Selection
@@ -529,20 +633,38 @@ fun RegistrationFormScreen(
                                 enabled = section.isNotBlank()
                             )
                         }
+                    }
 
-                        // Teacher-specific fields
-                        if (role == UserRole.TEACHER) {
+                    // Teacher-specific fields
+                    if (role == UserRole.TEACHER) {
+                        Column {
+                            Text(
+                                text = "Teacher Information",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            
                             OutlinedTextField(
                                 value = initial,
                                 onValueChange = { newValue ->
                                     initial = newValue
                                     initialError = validateInitial(newValue)
                                 },
-                                label = { Text("Initial") },
-                                placeholder = { Text("ABC") },
+                                placeholder = { Text("ABC", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 isError = initialError != null,
+                                shape = RoundedCornerShape(16.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    errorBorderColor = MaterialTheme.colorScheme.error
+                                ),
                                 supportingText = when {
                                     initialError != null -> {
                                         { Text(text = initialError!!, color = MaterialTheme.colorScheme.error) }
@@ -554,86 +676,124 @@ fun RegistrationFormScreen(
                                 }
                             )
                         }
-                        
-                        // Loading indicator if validation data is loading
-                        if (validationState.isLoading) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = "Loading validation data...",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                            }
+                    }
+                    
+                    // Loading indicator if validation data is loading
+                    if (validationState.isLoading) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Loading validation data...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
                         }
+                    }
 
-                        // Error Message
-                        if (authState.error != null) {
+                    // Error Message with clean styling
+                    if (authState.error != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ErrorOutline,
+                                contentDescription = "Error",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = authState.error!!,
                                 color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.Center
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
                             )
                         }
+                    }
 
-                        // Complete Registration Button
-                        Button(
-                            onClick = {
-                                if (isFormValid()) {
-                                    viewModel.clearError()
-                                    val form = UserRegistrationForm(
-                                        name = name.trim(),
-                                        profilePictureUrl = profilePictureUrl.trim(),
-                                        department = department.trim(),
-                                        role = role,
-                                        batch = batch.trim().uppercase(),
-                                        section = section.trim().uppercase(),
-                                        labSection = labSection.trim().uppercase().takeIf { it.isNotBlank() } ?: "",
-                                        initial = initial.trim().uppercase()
-                                    )
-                                    viewModel.updateUserProfile(form)
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            enabled = !authState.isLoading && !validationState.isLoading && isFormValid() && isConnected,
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            if (authState.isLoading) {
+                    // Modern Complete Registration Button
+                    Button(
+                        onClick = {
+                            if (isFormValid()) {
+                                viewModel.clearError()
+                                val form = UserRegistrationForm(
+                                    name = name.trim(),
+                                    profilePictureUrl = profilePictureUrl.trim(),
+                                    department = department.trim(),
+                                    role = role,
+                                    batch = batch.trim().uppercase(),
+                                    section = section.trim().uppercase(),
+                                    labSection = labSection.trim().uppercase().takeIf { it.isNotBlank() } ?: "",
+                                    initial = initial.trim().uppercase()
+                                )
+                                viewModel.updateUserProfile(form)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        enabled = !authState.isLoading && !validationState.isLoading && isFormValid() && isConnected,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                        )
+                    ) {
+                        if (authState.isLoading) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
                                 )
-                            } else {
+                                Spacer(modifier = Modifier.width(12.dp))
                                 Text(
-                                    text = "Complete Registration",
+                                    text = "Completing...",
                                     style = MaterialTheme.typography.labelLarge.copy(
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.SemiBold
-                                    )
+                                    ),
+                                    color = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
+                        } else {
+                            Text(
+                                text = "Complete Registration",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
