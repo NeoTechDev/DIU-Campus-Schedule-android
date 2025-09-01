@@ -2,13 +2,31 @@ package com.om.diucampusschedule.ui.screens.profile
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,23 +34,50 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Class
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.capitalize
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -45,13 +90,12 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.om.diucampusschedule.core.network.rememberConnectivityState
 import com.om.diucampusschedule.core.validation.DataValidator
-import com.om.diucampusschedule.ui.components.NetworkStatusMessage
-import com.om.diucampusschedule.ui.components.LabSectionChipGroup
-import com.om.diucampusschedule.ui.components.LabSectionChipDisplay
 import com.om.diucampusschedule.core.validation.DynamicDataValidator
-import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRegistrationForm
 import com.om.diucampusschedule.domain.model.UserRole
+import com.om.diucampusschedule.ui.components.LabSectionChipDisplay
+import com.om.diucampusschedule.ui.components.LabSectionChipGroup
+import com.om.diucampusschedule.ui.components.NetworkStatusMessage
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.utils.ScreenConfig
@@ -364,6 +408,17 @@ fun ProfileScreen(
                     )
 
                     Spacer(modifier = Modifier.height(4.dp))
+                    user?.email?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp
+                            ),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     // Role and Department with modern chip design
                     Surface(
@@ -617,7 +672,7 @@ fun ProfileScreen(
                                         isEditing = isEditing,
                                         icon = Icons.Default.Groups,
                                         keyboardType = KeyboardType.Number,
-                                        placeholder = "41",
+                                        placeholder = "eg. 41",
                                         errorMessage = batchError,
                                         onValidate = { input ->
                                             val error = validateBatch(input)
@@ -642,7 +697,7 @@ fun ProfileScreen(
                                         },
                                         isEditing = isEditing,
                                         icon = Icons.Default.Class,
-                                        placeholder = "J",
+                                        placeholder = "eg. J",
                                         errorMessage = sectionError,
                                         onValidate = { input ->
                                             val error = validateSection(input)
@@ -706,7 +761,7 @@ fun ProfileScreen(
                                 onValueChange = { initial = it },
                                 isEditing = isEditing,
                                 icon = Icons.Default.Badge,
-                                placeholder = "MBM",
+                                placeholder = "eg. MBM",
                                 errorMessage = initialError,
                                 onValidate = { input ->
                                     val error = validateInitial(input)
@@ -784,11 +839,11 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .zIndex(10f)
+                    .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(12.dp)
             ) {
                 when {
                     authState.error != null -> {
-                        Spacer(modifier = Modifier.height(24.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(20.dp),
@@ -818,12 +873,11 @@ fun ProfileScreen(
                     }
 
                     authState.successMessage != null -> {
-                        Spacer(modifier = Modifier.height(24.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(20.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFF4CAF50).copy(alpha = 0.15f)
+                                containerColor = Color(0xFF4CAF50)
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                         ) {
@@ -834,19 +888,19 @@ fun ProfileScreen(
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    tint = Color(0xFF2E7D32),
+                                    tint = Color.White,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
                                     Text(
                                         text = authState.successMessage!!,
-                                        color = Color(0xFF2E7D32),
+                                        color = Color.White,
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
                                     )
                                     Text(
                                         text = "Your routine will update automatically",
-                                        color = Color(0xFF2E7D32).copy(alpha = 0.8f),
+                                        color = Color.White.copy(alpha = 0.8f),
                                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                         modifier = Modifier.padding(top = 1.dp)
                                     )

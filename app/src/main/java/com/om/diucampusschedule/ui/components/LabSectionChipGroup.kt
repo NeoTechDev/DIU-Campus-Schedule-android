@@ -92,7 +92,7 @@ fun LabSectionChipGroup(
             // Helper text
             if (labSections.isNotEmpty()) {
                 Text(
-                    text = "Choose your lab section for section $mainSection",
+                    text = "Choose your lab section for section ${mainSection.uppercase()}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 4.dp)
@@ -114,7 +114,7 @@ fun LabSectionChipGroup(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No lab sections available for section $mainSection",
+                        text = "No lab sections available for section ${mainSection.uppercase()}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
@@ -142,9 +142,7 @@ fun LabSectionChipDisplay(
         ) {
             Text(
                 text = selectedLabSection,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.SemiBold
-                ),
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
             )

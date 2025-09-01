@@ -18,7 +18,16 @@ object DynamicDataValidator {
             batch.isNullOrBlank() -> errors.add("Batch cannot be empty")
             !batch.trim().matches(Regex("^\\d+$")) -> errors.add("Batch must contain only numbers")
             !validationData.isBatchValid(batch.trim()) -> {
-                val availableBatches = validationData.validBatches.sorted().joinToString(", ")
+                val sortedBatches = validationData.validBatches.map { it.toInt() }.sorted()
+                val availableBatches = if (sortedBatches.size > 1 &&
+                    sortedBatches.last() - sortedBatches.first() + 1 == sortedBatches.size
+                ) {
+                    // Continuous range
+                    "${sortedBatches.first()} to ${sortedBatches.last()}"
+                } else {
+                    // Non-continuous, fall back to comma-separated
+                    sortedBatches.joinToString(", ")
+                }
                 errors.add("Invalid batch. Available batches: $availableBatches")
             }
         }
@@ -31,26 +40,32 @@ object DynamicDataValidator {
      */
     fun validateSection(section: String?, batch: String?, validationData: ValidationData): DataValidator.ValidationResult {
         val errors = mutableListOf<String>()
-        
+        val sec = section?.trim()?.uppercase()
+        val bat = batch?.trim()
+
         when {
-            section.isNullOrBlank() -> errors.add("Section cannot be empty")
-            section.trim().length != 1 -> errors.add("Section must be a single letter")
-            !section.trim().matches(Regex("^[A-Za-z]$")) -> errors.add("Section must be a letter (A-Z)")
-            batch.isNullOrBlank() -> errors.add("Please select a valid batch first")
-            !validationData.isBatchValid(batch.trim()) -> errors.add("Please select a valid batch first")
-            !validationData.isSectionValidForBatch(batch.trim(), section.trim()) -> {
-                val availableSections = validationData.getSectionsForBatch(batch.trim()).sorted().joinToString(", ")
+            sec.isNullOrEmpty() -> errors.add("Section cannot be empty")
+            sec.length != 1 -> errors.add("Section must be a single letter")
+            sec[0] !in 'A'..'Z' -> errors.add("Section must be a letter (A-Z)")
+            bat.isNullOrEmpty() -> errors.add("Please select a valid batch first")
+            !validationData.isBatchValid(bat) -> errors.add("Please select a valid batch first")
+            !validationData.isSectionValidForBatch(bat, sec) -> {
+                val availableSections = formatSectionsAsLetterRange(
+                    validationData.getSectionsForBatch(bat)
+                )
                 if (availableSections.isNotEmpty()) {
-                    errors.add("Invalid section for batch $batch. Available sections: $availableSections")
+                    errors.add("Invalid section for batch $bat. Available sections: $availableSections")
                 } else {
-                    errors.add("No sections available for batch $batch")
+                    errors.add("No sections available for batch $bat")
                 }
             }
         }
-        
+
         return DataValidator.ValidationResult(errors.isEmpty(), errors)
     }
-    
+
+
+
     /**
      * Validate lab section using actual routine data
      */
@@ -78,21 +93,23 @@ object DynamicDataValidator {
      */
     fun validateTeacherInitial(initial: String?, validationData: ValidationData): DataValidator.ValidationResult {
         val errors = mutableListOf<String>()
-        
+        val trimmedInitial = initial?.trim()
+
         when {
-            initial.isNullOrBlank() -> errors.add("Teacher initial cannot be empty")
-            initial.trim().length < 2 -> errors.add("Initial must be at least 2 characters")
-            initial.trim().length > 6 -> errors.add("Initial must be less than 6 characters")
-            !initial.trim().matches(Regex("^[A-Za-z]+$")) -> errors.add("Initial can only contain letters")
-            validationData.validTeacherInitials.isNotEmpty() && !validationData.isTeacherInitialValid(initial.trim()) -> {
-                val availableInitials = validationData.validTeacherInitials.sorted().joinToString(", ")
-                errors.add("Invalid teacher initial. Available initials: $availableInitials")
+            trimmedInitial.isNullOrEmpty() -> errors.add("Teacher initial cannot be empty")
+            trimmedInitial.length < 2 -> errors.add("Initial must be at least 2 characters")
+            trimmedInitial.length > 6 -> errors.add("Initial must be at most 6 characters")
+            !trimmedInitial.matches(Regex("^[A-Za-z]+$")) -> errors.add("Initial can only contain letters")
+            validationData.validTeacherInitials.isNotEmpty() &&
+                    !validationData.isTeacherInitialValid(trimmedInitial) -> {
+                errors.add("Invalid teacher initial. Please enter correct initial")
             }
         }
-        
+
         return DataValidator.ValidationResult(errors.isEmpty(), errors)
     }
-    
+
+
     /**
      * Validate department using actual routine data
      */
@@ -190,4 +207,29 @@ object DynamicDataValidator {
             "labSections" to validationData.validLabSections.sorted()
         )
     }
+
+    private fun formatSectionsAsLetterRange(raw: Collection<String>): String {
+        if (raw.isEmpty()) return ""
+
+        // Take only first character, make uppercase, deduplicate, sort
+        val letters = raw.mapNotNull {
+            it.trim().takeIf { s -> s.isNotEmpty() }?.uppercase()?.firstOrNull()
+        }.distinct().sorted()
+
+        if (letters.isEmpty()) return ""
+        if (letters.size == 1) return letters.first().toString()
+
+        val first = letters.first()
+        val last = letters.last()
+        val isContinuous = last.code - first.code + 1 == letters.size &&
+                letters.withIndex().all { (i, c) -> c.code == first.code + i }
+
+        return if (isContinuous) {
+            "$first to $last"
+        } else {
+            // Not continuous: just list the letters
+            letters.joinToString(", ")
+        }
+    }
+
 }
