@@ -140,7 +140,7 @@ fun AppNavigation(
             }
             
             composable(Screen.EmptyRooms.route) {
-                EmptyRoomsScreen(navController = navController)
+                EmptyRoomsScreen()
             }
             
             composable(Screen.Tasks.route) {

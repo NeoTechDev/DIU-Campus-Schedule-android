@@ -1202,6 +1202,52 @@ class RoutineViewModel @Inject constructor(
         return courseNameService.getCourseName(courseCode)
     }
 
+    /**
+     * Filter empty rooms for all time slots and days
+     * @return Map<Day, Map<TimeSlot, List<Room>>>
+     */
+    fun filterEmptyRooms(): Map<String, Map<String, List<String>>> {
+        val allRoutineItems = _uiState.value.fullDatabaseRoutineItems
+        val allTimeSlots = _uiState.value.allTimeSlots
+        val workingDays = DayOfWeek.getWorkingDays().map { it.displayName }
+        
+        // Get all unique rooms from the database
+        val allRooms = allRoutineItems
+            .map { it.room }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+        
+        val emptyRoomsMap = mutableMapOf<String, Map<String, List<String>>>()
+        
+        for (day in workingDays) {
+            val timeSlotMap = mutableMapOf<String, List<String>>()
+            
+            for (timeSlot in allTimeSlots) {
+                // Get all occupied rooms for this day and time slot
+                val occupiedRooms = allRoutineItems
+                    .filter { routine ->
+                        routine.day.equals(day, ignoreCase = true) && 
+                        routine.time.equals(timeSlot, ignoreCase = true) &&
+                        routine.room.isNotBlank()
+                    }
+                    .map { it.room }
+                    .toSet()
+                
+                // Find empty rooms (all rooms minus occupied rooms)
+                val emptyRooms = allRooms.filter { room ->
+                    !occupiedRooms.contains(room)
+                }
+                
+                timeSlotMap[timeSlot] = emptyRooms
+            }
+            
+            emptyRoomsMap[day] = timeSlotMap
+        }
+        
+        return emptyRoomsMap
+    }
+
     override fun onCleared() {
         super.onCleared()
         logger.debug(TAG, "RoutineViewModel cleared")
