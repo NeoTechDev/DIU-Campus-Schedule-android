@@ -264,7 +264,7 @@ fun NotesScreen(navController: NavController) {
                             onValueChange = { searchQuery = it },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .padding(start = 16.dp, end = 16.dp, top = 12.dp)
                                 .clip(RoundedCornerShape(24.dp)),
                             placeholder = { Text("Search notes...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = InterFontFamily) },
                             leadingIcon = {

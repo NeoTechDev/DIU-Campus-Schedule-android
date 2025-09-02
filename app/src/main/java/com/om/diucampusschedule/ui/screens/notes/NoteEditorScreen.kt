@@ -63,6 +63,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -102,31 +103,76 @@ import androidx.core.graphics.toColorInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditorScreen(navController: NavController, noteId: Int?) {
+    
+    // Data class to track note state
+    @Stable
+    data class NoteEditorState(
+        val title: String = "",
+        val richTextHtml: String = "",
+        val color: String = "#FFFFFF",
+        val isModified: Boolean = false
+    ) {
+        fun toPlainText(html: String): String {
+            return if (html.isBlank()) "" else {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT).toString().trim()
+                    } else {
+                        @Suppress("DEPRECATION")
+                        Html.fromHtml(html).toString().trim()
+                    }
+                } catch (e: Exception) {
+                    html.replace(Regex("<[^>]*>"), "").trim()
+                }
+            }
+        }
+    }
     DIUCampusScheduleTheme {
         val noteViewModel: NoteViewModel = hiltViewModel()
         val uiState by noteViewModel.uiState.collectAsStateWithLifecycle()
 
         // Get the specific note if noteId is provided
-        val note = uiState.notes.find { it.id == noteId }
+        val existingNote = uiState.notes.find { it.id == noteId }
+        
+        // Initialize editor state based on existing note or create new
+        var editorState by remember(existingNote) {
+            mutableStateOf(
+                NoteEditorState(
+                    title = existingNote?.title.orEmpty(),
+                    richTextHtml = existingNote?.richTextHtml.orEmpty(),
+                    color = existingNote?.color ?: "#FFFFFF",
+                    isModified = false
+                )
+            )
+        }
 
-        var title by remember { mutableStateOf(note?.title.orEmpty()) }
-        var content by remember { mutableStateOf(note?.content.orEmpty()) }
-        var lastEditedTime by remember { mutableStateOf(note?.lastEditedTime) }
-        var selectedColor by remember { mutableStateOf(note?.color ?: "#FFFFFF") }
-
-        // Update state when note changes (for navigation back to existing note)
-        LaunchedEffect(note) {
-            if (note != null) {
-                title = note.title
-                selectedColor = note.color
-                lastEditedTime = note.lastEditedTime
-            }
+        // Function to update editor state and mark as modified
+        fun updateEditorState(
+            title: String = editorState.title,
+            richTextHtml: String = editorState.richTextHtml,
+            color: String = editorState.color
+        ) {
+            val newState = NoteEditorState(
+                title = title,
+                richTextHtml = richTextHtml,
+                color = color,
+                isModified = if (existingNote == null) {
+                    // For new notes, any content is considered modified
+                    title.isNotEmpty() || richTextHtml.isNotEmpty()
+                } else {
+                    // For existing notes, compare with original values
+                    title != existingNote.title ||
+                    richTextHtml != existingNote.richTextHtml ||
+                    color != existingNote.color
+                }
+            )
+            editorState = newState
         }
 
         // Convert the selected color string to Color object with error handling
-        val backgroundColor = remember(selectedColor) {
+        val backgroundColor = remember(editorState.color) {
             try {
-                Color(selectedColor.toColorInt())
+                Color(editorState.color.toColorInt())
             } catch (e: IllegalArgumentException) {
                 // Fallback to white if color parsing fails
                 Color.White
@@ -200,10 +246,15 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
         }
 
         // Load the existing rich text content if available
-        LaunchedEffect(note?.richTextHtml) {
-            if (!note?.richTextHtml.isNullOrEmpty()) {
-                richTextState.setHtml(note?.richTextHtml ?: "")
+        LaunchedEffect(existingNote?.richTextHtml) {
+            if (!existingNote?.richTextHtml.isNullOrEmpty()) {
+                richTextState.setHtml(existingNote?.richTextHtml ?: "")
             }
+        }
+
+        // Track changes to rich text content
+        LaunchedEffect(richTextState.annotatedString.text) {
+            updateEditorState(richTextHtml = richTextState.toHtml())
         }
 
         // Define a list of available colors
@@ -236,9 +287,9 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
         val lazyListState = rememberLazyListState()
 
         // Scroll to the selected color if it's not the default white
-        LaunchedEffect(selectedColor) {
-            if (selectedColor != "#FFFFFF") {
-                val selectedIndex = colorOptions.indexOf(selectedColor)
+        LaunchedEffect(editorState.color) {
+            if (editorState.color != "#FFFFFF") {
+                val selectedIndex = colorOptions.indexOf(editorState.color)
                 if (selectedIndex != -1) {
                     lazyListState.scrollToItem(selectedIndex)
                 }
@@ -552,7 +603,7 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                 TopAppBar(
                     title = {
                         Text(
-                            text = if (note == null) "New Note" else "Edit Note",
+                            text = if (existingNote == null) "New Note" else "Edit Note",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = contentColor,
@@ -561,24 +612,24 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                     },
                     navigationIcon = {
                         IconButton(onClick = {
-                            // Save note before navigating back
-                            if (title.isNotEmpty() || richTextState.annotatedString.text.isNotEmpty()) {
-                                val plainTextContent = stripHtmlTags(richTextState.toHtml())
+                            // Only save if there are actual changes
+                            if (editorState.isModified && (editorState.title.isNotEmpty() || richTextState.annotatedString.text.isNotEmpty())) {
+                                val plainTextContent = editorState.toPlainText(richTextState.toHtml())
                                 
-                                if (note != null) {
+                                if (existingNote != null) {
                                     noteViewModel.updateNote(
-                                        noteId = note.id,
-                                        title = title,
+                                        noteId = existingNote.id,
+                                        title = editorState.title,
                                         content = plainTextContent,
                                         richTextHtml = richTextState.toHtml(),
-                                        color = selectedColor
+                                        color = editorState.color
                                     )
                                 } else {
                                     noteViewModel.createNote(
-                                        title = title,
+                                        title = editorState.title,
                                         content = plainTextContent,
                                         richTextHtml = richTextState.toHtml(),
-                                        color = selectedColor
+                                        color = editorState.color
                                     )
                                 }
                             }
@@ -592,9 +643,9 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                         }
                     },
                     actions = {
-                        if (note != null) {
+                        if (existingNote != null) {
                             IconButton(onClick = {
-                                noteViewModel.deleteNote(note.id)
+                                noteViewModel.deleteNote(existingNote.id)
                                 navController.popBackStack()
                             }) {
                                 Icon(
@@ -892,7 +943,7 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                         state = lazyListState // Add the state here
                     ) {
                         items(colorOptions) { color ->
-                            val isSelected = color == selectedColor
+                            val isSelected = color == editorState.color
                             Box(
                                 modifier = Modifier
                                     .size(30.dp)
@@ -903,7 +954,7 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                                         shape = CircleShape
                                     )
-                                    .clickable { selectedColor = color }
+                                    .clickable { updateEditorState(color = color) }
                             ) {
                                 if (isSelected) {
                                     Icon(
@@ -932,7 +983,7 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                             contentAlignment = Alignment.Center
                         ){
                             Text(
-                                text = lastEditedTime?.let { "Last edited: $it" } ?: "",
+                                text = existingNote?.lastEditedTime?.let { "Last edited: $it" } ?: "",
                                 style = TextStyle(
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Normal
@@ -954,8 +1005,8 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                 ) {
 
                     TextField(
-                        value = title,
-                        onValueChange = { title = it },
+                        value = editorState.title,
+                        onValueChange = { updateEditorState(title = it) },
                         placeholder = { Text(text = "Title", color = Color.Gray, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, fontFamily = InterFontFamily) },
                         colors = TextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
@@ -1004,49 +1055,29 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
         )
 
         BackHandler {
-            // Save note before navigating back
-            if (title.isNotEmpty() || richTextState.annotatedString.text.isNotEmpty()) {
-                val plainTextContent = stripHtmlTags(richTextState.toHtml())
+            // Only save if there are actual changes
+            if (editorState.isModified && (editorState.title.isNotEmpty() || richTextState.annotatedString.text.isNotEmpty())) {
+                val plainTextContent = editorState.toPlainText(richTextState.toHtml())
                 
-                if (note != null) {
+                if (existingNote != null) {
                     noteViewModel.updateNote(
-                        noteId = note.id,
-                        title = title,
+                        noteId = existingNote.id,
+                        title = editorState.title,
                         content = plainTextContent,
                         richTextHtml = richTextState.toHtml(),
-                        color = selectedColor
+                        color = editorState.color
                     )
                 } else {
                     noteViewModel.createNote(
-                        title = title,
+                        title = editorState.title,
                         content = plainTextContent,
                         richTextHtml = richTextState.toHtml(),
-                        color = selectedColor
+                        color = editorState.color
                     )
                 }
             }
             navController.popBackStack()
         }
-    }
-}
-
-// Helper function to strip HTML tags and get plain text content
-private fun stripHtmlTags(html: String): String {
-    if (html.isBlank()) return ""
-
-    // First attempt - use Android's built-in HTML handling
-    return try {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT).toString()
-        } else {
-            @Suppress("DEPRECATION")
-            Html.fromHtml(html).toString()
-        }
-    } catch (e: Exception) {
-        // Fallback - basic regex to remove HTML tags
-        html.replace(Regex("<.*?>"), "")
-            .replace("&nbsp;", " ")
-            .replace(Regex("\\s+"), " ")
     }
 }
 
