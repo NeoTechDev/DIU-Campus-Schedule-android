@@ -22,6 +22,7 @@ import com.om.diucampusschedule.ui.screens.routine.RoutineScreen
 import com.om.diucampusschedule.ui.screens.today.TodayScreen
 import com.om.diucampusschedule.ui.screens.tasks.TaskScreen
 import com.om.diucampusschedule.ui.screens.notes.NotesScreen
+import com.om.diucampusschedule.ui.screens.notes.NoteEditorScreen
 import com.om.diucampusschedule.ui.screens.emptyrooms.EmptyRoomsScreen
 import com.om.diucampusschedule.ui.screens.welcome.WelcomeScreen
 import com.om.diucampusschedule.ui.screens.debug.DebugScreen
@@ -148,6 +149,22 @@ fun AppNavigation(
             
             composable(Screen.Notes.route) {
                 NotesScreen(navController = navController)
+            }
+
+            // Note Editor Screen - supports both create new note and edit existing note
+            composable("note_editor?noteId={noteId}") { backStackEntry ->
+                val noteId = backStackEntry.arguments?.getString("noteId")?.toIntOrNull()
+                NoteEditorScreen(
+                    navController = navController,
+                    noteId = noteId
+                )
+            }
+            
+            composable("note_editor") {
+                NoteEditorScreen(
+                    navController = navController,
+                    noteId = null
+                )
             }
 
             // Profile Screen

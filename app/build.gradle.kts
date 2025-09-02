@@ -110,6 +110,9 @@ dependencies {
     implementation("com.google.zxing:core:3.5.1")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
+    // Rich Text Editor
+    implementation("com.mohamedrejeb.richeditor:richeditor-compose:1.0.0-rc05-k2")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
