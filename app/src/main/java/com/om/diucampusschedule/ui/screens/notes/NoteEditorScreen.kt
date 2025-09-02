@@ -49,6 +49,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,8 +73,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.SpanStyle
@@ -92,13 +91,14 @@ import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditorDefaults
 import com.om.diucampusschedule.R
-import com.om.diucampusschedule.domain.model.Note
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.theme.InterFontFamily
 import com.om.diucampusschedule.ui.theme.md_theme_light_primary
+import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.viewmodel.NoteViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import androidx.core.graphics.toColorInt
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -128,7 +128,7 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
         // Convert the selected color string to Color object with error handling
         val backgroundColor = remember(selectedColor) {
             try {
-                Color(android.graphics.Color.parseColor(selectedColor))
+                Color(selectedColor.toColorInt())
             } catch (e: IllegalArgumentException) {
                 // Fallback to white if color parsing fails
                 Color.White
@@ -554,8 +554,9 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                 TopAppBar(
                     title = {
                         Text(
-                            text = if (note == null) "New Note" else "Note Manager",
+                            text = if (note == null) "New Note" else "Edit Note",
                             style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
                             color = contentColor,
                             fontFamily = InterFontFamily
                         )
@@ -585,7 +586,7 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                         }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
-                                contentDescription = "Back", 
+                                contentDescription = "Back",
                                 tint = iconTint
                             )
                         }
@@ -614,7 +615,9 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                         titleContentColor = contentColor,
                         navigationIconContentColor = iconTint,
                         actionIconContentColor = iconTint
-                    )
+                    ),
+                    windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
+                    modifier = Modifier.fillMaxWidth()
                 )
             },
             bottomBar = {
@@ -949,6 +952,7 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                         .background(backgroundColor)
                         .padding(innerPadding)
                 ) {
+
                     TextField(
                         value = title,
                         onValueChange = { title = it },

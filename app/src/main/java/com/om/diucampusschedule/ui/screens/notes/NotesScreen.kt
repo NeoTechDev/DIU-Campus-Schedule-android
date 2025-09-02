@@ -89,6 +89,7 @@ import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.Note
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.theme.InterFontFamily
+import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.viewmodel.NoteViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -195,15 +196,20 @@ fun NotesScreen(navController: NavController) {
                     TopAppBar(
                         title = {
                             Text(
-                                "Notes",
-                                fontFamily = InterFontFamily,
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium)
+                                text = "Notes",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontFamily = InterFontFamily
                             )
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = MaterialTheme.colorScheme.surface,
-                            titleContentColor = MaterialTheme.colorScheme.onSurface
-                        )
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
@@ -215,6 +221,11 @@ fun NotesScreen(navController: NavController) {
                         .background(MaterialTheme.colorScheme.background)
                         .padding(paddingValues)
                 ) {
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                    )
+
                     if (!isSelectionMode) {
                         OutlinedTextField(
                             value = searchQuery,
