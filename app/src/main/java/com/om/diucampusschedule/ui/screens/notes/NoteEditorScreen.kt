@@ -49,7 +49,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -96,8 +95,6 @@ import com.om.diucampusschedule.ui.theme.InterFontFamily
 import com.om.diucampusschedule.ui.theme.md_theme_light_primary
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.viewmodel.NoteViewModel
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import androidx.core.graphics.toColorInt
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -569,14 +566,14 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                                     noteViewModel.updateNote(
                                         noteId = note.id,
                                         title = title,
-                                        content = richTextState.annotatedString.text,
+                                        content = stripHtmlTags(richTextState.toHtml()),
                                         richTextHtml = richTextState.toHtml(),
                                         color = selectedColor
                                     )
                                 } else {
                                     noteViewModel.createNote(
                                         title = title,
-                                        content = richTextState.annotatedString.text,
+                                        content = stripHtmlTags(richTextState.toHtml()),
                                         richTextHtml = richTextState.toHtml(),
                                         color = selectedColor
                                     )
@@ -1010,14 +1007,14 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                     noteViewModel.updateNote(
                         noteId = note.id,
                         title = title,
-                        content = richTextState.annotatedString.text,
+                        content = stripHtmlTags(richTextState.toHtml()),
                         richTextHtml = richTextState.toHtml(),
                         color = selectedColor
                     )
                 } else {
                     noteViewModel.createNote(
                         title = title,
-                        content = richTextState.annotatedString.text,
+                        content = stripHtmlTags(richTextState.toHtml()),
                         richTextHtml = richTextState.toHtml(),
                         color = selectedColor
                     )
@@ -1028,29 +1025,32 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
     }
 }
 
-private fun getCurrentTimestamp(): String {
-    val currentDateTime = LocalDateTime.now()
-    val formatter = DateTimeFormatter.ofPattern("MMM d yyyy, h:mm a")
-    return currentDateTime.format(formatter)
-}
-
 // Helper function to strip HTML tags and get plain text content
+// This function is now actively used to extract clean text content from rich HTML
 private fun stripHtmlTags(html: String): String {
     if (html.isBlank()) return ""
 
     // First attempt - use Android's built-in HTML handling
     return try {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        val cleanText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT).toString()
         } else {
             @Suppress("DEPRECATION")
             Html.fromHtml(html).toString()
         }
+        
+        // Clean up whitespace and trim
+        cleanText.replace(Regex("\\s+"), " ").trim()
     } catch (e: Exception) {
         // Fallback - basic regex to remove HTML tags
         html.replace(Regex("<.*?>"), "")
             .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
             .replace(Regex("\\s+"), " ")
+            .trim()
     }
 }
 

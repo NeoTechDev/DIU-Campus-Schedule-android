@@ -39,13 +39,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -111,6 +115,11 @@ fun NotesScreen(navController: NavController) {
         val notes = uiState.notes
         val selectedNotes = uiState.selectedNoteIds
         val isSelectionMode = uiState.isSelectionMode
+        val isLoading = uiState.isLoading
+        val errorMessage = uiState.errorMessage
+        val isSyncing = uiState.isSyncing
+        val lastSyncTime = uiState.lastSyncTime
+        val syncMessage = uiState.syncMessage
 
         val sortedNotes = remember(notes, searchQuery) {
             if (searchQuery.isEmpty()) {
@@ -157,7 +166,7 @@ fun NotesScreen(navController: NavController) {
                             IconButton(onClick = {
                                 noteViewModel.clearSelection()
                             }) {
-                                Icon(painterResource(R.drawable.ic_close), "Close", tint = Color.White)
+                                Icon(Icons.Default.Close, "Close", tint = Color.White)
                             }
                         },
                         actions = {
@@ -203,6 +212,28 @@ fun NotesScreen(navController: NavController) {
                                 fontFamily = InterFontFamily
                             )
                         },
+                        actions = {
+                            // Sync button
+                            IconButton(
+                                onClick = { noteViewModel.syncNotes() },
+                                enabled = !isLoading && !isSyncing
+                            ) {
+                                if (isLoading || isSyncing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Sync Notes",
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                        },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = MaterialTheme.colorScheme.surface,
                             titleContentColor = MaterialTheme.colorScheme.onSurface,
@@ -241,7 +272,7 @@ fun NotesScreen(navController: NavController) {
                             trailingIcon = {
                                 AnimatedVisibility(visible = searchQuery.isNotEmpty()) {
                                     IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(painterResource(R.drawable.ic_close), "Clear search", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Icon(Icons.Default.Close, "Clear search", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                             },
@@ -260,27 +291,122 @@ fun NotesScreen(navController: NavController) {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        AnimatedVisibility(visible = notes.isEmpty(), enter = fadeIn(), exit = fadeOut()) {
-                            EmptyNotesState()
-                        }
-                        AnimatedVisibility(visible = notes.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
-                            NotesGrid(
-                                notes = sortedNotes,
-                                selectedNotes = selectedNotes,
-                                isSelectionMode = isSelectionMode,
-                                onNoteClick = { noteId ->
-                                    if (isSelectionMode) {
-                                        noteViewModel.toggleNoteSelection(noteId)
-                                    } else {
-                                        navController.navigate("note_editor?noteId=$noteId")
-                                    }
-                                },
-                                onLongPress = { noteId ->
-                                    if (!isSelectionMode) {
-                                        noteViewModel.toggleNoteSelection(noteId)
+                        Column {
+                            // Sync status message
+                            AnimatedVisibility(
+                                visible = syncMessage != null,
+                                enter = slideInVertically() + fadeIn(),
+                                exit = slideOutVertically() + fadeOut()
+                            ) {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (isSyncing) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        } else {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = syncMessage ?: "",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        if (lastSyncTime != null && !isSyncing) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                            Text(
+                                                text = lastSyncTime,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                            )
+                                        }
                                     }
                                 }
-                            )
+                            }
+                            
+                            // Error message display
+                            AnimatedVisibility(
+                                visible = errorMessage != null,
+                                enter = slideInVertically() + fadeIn(),
+                                exit = slideOutVertically() + fadeOut()
+                            ) {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = errorMessage ?: "",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                        Spacer(modifier = Modifier.weight(1f))
+                                        IconButton(
+                                            onClick = { noteViewModel.clearError() }
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Close,
+                                                contentDescription = "Dismiss",
+                                                tint = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            AnimatedVisibility(visible = notes.isEmpty(), enter = fadeIn(), exit = fadeOut()) {
+                                EmptyNotesState()
+                            }
+                            AnimatedVisibility(visible = notes.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
+                                NotesGrid(
+                                    notes = sortedNotes,
+                                    selectedNotes = selectedNotes,
+                                    isSelectionMode = isSelectionMode,
+                                    onNoteClick = { noteId ->
+                                        if (isSelectionMode) {
+                                            noteViewModel.toggleNoteSelection(noteId)
+                                        } else {
+                                            navController.navigate("note_editor?noteId=$noteId")
+                                        }
+                                    },
+                                    onLongPress = { noteId ->
+                                        if (!isSelectionMode) {
+                                            noteViewModel.toggleNoteSelection(noteId)
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }

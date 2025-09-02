@@ -108,8 +108,11 @@ class NotesRepositoryImpl @Inject constructor(
 
     override suspend fun updateNote(note: Note): Result<Note> {
         return try {
+            android.util.Log.d("NotesRepositoryImpl", "Updating note: ${note.id} - ${note.title}")
+            
             // Update locally first
             localDataSource.updateNote(note)
+            android.util.Log.d("NotesRepositoryImpl", "Updated note locally: ${note.id}")
             
             // Try to update remotely
             val remoteResult = remoteDataSource.updateNote(note.toDto())
@@ -119,13 +122,17 @@ class NotesRepositoryImpl @Inject constructor(
                 
                 // Update local with remote data
                 localDataSource.updateNote(remoteNote)
+                android.util.Log.d("NotesRepositoryImpl", "Successfully updated note remotely: ${note.id}")
                 
                 Result.success(remoteNote)
             } else {
+                val error = remoteResult.exceptionOrNull()
+                android.util.Log.w("NotesRepositoryImpl", "Remote update failed for note ${note.id}, using local copy", error)
                 // Return local note even if remote failed
                 Result.success(note)
             }
         } catch (e: Exception) {
+            android.util.Log.e("NotesRepositoryImpl", "Error updating note: ${note.id}", e)
             Result.failure(e)
         }
     }

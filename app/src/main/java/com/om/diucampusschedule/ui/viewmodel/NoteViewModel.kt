@@ -17,7 +17,10 @@ data class NotesUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val selectedNoteIds: Set<Int> = emptySet(),
-    val isSelectionMode: Boolean = false
+    val isSelectionMode: Boolean = false,
+    val isSyncing: Boolean = false,
+    val lastSyncTime: String? = null,
+    val syncMessage: String? = null
 )
 
 @HiltViewModel
@@ -40,6 +43,8 @@ class NoteViewModel @Inject constructor(
 
     private fun observeNotes() {
         currentUserId.filterNotNull().flatMapLatest { userId ->
+            // Auto-sync when user changes (login)
+            syncNotesInBackground()
             notesRepository.observeNotesForUser(userId)
         }.onEach { notes ->
             _uiState.value = _uiState.value.copy(
@@ -70,6 +75,8 @@ class NoteViewModel @Inject constructor(
             notesRepository.createNote(note)
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(isLoading = false)
+                    // Auto-sync after creating note
+                    syncNotesInBackground()
                 }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
@@ -84,6 +91,7 @@ class NoteViewModel @Inject constructor(
         val userId = currentUserId.value ?: return
         
         viewModelScope.launch {
+            android.util.Log.d("NoteViewModel", "Updating note: $noteId with title: '$title'")
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             
             val timestamp = SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault())
@@ -99,11 +107,17 @@ class NoteViewModel @Inject constructor(
                 color = color
             )
 
+            android.util.Log.d("NoteViewModel", "Created note object: $note")
+
             notesRepository.updateNote(note)
-                .onSuccess {
+                .onSuccess { updatedNote ->
+                    android.util.Log.d("NoteViewModel", "Successfully updated note: ${updatedNote.id}")
                     _uiState.value = _uiState.value.copy(isLoading = false)
+                    // Auto-sync after updating note
+                    syncNotesInBackground()
                 }
                 .onFailure { error ->
+                    android.util.Log.e("NoteViewModel", "Failed to update note: $noteId", error)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = error.message ?: "Failed to update note"
@@ -119,6 +133,8 @@ class NoteViewModel @Inject constructor(
             notesRepository.deleteNote(noteId)
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(isLoading = false)
+                    // Auto-sync after deleting note
+                    syncNotesInBackground()
                 }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
@@ -143,6 +159,8 @@ class NoteViewModel @Inject constructor(
                         selectedNoteIds = emptySet(),
                         isSelectionMode = false
                     )
+                    // Auto-sync after deleting notes
+                    syncNotesInBackground()
                 }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
@@ -186,20 +204,69 @@ class NoteViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
+    // Background sync that doesn't show loading state to avoid UI interruption
+    private fun syncNotesInBackground() {
+        val userId = currentUserId.value ?: return
+        
+        viewModelScope.launch {
+            // Perform sync without updating loading state but show sync indicator
+            _uiState.value = _uiState.value.copy(isSyncing = true)
+            
+            notesRepository.syncNotesWithRemote(userId)
+                .onSuccess {
+                    val timestamp = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date())
+                    _uiState.value = _uiState.value.copy(
+                        isSyncing = false,
+                        lastSyncTime = timestamp
+                    )
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(isSyncing = false)
+                }
+        }
+    }
+    
     fun syncNotes() {
         val userId = currentUserId.value ?: return
         
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            android.util.Log.d("NoteViewModel", "Starting sync for user: $userId")
+            
+            _uiState.value = _uiState.value.copy(
+                isLoading = true, 
+                isSyncing = true, 
+                errorMessage = null,
+                syncMessage = "Syncing notes..."
+            )
+            
+            val startTime = System.currentTimeMillis()
             
             notesRepository.syncNotesWithRemote(userId)
                 .onSuccess {
-                    _uiState.value = _uiState.value.copy(isLoading = false)
-                }
-                .onFailure { error ->
+                    val duration = System.currentTimeMillis() - startTime
+                    val timestamp = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date())
+                    
+                    android.util.Log.d("NoteViewModel", "Sync completed successfully in ${duration}ms")
+                    
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Failed to sync notes"
+                        isSyncing = false,
+                        lastSyncTime = timestamp,
+                        syncMessage = "Sync completed successfully"
+                    )
+                    
+                    // Clear sync message after 3 seconds
+                    kotlinx.coroutines.delay(3000)
+                    _uiState.value = _uiState.value.copy(syncMessage = null)
+                }
+                .onFailure { error ->
+                    android.util.Log.e("NoteViewModel", "Sync failed", error)
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isSyncing = false,
+                        errorMessage = error.message ?: "Failed to sync notes",
+                        syncMessage = null
                     )
                 }
         }
