@@ -49,6 +49,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -562,18 +563,20 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                         IconButton(onClick = {
                             // Save note before navigating back
                             if (title.isNotEmpty() || richTextState.annotatedString.text.isNotEmpty()) {
+                                val plainTextContent = stripHtmlTags(richTextState.toHtml())
+                                
                                 if (note != null) {
                                     noteViewModel.updateNote(
                                         noteId = note.id,
                                         title = title,
-                                        content = stripHtmlTags(richTextState.toHtml()),
+                                        content = plainTextContent,
                                         richTextHtml = richTextState.toHtml(),
                                         color = selectedColor
                                     )
                                 } else {
                                     noteViewModel.createNote(
                                         title = title,
-                                        content = stripHtmlTags(richTextState.toHtml()),
+                                        content = plainTextContent,
                                         richTextHtml = richTextState.toHtml(),
                                         color = selectedColor
                                     )
@@ -1003,18 +1006,20 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
         BackHandler {
             // Save note before navigating back
             if (title.isNotEmpty() || richTextState.annotatedString.text.isNotEmpty()) {
+                val plainTextContent = stripHtmlTags(richTextState.toHtml())
+                
                 if (note != null) {
                     noteViewModel.updateNote(
                         noteId = note.id,
                         title = title,
-                        content = stripHtmlTags(richTextState.toHtml()),
+                        content = plainTextContent,
                         richTextHtml = richTextState.toHtml(),
                         color = selectedColor
                     )
                 } else {
                     noteViewModel.createNote(
                         title = title,
-                        content = stripHtmlTags(richTextState.toHtml()),
+                        content = plainTextContent,
                         richTextHtml = richTextState.toHtml(),
                         color = selectedColor
                     )
@@ -1026,31 +1031,22 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
 }
 
 // Helper function to strip HTML tags and get plain text content
-// This function is now actively used to extract clean text content from rich HTML
 private fun stripHtmlTags(html: String): String {
     if (html.isBlank()) return ""
 
     // First attempt - use Android's built-in HTML handling
     return try {
-        val cleanText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT).toString()
         } else {
             @Suppress("DEPRECATION")
             Html.fromHtml(html).toString()
         }
-        
-        // Clean up whitespace and trim
-        cleanText.replace(Regex("\\s+"), " ").trim()
     } catch (e: Exception) {
         // Fallback - basic regex to remove HTML tags
         html.replace(Regex("<.*?>"), "")
             .replace("&nbsp;", " ")
-            .replace("&amp;", "&")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .replace("&quot;", "\"")
             .replace(Regex("\\s+"), " ")
-            .trim()
     }
 }
 

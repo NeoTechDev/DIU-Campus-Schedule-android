@@ -251,6 +251,7 @@ fun NotesScreen(navController: NavController) {
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                         .padding(paddingValues)
+                        .run { ScreenConfig.run { withTopAppBar() } }
                 ) {
                     HorizontalDivider(
                         thickness = 1.dp,
@@ -759,7 +760,8 @@ fun EmptyNotesState() {
 
 private fun formatDisplayTime(timestamp: String): String {
     try {
-        val inputFormat = SimpleDateFormat("MMM d yyyy, h:mm a", Locale.US)
+        // Match the exact format used in ViewModel: "MMM dd, yyyy 'at' hh:mm a"
+        val inputFormat = SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault())
         val noteDate: Date? = inputFormat.parse(timestamp)
         if (noteDate == null) return timestamp
 
@@ -770,15 +772,16 @@ private fun formatDisplayTime(timestamp: String): String {
         return when {
             noteCalendar.get(Calendar.YEAR) == todayCalendar.get(Calendar.YEAR) &&
                     noteCalendar.get(Calendar.DAY_OF_YEAR) == todayCalendar.get(Calendar.DAY_OF_YEAR) ->
-                "Today at ${SimpleDateFormat("h:mm a", Locale.US).format(noteDate)}"
+                "Today at ${SimpleDateFormat("h:mm a", Locale.getDefault()).format(noteDate)}"
             noteCalendar.get(Calendar.YEAR) == yesterdayCalendar.get(Calendar.YEAR) &&
                     noteCalendar.get(Calendar.DAY_OF_YEAR) == yesterdayCalendar.get(Calendar.DAY_OF_YEAR) ->
-                "Yesterday at ${SimpleDateFormat("h:mm a", Locale.US).format(noteDate)}"
+                "Yesterday at ${SimpleDateFormat("h:mm a", Locale.getDefault()).format(noteDate)}"
             (todayCalendar.timeInMillis - noteCalendar.timeInMillis) <= 7 * 24 * 60 * 60 * 1000 ->
-                SimpleDateFormat("EEEE at h:mm a", Locale.US).format(noteDate)
-            else -> SimpleDateFormat("MMM d", Locale.US).format(noteDate)
+                SimpleDateFormat("EEEE at h:mm a", Locale.getDefault()).format(noteDate)
+            else -> SimpleDateFormat("MMM d", Locale.getDefault()).format(noteDate)
         }
     } catch (e: Exception) {
+        android.util.Log.w("NotesScreen", "Failed to parse timestamp: $timestamp", e)
         return timestamp
     }
 }
