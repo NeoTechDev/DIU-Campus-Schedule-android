@@ -12,7 +12,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import com.om.diucampusschedule.ui.components.MainScaffold
+import com.om.diucampusschedule.ui.components.NavigationDrawer
 import com.om.diucampusschedule.ui.screens.auth.EmailVerificationScreen
 import com.om.diucampusschedule.ui.screens.auth.ForgotPasswordScreen
 import com.om.diucampusschedule.ui.screens.auth.RegistrationFormScreen
@@ -132,7 +135,35 @@ fun AppNavigation(
 
             // Main App Screens (with scaffold)
             composable(Screen.Today.route) {
-                TodayScreen(navController = navController)
+                val drawerState = rememberDrawerState(DrawerValue.Closed)
+                val scope = rememberCoroutineScope()
+                
+                ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    gesturesEnabled = false,
+                    scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
+                    drawerContent = {
+                        NavigationDrawer(
+                            onNavigate = { route ->
+                                navController.navigate(route)
+                            },
+                            onCloseDrawer = {
+                                scope.launch {
+                                    drawerState.close()
+                                }
+                            }
+                        )
+                    }
+                ) {
+                    TodayScreen(
+                        navController = navController,
+                        onOpenDrawer = {
+                            scope.launch {
+                                drawerState.open()
+                            }
+                        }
+                    )
+                }
             }
             
             composable(Screen.Routine.route) {

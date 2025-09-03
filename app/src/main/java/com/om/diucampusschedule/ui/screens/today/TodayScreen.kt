@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,25 +37,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
-import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.User
-import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -65,6 +59,7 @@ import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 @Composable
 fun TodayScreen(
     navController: NavController,
+    onOpenDrawer: () -> Unit = {}, // Add drawer parameter
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
@@ -79,10 +74,7 @@ fun TodayScreen(
         CustomTopAppBar(
             user = authState.user,
             onProfileClick = {
-                navController.navigate(Screen.Profile.route)
-            },
-            onMenuClick = {
-                // TODO: Implement menu functionality
+                onOpenDrawer() // Open drawer instead of navigating to profile
             },
             onNotificationClick = {
                 // TODO: Implement notification functionality
@@ -118,7 +110,6 @@ fun TodayScreen(
 private fun CustomTopAppBar(
     user: User?,
     onProfileClick: () -> Unit,
-    onMenuClick: () -> Unit,
     onNotificationClick: () -> Unit
 ) {
     TopAppBar(
@@ -156,17 +147,6 @@ private fun CustomTopAppBar(
                     contentDescription = "Notifications",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(topbarIconSize)
-                )
-            }
-            
-            IconButton(
-                onClick = onMenuClick
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.nav_drawer_filled),
-                    contentDescription = "Menu",
-                    modifier = Modifier.size(topbarIconSize),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
