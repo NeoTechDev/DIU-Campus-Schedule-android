@@ -1,29 +1,33 @@
 package com.om.diucampusschedule.ui.screens.welcome
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,11 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
-import com.airbnb.lottie.compose.rememberLottieComposition
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
@@ -47,175 +46,146 @@ import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 fun WelcomeScreen(
     navController: NavController
 ) {
+    // Primary color
+    val primaryColor = Color(0xFF1A56DB)
+
+    // Animation states
+    val imageScale = remember { Animatable(1.1f) }
+    val contentAlpha = remember { Animatable(0f) }
+    val titleScale = remember { Animatable(0.9f) }
+    val buttonAlpha = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        // Smooth entrance animations
+        imageScale.animateTo(1f, animationSpec = tween(1200, easing = FastOutSlowInEasing))
+        contentAlpha.animateTo(1f, animationSpec = tween(800, delayMillis = 300))
+        titleScale.animateTo(1f, animationSpec = tween(600, delayMillis = 500))
+        buttonAlpha.animateTo(1f, animationSpec = tween(600, delayMillis = 800))
+    }
+
     DIUCampusScheduleTheme {
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Background Image with Gradient Overlay
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.welcome_screen_bg),
-                    contentDescription = "DIU Campus Background",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    alpha = 0.45f
-                )
+            // Background Image with scaling animation
+            Image(
+                painter = painterResource(id = R.drawable.welcome_screen_bg),
+                contentDescription = "Campus Background",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scale(imageScale.value),
+                contentScale = ContentScale.Crop
+            )
 
-                // Enhanced Gradient Overlay
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.65f),
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.8f)
-                                )
-                            )
+            // Dark gradient overlay for text readability
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.3f),
+                                Color.Black.copy(alpha = 0.7f),
+                                Color.Black.copy(alpha = 0.9f)
+                            ),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
                         )
-                )
-            }
+                    )
+            )
 
             // Main Content
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                    .alpha(contentAlpha.value)
+                    .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
 
-                // Top Section - Enhanced Typography
+                // Top spacer to push content down
+                Spacer(modifier = Modifier.weight(0.3f))
+
+                // Content Section
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .scale(titleScale.value)
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    // Lottie Animation
-                    val composition by rememberLottieComposition(
-                        spec = LottieCompositionSpec.RawRes(
-                            resId = R.raw.wel_screen_animation
-                        )
-                    )
-                    val progress by animateLottieCompositionAsState(
-                        composition,
-                        isPlaying = true,
-                        iterations = LottieConstants.IterateForever
-                    )
-
-                    LottieAnimation(
-                        composition = composition,
-                        progress = { progress },
-                        modifier = Modifier
-                            .size(280.dp)
-                            .padding(bottom = 32.dp)
+                    // Main Title - smaller and less prominent like in prototype
+                    Text(
+                        text = "Welcome to",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 24.sp,
+                            lineHeight = 28.sp
+                        ),
+                        textAlign = TextAlign.Center,
+                        color = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
 
-                    // Enhanced Title Section
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    // Highlighted app name - this should be the main focus
+                    Text(
+                        text = "DIU Campus Schedule",
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 40.sp,
+                            lineHeight = 46.sp
+                        ),
+                        textAlign = TextAlign.Center,
+                        color = Color(0xFF2196F3), // Bright blue matching the prototype
+                        modifier = Modifier.padding(bottom = 32.dp)
+                    )
+
+                    // Description
+                    Text(
+                        text = "Manage your classes, assignments and campus life with smart scheduling and reminders",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 16.sp,
+                            lineHeight = 24.sp
+                        ),
+                        textAlign = TextAlign.Center,
+                        color = Color.White.copy(alpha = 0.85f),
                         modifier = Modifier.padding(horizontal = 16.dp)
-                    ) {
-                        // Welcome text - more subtle and elegant
-                        Text(
-                            text = "Welcome to",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 18.sp,
-                                letterSpacing = 5.sp
-                            ),
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-
-                        // Main title - improved hierarchy
-                        Text(
-                            text = "DIU Campus Schedule",
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 28.sp,
-                                letterSpacing = (-0.3).sp,
-                                lineHeight = 30.sp
-                            ),
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(bottom = 24.dp)
-                        )
-
-                        // Enhanced Description with better readability
-                        Text(
-                            text = "Transform your university experience with smart scheduling. " +
-                                    "Organize classes, manage tasks, set reminders, and keep notes—all in one intuitive app.",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 16.sp,
-                                lineHeight = 26.sp,
-                                letterSpacing = 0.1.sp
-                            ),
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
-                            modifier = Modifier.padding(horizontal = 8.dp)
-                        )
-
-                        // Optional tagline for extra appeal
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Say goodbye to routine chaos!",
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 14.sp,
-                                letterSpacing = 0.3.sp
-                            ),
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                        )
-                    }
+                    )
                 }
 
-                // Bottom Section - Enhanced Button
+                // Bottom Section - Buttons
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier
+                        .alpha(buttonAlpha.value)
+                        .padding(horizontal = 16.dp, vertical = 32.dp)
+                        .fillMaxWidth()
                 ) {
+                    // Sign Up Button (Primary)
                     Button(
                         onClick = { navController.navigate(Screen.SignIn.route) },
                         modifier = Modifier
-                            .fillMaxWidth(0.7f)
+                            .fillMaxWidth()
                             .height(56.dp),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(28.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
+                            containerColor = primaryColor,
+                            contentColor = Color.White
                         ),
                         elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 8.dp,
-                            pressedElevation = 12.dp
+                            defaultElevation = 4.dp,
+                            pressedElevation = 8.dp
                         )
                     ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Get Started",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.5.sp
-                                ),
-                                modifier = Modifier.padding(end = 12.dp)
+                        Text(
+                            text = "Get Started",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
-                            Icon(
-                                painter = painterResource(id = R.drawable.right_arrow),
-                                contentDescription = "Next Page",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        )
                     }
                 }
             }
