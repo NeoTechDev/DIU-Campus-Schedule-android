@@ -1,6 +1,9 @@
 package com.om.diucampusschedule.ui.components
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -18,6 +21,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,7 +43,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -49,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -68,6 +72,7 @@ fun NavigationDrawer(
 ) {
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val lazyListState = rememberLazyListState()
 
     // Get app version
     val packageInfo = remember {
@@ -78,11 +83,11 @@ fun NavigationDrawer(
         }
     }
     val appVersion = packageInfo?.versionName ?: "1.0.0"
-    val appPageMessengerUrl = "https://www.messenger.com/t/502526562953282"
-    val appFacebookPageUrl = "https://www.facebook.com/profile.php?id=61572247479723"
 
     ModalDrawerSheet(
-        modifier = Modifier.width(300.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp))
+            .width(280.dp),
         drawerContainerColor = MaterialTheme.colorScheme.surface,
         drawerContentColor = MaterialTheme.colorScheme.onSurface,
         windowInsets = WindowInsets.systemBars
@@ -93,7 +98,8 @@ fun NavigationDrawer(
             // Navigation Content
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(vertical = 8.dp)
+                contentPadding = PaddingValues(vertical = 8.dp),
+                state = lazyListState
             ) {
                 // Header Section
                 item {
@@ -113,7 +119,7 @@ fun NavigationDrawer(
                 }
 
                 // Main Section Items (Faculty Info & Previous Questions)
-                items(getMainSectionItems(onNavigate)) { item ->
+                items(getMainSectionItems(onNavigate, context)) { item ->
                     NavigationItem(
                         item = item,
                         onClick = {
@@ -416,7 +422,8 @@ data class DrawerItem(
 
 // Section 1: Main Section (Faculty Info & Previous Questions)
 private fun getMainSectionItems(
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    context: Context
 ): List<DrawerItem> {
     return listOf(
         DrawerItem(
@@ -431,8 +438,15 @@ private fun getMainSectionItems(
             iconRes =  R.drawable.previous_question,
             title = "Previous Questions",
             action = {
-                // TODO: Navigate to Previous Questions screen
-                // onNavigate(Screen.PreviousQuestions.route)
+                val previousQuestionDriveUrl = "https://drive.google.com/drive/folders/1oGno4UzJxg65H-iyWR-z2uB9kBgs2Nba?usp=sharing"
+                val intent = Intent(Intent.ACTION_VIEW, previousQuestionDriveUrl.toUri())
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                intent.setPackage("com.google.android.apps.docs")
+                try {
+                    context.startActivity(intent)
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(context, "Google Docs not found", Toast.LENGTH_SHORT).show()
+                }
             }
         ),
         DrawerItem(
@@ -488,7 +502,14 @@ private fun getSupportSectionItems(
             iconRes = R.drawable.star_24,
             title = "Rate This App",
             action = {
-                // TODO: Open Play Store rating
+                val packageName = context.packageName
+                val playStoreUrl = "market://details?id=$packageName"
+                val intent = Intent(Intent.ACTION_VIEW, playStoreUrl.toUri())
+                try {
+                    context.startActivity(intent)
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(context, "Play Store not found", Toast.LENGTH_SHORT).show()
+                }
             }
         ),
         DrawerItem(
@@ -497,7 +518,9 @@ private fun getSupportSectionItems(
             subtitle = "Help us to improve",
             isExternal = true,
             action = {
-                // TODO: Open feedback form/email
+                val communityFeedbackChannelUrl = "https://m.me/ch/AbZ7MiSzbx1f5-rc/?send_source=cm%3Acopy_invite_link"
+                val intent = Intent(Intent.ACTION_VIEW, communityFeedbackChannelUrl.toUri())
+                context.startActivity(intent)
             }
         ),
         DrawerItem(
@@ -505,7 +528,9 @@ private fun getSupportSectionItems(
             title = "Follow & Support",
             isExternal = true,
             action = {
-                // TODO: Open social media links
+                val appFacebookPageUrl = "https://www.facebook.com/profile.php?id=61572247479723"
+                val intent = Intent(Intent.ACTION_VIEW, appFacebookPageUrl.toUri())
+                context.startActivity(intent)
             }
         ),
         DrawerItem(
