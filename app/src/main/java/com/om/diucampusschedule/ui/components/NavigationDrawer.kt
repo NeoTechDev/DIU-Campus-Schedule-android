@@ -3,9 +3,14 @@ package com.om.diucampusschedule.ui.components
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,6 +20,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
@@ -31,18 +37,30 @@ import androidx.compose.material.icons.outlined.Error
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -52,6 +70,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -73,6 +93,9 @@ fun NavigationDrawer(
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lazyListState = rememberLazyListState()
+
+    var showMeetTheDevelopersDialog by remember { mutableStateOf(false) }
+    val showBatteryOptimizationDialog = remember { mutableStateOf(false) }
 
     // Get app version
     val packageInfo = remember {
@@ -149,7 +172,7 @@ fun NavigationDrawer(
                     SectionDivider()
                     SectionHeader(title = "Notifications")
                 }
-                items(getNotificationSectionItems(onNavigate)) { item ->
+                items(getNotificationSectionItems { showBatteryOptimizationDialog.value = true }) { item ->
                     SupportItem(
                         item = item,
                         onClick = {
@@ -164,7 +187,7 @@ fun NavigationDrawer(
                     SectionDivider()
                     SectionHeader(title = "Support & More")
                 }
-                items(getSupportSectionItems(onNavigate, context)) { item ->
+                items(getSupportSectionItems(context) { showMeetTheDevelopersDialog = true }) { item ->
                     SupportItem(
                         item = item,
                         onClick = {
@@ -177,6 +200,203 @@ fun NavigationDrawer(
 
             // Footer
             DrawerFooter(appVersion = appVersion)
+        }
+        if (showMeetTheDevelopersDialog) {
+            val developers = listOf(
+                Developer(
+                    pictureRes = R.drawable.ovi,
+                    name = "Ismam Hasan Ovi",
+                    gmail = "ismamhasanovi@gmail.com",
+                    department = "SWE-41"
+                ),
+                Developer(
+                    pictureRes = R.drawable.maruf,
+                    name = "Md Maruf Rayhan",
+                    gmail = "marufrayhan2002@gmail.com",
+                    department = "SWE-41"
+                )
+            )
+            AboutUsDialog(
+                showDialog = showMeetTheDevelopersDialog,
+                onDismiss = { showMeetTheDevelopersDialog = false },
+                developers = developers,
+                dialogTitle = "The Developers"
+            )
+        }
+
+        // Battery Optimization dialog
+        if (showBatteryOptimizationDialog.value) {
+            BasicAlertDialog(
+                onDismissRequest = { showBatteryOptimizationDialog.value = false },
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxWidth(0.95f) // Use 95% of screen width
+                    .clip(RoundedCornerShape(28.dp)),
+                properties = DialogProperties(
+                    dismissOnBackPress = true,
+                    dismissOnClickOutside = true,
+                    usePlatformDefaultWidth = false // Disable default width constraint
+                ),
+                content = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                            .padding(14.dp), // Slightly reduced padding
+                    ) {
+                        // Header with improved styling
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp) // Slightly smaller box
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.single_reminder),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp) // Slightly smaller icon
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Optimize Notifications",
+                                style = MaterialTheme.typography.titleMedium, // Smaller font size
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp)) // Reduced spacing
+                        HorizontalDivider(
+                            Modifier,
+                            DividerDefaults.Thickness,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp)) // Reduced spacing
+
+                        // Content with improved description
+                        Text(
+                            text = "To ensure you receive timely notifications, please follow these steps:",
+                            style = MaterialTheme.typography.bodyMedium, // Smaller font
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp)) // Reduced spacing
+
+                        LazyColumn(
+                            modifier = Modifier
+                                .heightIn(max = 350.dp)
+                                .fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            item {
+                                // Section 1: Battery Optimization
+                                OptimizationSection(
+                                    title = "1. Disable Battery Optimization",
+                                    iconId = R.drawable.eco_battery,
+                                    steps = listOf(
+                                        "-> Go to Settings > Battery > Battery Optimization",
+                                        "-> Find \"DIU Campus Schedule\" in the app list",
+                                        "-> Select \"Don't optimize\" or \"Unrestricted\"",
+                                        "-> Save your changes"
+                                    )
+                                )
+                            }
+
+                            item {
+                                // Section 2: Clear Cache
+                                OptimizationSection(
+                                    title = "2. Clear App Cache",
+                                    iconId = R.drawable.delete_24,
+                                    steps = listOf(
+                                        "-> Go to Settings > Apps > DIU Campus Schedule",
+                                        "-> Tap on 'Storage & cache'",
+                                        "-> Tap 'Clear cache'",
+                                        "-> Restart the app"
+                                    )
+                                )
+                            }
+
+                            item {
+                                // Section 3: Background Activity
+                                OptimizationSection(
+                                    title = "3. Allow Background Activity",
+                                    iconId = R.drawable.baseline_access_time_24,
+                                    steps = listOf(
+                                        "-> Go to Settings > Apps > DIU Campus Schedule",
+                                        "-> Tap on 'Battery'",
+                                        "-> Select 'Allow background activity'",
+                                        "-> Toggle any 'Autostart' option if available"
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp)) // Reduced spacing
+
+                        // Buttons with improved styling
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Cancel button
+                            TextButton(
+                                onClick = { showBatteryOptimizationDialog.value = false },
+                                modifier = Modifier.padding(end = 8.dp), // Reduced padding
+                                shape = RoundedCornerShape(20.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp), // Reduced padding
+                            ) {
+                                Text(
+                                    text = "Close",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelMedium, // Smaller font
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            // Open Battery Settings button
+                            Button(
+                                onClick = {
+                                    try {
+                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.fromParts("package", context.packageName, null)
+                                        }
+                                        context.startActivity(intent)
+                                        showBatteryOptimizationDialog.value = false  // Close the dialog after opening settings
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Couldn't open battery settings", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ),
+                                shape = RoundedCornerShape(20.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), // Reduced padding
+                                elevation = ButtonDefaults.buttonElevation(
+                                    defaultElevation = 2.dp
+                                )
+                            ) {
+                                Text(
+                                    text = "Open Settings",
+                                    style = MaterialTheme.typography.labelMedium, // Smaller font
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+            )
         }
     }
 }
@@ -453,8 +673,9 @@ private fun getMainSectionItems(
             iconRes = R.drawable.notice,
             title = "Department Notice",
             action = {
-                // TODO: Navigate to Schedule screen
-                // onNavigate(Screen.Schedule.route)
+                val deptNoticeSiteUrl = "https://daffodilvarsity.edu.bd/department/swe/notice"
+                val intent = Intent(Intent.ACTION_VIEW, deptNoticeSiteUrl.toUri())
+                context.startActivity(intent)
             }
         )
     )
@@ -479,14 +700,14 @@ private fun getCommunitySectionItems(
 
 // Section 3: Notifications (Fixed Notification Delays)
 private fun getNotificationSectionItems(
-    onNavigate: (String) -> Unit
+    onShowBatteryOptimizationDialog: () -> Unit
 ): List<DrawerItem> {
     return listOf(
         DrawerItem(
             icon = Icons.Outlined.Error,
             title = "Fix Notification Delays",
             action = {
-                // TODO: Show battery optimization dialog
+                onShowBatteryOptimizationDialog()
             }
         )
     )
@@ -494,8 +715,8 @@ private fun getNotificationSectionItems(
 
 // Section 4: Support & More
 private fun getSupportSectionItems(
-    onNavigate: (String) -> Unit,
-    context: Context
+    context: Context,
+    onShowMeetTheDevelopersDialog: () -> Unit
 ): List<DrawerItem> {
     return listOf(
         DrawerItem(
@@ -520,7 +741,15 @@ private fun getSupportSectionItems(
             action = {
                 val communityFeedbackChannelUrl = "https://m.me/ch/AbZ7MiSzbx1f5-rc/?send_source=cm%3Acopy_invite_link"
                 val intent = Intent(Intent.ACTION_VIEW, communityFeedbackChannelUrl.toUri())
-                context.startActivity(intent)
+                intent.setPackage("com.facebook.orca")
+                try {
+                    context.startActivity(intent)
+                } catch (e: ActivityNotFoundException) {
+                    // Messenger not installed — fallback to browser or Facebook Lite
+                    val fallbackIntent = Intent(Intent.ACTION_VIEW, communityFeedbackChannelUrl.toUri())
+                    context.startActivity(fallbackIntent)
+                }
+
             }
         ),
         DrawerItem(
@@ -530,14 +759,21 @@ private fun getSupportSectionItems(
             action = {
                 val appFacebookPageUrl = "https://www.facebook.com/profile.php?id=61572247479723"
                 val intent = Intent(Intent.ACTION_VIEW, appFacebookPageUrl.toUri())
-                context.startActivity(intent)
+                intent.setPackage("com.facebook.katana")
+                try{
+                    context.startActivity(intent)
+                } catch (e: ActivityNotFoundException) {
+                    // Facebook not installed — fallback to browser
+                    val fallbackIntent = Intent(Intent.ACTION_VIEW, appFacebookPageUrl.toUri())
+                    context.startActivity(fallbackIntent)
+                }
             }
         ),
         DrawerItem(
             icon = Icons.Outlined.Groups,
             title = "Meet The Developers",
             action = {
-                // TODO: Show developers dialog
+                    onShowMeetTheDevelopersDialog()
             }
         )
     )
@@ -551,5 +787,213 @@ private fun getUserInitials(user: User?): String {
         user?.name?.split(" ")?.take(2)?.mapNotNull {
             it.firstOrNull()?.uppercaseChar()
         }?.joinToString("")?.takeIf { it.isNotBlank() } ?: "U"
+    }
+}
+
+
+// Developer data class
+data class Developer(
+    val pictureRes: Int,
+    val name: String,
+    val gmail: String,
+    val department: String
+)
+
+@Composable
+fun AboutUsDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    developers: List<Developer>,
+    dialogTitle: String // Added dialogTitle parameter
+){
+    if(showDialog){
+        Dialog(onDismissRequest = onDismiss) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 16.dp
+            ){
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(16.dp)
+                ){
+                    Text(
+                        text = dialogTitle.uppercase(), // Using dynamic dialogTitle
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    developers.forEach { developer ->
+                        DeveloperCard(developer)
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DeveloperCard(developer: Developer) {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+            .shadow(6.dp, RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Image(
+                painter = painterResource(developer.pictureRes),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    developer.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    developer.department,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    developer.gmail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    SocialIconButton(R.drawable.facebook) {
+                        val url = if (developer.name == "Ismam Hasan Ovi") {
+                            "https://www.facebook.com/coder.OVI"
+                        } else {
+                            "https://www.facebook.com/marufrayhan606"
+                        }
+                        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SocialIconButton(R.drawable.github) {
+                        val url = if (developer.name == "Ismam Hasan Ovi") {
+                            "https://github.com/oviii-001"
+                        } else {
+                            "https://github.com/marufrayhan606"
+                        }
+                        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SocialIconButton(R.drawable.linkedin) {
+                        val url = if (developer.name == "Ismam Hasan Ovi") {
+                            "https://www.linkedin.com/in/ismamovi"
+                        } else {
+                            "https://www.linkedin.com/in/marufrayhan606/"
+                        }
+                        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SocialIconButton(iconRes: Int, onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
+        Image(
+            painter = painterResource(id = iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(28.dp)
+        )
+    }
+}
+
+@Composable
+private fun OptimizationSection(
+    title: String,
+    iconId: Int,
+    steps: List<String>
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp), // Smaller corner radius
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp) // Reduced padding
+        ) {
+            // Section title with icon
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(id = iconId),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp) // Smaller icon
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge, // Smaller font
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp)) // Reduced spacing
+
+            // Steps
+            steps.forEach { step ->
+                Row(
+                    modifier = Modifier.padding(vertical = 3.dp), // Reduced padding
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp) // Smaller bullet point
+                            .padding(top = 6.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp)) // Reduced spacing
+                    Text(
+                        text = step,
+                        style = MaterialTheme.typography.bodySmall, // Smaller font
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }
