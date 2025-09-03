@@ -106,7 +106,7 @@ fun AppNavigation(
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
-        scrimColor = Color.Black.copy(alpha = 0.32f),
+        scrimColor = Color.Black.copy(alpha = 0.5f),
         drawerContent = {
             NavigationDrawer(
                 onNavigate = { route ->

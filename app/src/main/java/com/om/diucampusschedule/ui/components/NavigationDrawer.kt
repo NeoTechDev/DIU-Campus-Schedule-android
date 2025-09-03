@@ -90,24 +90,28 @@ fun NavigationDrawer(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header Section
-            DrawerHeader(user = authState.user) {
-                onNavigate(Screen.Profile.route)
-                onCloseDrawer()
-            }
-            
-            // Divider under profile section
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
-
             // Navigation Content
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
+                // Header Section
+                item {
+                    DrawerHeader(user = authState.user) {
+                        onNavigate(Screen.Profile.route)
+                        onCloseDrawer()
+                    }
+                }
+                
+                // Divider under profile section
+                item {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                }
+
                 // Main Section Items (Faculty Info & Previous Questions)
                 items(getMainSectionItems(onNavigate)) { item ->
                     NavigationItem(
@@ -235,10 +239,10 @@ private fun DrawerHeader(
             Text(
                 text = it,
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Normal,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 16.sp
                 ),
-                color = Color(0xFF6EE7B7)
+                color = MaterialTheme.colorScheme.primary
             )
         }
 
