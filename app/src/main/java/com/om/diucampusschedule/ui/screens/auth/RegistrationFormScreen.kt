@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -213,7 +215,9 @@ fun RegistrationFormScreen(
                currentSectionError == null && 
                currentInitialError == null &&
                // For students, lab section must be selected if section is provided
-               (role != UserRole.STUDENT || section.isBlank() || labSection.isNotBlank())
+               (role != UserRole.STUDENT || section.isBlank() || labSection.isNotBlank()) &&
+               // Ensure validation data is available for dynamic validation
+               (validationState.validationData.validBatches.isNotEmpty() || validationState.error != null)
     }
 
     // Note: Navigation logic is handled by AppNavigation.kt
@@ -238,6 +242,8 @@ fun RegistrationFormScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 24.dp)
+                    .imePadding() // This adds padding when keyboard appears
+                    .navigationBarsPadding() // This handles navigation bar padding
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -554,8 +560,11 @@ fun RegistrationFormScreen(
                                     OutlinedTextField(
                                         value = batch,
                                         onValueChange = { newValue ->
-                                            batch = newValue
-                                            batchError = validateBatch(newValue)
+                                            // Only allow digits
+                                            val filteredValue = newValue.filter { it.isDigit() }
+                                            batch = filteredValue
+                                            batchError = validateBatch(filteredValue)
+                                            // Re-validate section if batch changes
                                             if (section.isNotBlank()) {
                                                 sectionError = validateSection(section)
                                             }
@@ -583,8 +592,17 @@ fun RegistrationFormScreen(
                                             modifier = Modifier.padding(top = 4.dp)
                                         )
                                     } else if (validationData.validBatches.isNotEmpty()) {
+                                        val sortedBatches = validationData.validBatches.map { it.toIntOrNull() ?: 0 }.sorted()
+                                        val batchHint = if (sortedBatches.size > 1 && 
+                                            sortedBatches.last() - sortedBatches.first() + 1 == sortedBatches.size) {
+                                            // Continuous range
+                                            "Available: ${sortedBatches.first()} to ${sortedBatches.last()}"
+                                        } else {
+                                            // Non-continuous
+                                            "Available: ${validationData.validBatches.sorted().joinToString(", ")}"
+                                        }
                                         Text(
-                                            text = "Available: ${validationData.validBatches.sorted().joinToString(", ")}",
+                                            text = batchHint,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             style = MaterialTheme.typography.bodySmall,
                                             modifier = Modifier.padding(top = 4.dp)
@@ -604,10 +622,13 @@ fun RegistrationFormScreen(
                                     OutlinedTextField(
                                         value = section,
                                         onValueChange = { newValue ->
-                                            section = newValue
-                                            sectionError = validateSection(newValue)
+                                            // Auto-uppercase and limit to single letter
+                                            val filteredValue = newValue.filter { it.isLetter() }.uppercase().take(1)
+                                            section = filteredValue
+                                            sectionError = validateSection(filteredValue)
+                                            // Reset lab section if section changes and current lab section is invalid
                                             if (labSection.isNotBlank()) {
-                                                val expectedLabSections = validationData.getLabSectionsForMainSection(newValue)
+                                                val expectedLabSections = validationData.getLabSectionsForMainSection(filteredValue)
                                                 if (!expectedLabSections.contains(labSection)) {
                                                     labSection = ""
                                                 }
@@ -635,8 +656,14 @@ fun RegistrationFormScreen(
                                             modifier = Modifier.padding(top = 4.dp)
                                         )
                                     } else if (batch.isNotBlank() && validationData.getSectionsForBatch(batch).isNotEmpty()) {
+                                        val availableSections = validationData.getSectionsForBatch(batch).sorted()
+                                        val sectionHint = if (availableSections.size > 2) {
+                                            "For batch $batch: ${availableSections.first()} to ${availableSections.last()}"
+                                        } else {
+                                            "For batch $batch: ${availableSections.joinToString(", ")}"
+                                        }
                                         Text(
-                                            text = "For batch $batch: ${validationData.getSectionsForBatch(batch).sorted().joinToString(", ")}",
+                                            text = sectionHint,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             style = MaterialTheme.typography.bodySmall,
                                             modifier = Modifier.padding(top = 4.dp)
@@ -673,8 +700,10 @@ fun RegistrationFormScreen(
                             OutlinedTextField(
                                 value = initial,
                                 onValueChange = { newValue ->
-                                    initial = newValue
-                                    initialError = validateInitial(newValue)
+                                    // Auto-uppercase and filter letters and numbers only
+                                    val filteredValue = newValue.filter { it.isLetterOrDigit() }.uppercase().take(6)
+                                    initial = filteredValue
+                                    initialError = validateInitial(filteredValue)
                                 },
                                 placeholder = { Text("e.g. MBM", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
                                 modifier = Modifier.fillMaxWidth(),
@@ -693,7 +722,13 @@ fun RegistrationFormScreen(
                                         { Text(text = initialError!!, color = MaterialTheme.colorScheme.error) }
                                     }
                                     validationData.validTeacherInitials.isNotEmpty() -> {
-                                        { Text(text = "Available: ${validationData.validTeacherInitials.sorted().joinToString(", ")}", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                        val sortedInitials = validationData.validTeacherInitials.sorted()
+                                        val displayText = if (sortedInitials.size > 10) {
+                                            "Available initials: ${sortedInitials.take(8).joinToString(", ")} and ${sortedInitials.size - 8} more"
+                                        } else {
+                                            "Available: ${sortedInitials.joinToString(", ")}"
+                                        }
+                                        { Text(text = displayText, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                                     }
                                     else -> null
                                 }
@@ -706,12 +741,14 @@ fun RegistrationFormScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .padding(vertical = 8.dp)
                                 .background(
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                                     shape = RoundedCornerShape(12.dp)
-                                ),
-                            verticalAlignment = Alignment.CenterVertically
+                                )
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
@@ -720,9 +757,38 @@ fun RegistrationFormScreen(
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = "Loading validation data...",
+                                text = "Loading validation data for $department...",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    
+                    // Validation data error
+                    if (validationState.error != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ErrorOutline,
+                                contentDescription = "Validation Error",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = validationState.error!!,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
@@ -776,7 +842,9 @@ fun RegistrationFormScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        enabled = !authState.isLoading && !validationState.isLoading && isFormValid() && isConnected,
+                        enabled = !authState.isLoading && !validationState.isLoading && isFormValid() && isConnected &&
+                                // Ensure validation data is loaded if needed
+                                (validationState.validationData.validBatches.isNotEmpty() || validationState.error != null),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
@@ -816,7 +884,7 @@ fun RegistrationFormScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(100.dp)) // Increased bottom padding for keyboard
             }
         }
     }

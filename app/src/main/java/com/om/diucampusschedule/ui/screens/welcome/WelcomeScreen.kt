@@ -55,8 +55,6 @@ fun WelcomeScreen(
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-
-                // Uncomment when background image is added
                 Image(
                     painter = painterResource(id = R.drawable.welcome_screen_bg),
                     contentDescription = "DIU Campus Background",
@@ -65,15 +63,15 @@ fun WelcomeScreen(
                     alpha = 0.45f
                 )
 
-                // Gradient Overlay
+                // Enhanced Gradient Overlay
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.85f)
+                                    MaterialTheme.colorScheme.background.copy(alpha = 0.65f),
+                                    MaterialTheme.colorScheme.background.copy(alpha = 0.8f)
                                 )
                             )
                         )
@@ -84,13 +82,13 @@ fun WelcomeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // Top Section
+                // Top Section - Enhanced Typography
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.weight(1f)
@@ -112,63 +110,89 @@ fun WelcomeScreen(
                         progress = { progress },
                         modifier = Modifier
                             .size(280.dp)
-                            .padding(bottom = 24.dp)
+                            .padding(bottom = 32.dp)
                     )
 
-                    // Title with proper typography
-                    Text(
-                        text = "Welcome to",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Light,
-                            fontSize = 28.sp
-                        ),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                    )
-                    
-                    Text(
-                        text = "DIU Campus Schedule",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 32.sp
-                        ),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    // Subtitle with improved readability
-                    Text(
-                        text = "No more struggling with routine images! Take control of your university schedule with ease—organize your classes, tasks, reminders, and notes all in one app for a hassle-free experience!",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp,
-                            lineHeight = 24.sp
-                        ),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    // Enhanced Title Section
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(horizontal = 16.dp)
-                    )
+                    ) {
+                        // Welcome text - more subtle and elegant
+                        Text(
+                            text = "Welcome to",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 18.sp,
+                                letterSpacing = 5.sp
+                            ),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+
+                        // Main title - improved hierarchy
+                        Text(
+                            text = "DIU Campus Schedule",
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 28.sp,
+                                letterSpacing = (-0.3).sp,
+                                lineHeight = 30.sp
+                            ),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 24.dp)
+                        )
+
+                        // Enhanced Description with better readability
+                        Text(
+                            text = "Transform your university experience with smart scheduling. " +
+                                    "Organize classes, manage tasks, set reminders, and keep notes—all in one intuitive app.",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 16.sp,
+                                lineHeight = 26.sp,
+                                letterSpacing = 0.1.sp
+                            ),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+
+                        // Optional tagline for extra appeal
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Say goodbye to routine chaos!",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp,
+                                letterSpacing = 0.3.sp
+                            ),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        )
+                    }
                 }
 
-                // Bottom Section with enhanced button
+                // Bottom Section - Enhanced Button
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(bottom = 32.dp)
+                    modifier = Modifier.padding(bottom = 16.dp)
                 ) {
                     Button(
                         onClick = { navController.navigate(Screen.SignIn.route) },
                         modifier = Modifier
                             .fillMaxWidth(0.7f)
                             .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 6.dp,
-                            pressedElevation = 8.dp
+                            defaultElevation = 8.dp,
+                            pressedElevation = 12.dp
                         )
                     ) {
                         Row(
@@ -178,17 +202,18 @@ fun WelcomeScreen(
                         ) {
                             Text(
                                 text = "Get Started",
-                                style = MaterialTheme.typography.labelLarge.copy(
+                                style = MaterialTheme.typography.titleMedium.copy(
                                     fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.5.sp
                                 ),
-                                modifier = Modifier.padding(end = 8.dp)
+                                modifier = Modifier.padding(end = 12.dp)
                             )
                             Icon(
                                 painter = painterResource(id = R.drawable.right_arrow),
                                 contentDescription = "Next Page",
                                 tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
