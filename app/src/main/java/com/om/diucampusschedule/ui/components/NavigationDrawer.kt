@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -92,7 +93,7 @@ fun NavigationDrawer(
 ) {
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val lazyListState = rememberLazyListState()
+    val lazyListState = LazyListState()
 
     var showMeetTheDevelopersDialog by remember { mutableStateOf(false) }
     val showBatteryOptimizationDialog = remember { mutableStateOf(false) }
@@ -650,8 +651,7 @@ private fun getMainSectionItems(
             iconRes = R.drawable.faculty_info,
             title = "Faculty Info",
             action = {
-                // TODO: Navigate to Faculty Info screen
-                // onNavigate(Screen.FacultyInfo.route)
+                 onNavigate(Screen.FacultyInfo.route)
             }
         ),
         DrawerItem(

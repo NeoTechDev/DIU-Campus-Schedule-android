@@ -13,7 +13,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import com.om.diucampusschedule.ui.components.MainScaffold
 import com.om.diucampusschedule.ui.components.NavigationDrawer
@@ -170,7 +169,7 @@ fun AppNavigation(
                 }
                 
                 composable(Screen.Routine.route) {
-                    RoutineScreen(navController = navController)
+                    RoutineScreen()
                 }
                 
                 composable(Screen.EmptyRooms.route) {

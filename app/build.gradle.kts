@@ -95,7 +95,10 @@ dependencies {
     implementation(libs.coil.compose)
 
     // Gson
-    implementation("com.google.code.gson:gson:2.8.9")
+    implementation("com.google.code.gson:gson:2.13.1")
+
+    // Kotlin Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
     // Datastore
     implementation(libs.androidx.datastore.preferences)

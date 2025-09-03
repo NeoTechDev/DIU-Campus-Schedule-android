@@ -92,8 +92,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
@@ -129,7 +127,6 @@ private val formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a", Locale.US
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoutineScreen(
-    navController: NavController,
     viewModel: RoutineViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -1443,7 +1440,7 @@ private fun getBreakCounsellingText(
 @Composable
 fun RoutineScreenPreview() {
     DIUCampusScheduleTheme {
-        RoutineScreen(navController = rememberNavController())
+        RoutineScreen()
     }
 }
 
