@@ -22,6 +22,7 @@ import com.om.diucampusschedule.ui.screens.auth.ForgotPasswordScreen
 import com.om.diucampusschedule.ui.screens.auth.RegistrationFormScreen
 import com.om.diucampusschedule.ui.screens.auth.SignInScreen
 import com.om.diucampusschedule.ui.screens.auth.SignUpScreen
+import com.om.diucampusschedule.ui.screens.community.CommunityScreen
 import com.om.diucampusschedule.ui.screens.routine.RoutineScreen
 import com.om.diucampusschedule.ui.screens.today.TodayScreen
 import com.om.diucampusschedule.ui.screens.tasks.TaskScreen
@@ -212,6 +213,10 @@ fun AppNavigation(
                 
                 composable(Screen.FacultyInfo.route) {
                     PlaceholderScreen(title = "Faculty Info", description = "Faculty information will be displayed here")
+                }
+
+                composable(Screen.Community.route){
+                    CommunityScreen(navController = navController)
                 }
 
                 composable(Screen.Debug.route) {

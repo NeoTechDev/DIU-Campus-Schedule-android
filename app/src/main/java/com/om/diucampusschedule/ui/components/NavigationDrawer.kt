@@ -691,8 +691,7 @@ private fun getCommunitySectionItems(
             title = "DIUCS Connect",
             subtitle = "Join our newest community!",
             action = {
-                // TODO: Navigate to Community screen
-                // onNavigate(Screen.Community.route)
+                 onNavigate(Screen.Community.route)
             }
         )
     )
