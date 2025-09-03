@@ -1,5 +1,6 @@
 package com.om.diucampusschedule.ui.components
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -22,10 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Quiz
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Error
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.Groups
@@ -42,10 +39,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -229,17 +228,28 @@ private fun DrawerHeader(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+        Spacer(modifier = Modifier.height(2.dp))
+        user?.email?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 16.sp
+                ),
+                color = Color(0xFF6EE7B7)
+            )
+        }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // View Profile Link
         Text(
             text = "View profile",
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Normal,
-                fontSize = 16.sp
+                fontSize = 12.sp
             ),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         )
     }
 }
@@ -282,12 +292,21 @@ private fun NavigationItem(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.title,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
+            if (item.icon != null) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.title,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else if (item.iconRes != null) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(id = item.iconRes),
+                    contentDescription = item.title,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = item.title,
@@ -319,12 +338,21 @@ private fun SupportItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = item.icon,
-            contentDescription = item.title,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
+        if (item.icon != null) {
+            Icon(
+                imageVector = item.icon,
+                contentDescription = item.title,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+        } else if (item.iconRes != null) {
+            Icon(
+                imageVector = ImageVector.vectorResource(id = item.iconRes),
+                contentDescription = item.title,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+        }
         Spacer(modifier = Modifier.width(16.dp))
         Column(
             modifier = Modifier.weight(1f)
@@ -372,7 +400,8 @@ private fun DrawerFooter(appVersion: String) {
 
 // Data classes
 data class DrawerItem(
-    val icon: ImageVector,
+    val icon: ImageVector? = null,
+    val iconRes: Int? = null,
     val title: String,
     val subtitle: String? = null,
     val isExternal: Boolean = false,
@@ -385,7 +414,7 @@ private fun getMainSectionItems(
 ): List<DrawerItem> {
     return listOf(
         DrawerItem(
-            icon = Icons.Default.School,
+            iconRes = R.drawable.faculty_info,
             title = "Faculty Info",
             action = {
                 // TODO: Navigate to Faculty Info screen
@@ -393,11 +422,19 @@ private fun getMainSectionItems(
             }
         ),
         DrawerItem(
-            icon = Icons.Default.Quiz,
+            iconRes =  R.drawable.previous_question,
             title = "Previous Questions",
             action = {
                 // TODO: Navigate to Previous Questions screen
                 // onNavigate(Screen.PreviousQuestions.route)
+            }
+        ),
+        DrawerItem(
+            iconRes = R.drawable.notice,
+            title = "Department Notice",
+            action = {
+                // TODO: Navigate to Schedule screen
+                // onNavigate(Screen.Schedule.route)
             }
         )
     )
@@ -409,7 +446,7 @@ private fun getCommunitySectionItems(
 ): List<DrawerItem> {
     return listOf(
         DrawerItem(
-            icon = Icons.Default.Groups,
+            iconRes = R.drawable.department_24,
             title = "DIUCS Connect",
             subtitle = "Join our newest community!",
             action = {
@@ -438,11 +475,11 @@ private fun getNotificationSectionItems(
 // Section 4: Support & More
 private fun getSupportSectionItems(
     onNavigate: (String) -> Unit,
-    context: android.content.Context
+    context: Context
 ): List<DrawerItem> {
     return listOf(
         DrawerItem(
-            icon = Icons.Default.Star,
+            iconRes = R.drawable.star_24,
             title = "Rate This App",
             action = {
                 // TODO: Open Play Store rating
@@ -483,21 +520,5 @@ private fun getUserInitials(user: User?): String {
         user?.name?.split(" ")?.take(2)?.mapNotNull {
             it.firstOrNull()?.uppercaseChar()
         }?.joinToString("")?.takeIf { it.isNotBlank() } ?: "U"
-    }
-}
-
-private fun getUserDetails(user: User?): String {
-    return if (user?.role == UserRole.STUDENT) {
-        buildString {
-            append(user.department)
-            if (user.batch.isNotBlank() && user.section.isNotBlank()) {
-                append(" • ${user.batch}-${user.section}")
-            }
-            if (user.labSection.isNotBlank()) {
-                append(" (${user.labSection})")
-            }
-        }
-    } else {
-        "${user?.department ?: ""} • ${user?.role?.name ?: "Teacher"}"
     }
 }
