@@ -78,6 +78,8 @@ fun NavigationDrawer(
         }
     }
     val appVersion = packageInfo?.versionName ?: "1.0.0"
+    val appPageMessengerUrl = "https://www.messenger.com/t/502526562953282"
+    val appFacebookPageUrl = "https://www.facebook.com/profile.php?id=61572247479723"
 
     ModalDrawerSheet(
         modifier = Modifier.width(300.dp),

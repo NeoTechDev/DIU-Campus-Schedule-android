@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,6 +33,7 @@ import com.om.diucampusschedule.ui.screens.debug.DebugScreen
 import com.om.diucampusschedule.ui.screens.profile.ProfileScreen
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(
     navController: NavHostController = rememberNavController(),
@@ -45,6 +47,9 @@ fun AppNavigation(
     val actualStartDestination = remember(startDestination) {
         startDestination ?: Screen.Welcome.route
     }
+
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
     
     // Handle auth state changes for navigation
     LaunchedEffect(authState.isAuthenticated, authState.user?.isProfileComplete) {
@@ -98,63 +103,61 @@ fun AppNavigation(
         return
     }
     
-    MainScaffold(navController = navController) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = actualStartDestination,
-            modifier = Modifier.padding(paddingValues)
-        ) {
-            // Authentication Screens (no scaffold)
-            composable(Screen.Welcome.route) {
-                WelcomeScreen(navController = navController)
-            }
-
-            composable(Screen.SignIn.route) {
-                SignInScreen(navController = navController)
-            }
-
-            composable(Screen.SignUp.route) {
-                SignUpScreen(navController = navController)
-            }
-
-            composable(Screen.ForgotPassword.route) {
-                ForgotPasswordScreen(navController = navController)
-            }
-
-            composable("${Screen.EmailVerification.route}/{email}") { backStackEntry ->
-                val email = backStackEntry.arguments?.getString("email") ?: ""
-                EmailVerificationScreen(
-                    navController = navController,
-                    userEmail = email
-                )
-            }
-
-            composable(Screen.RegsitrationForm.route) {
-                RegistrationFormScreen(navController = navController)
-            }
-
-            // Main App Screens (with scaffold)
-            composable(Screen.Today.route) {
-                val drawerState = rememberDrawerState(DrawerValue.Closed)
-                val scope = rememberCoroutineScope()
-                
-                ModalNavigationDrawer(
-                    drawerState = drawerState,
-                    gesturesEnabled = false,
-                    scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
-                    drawerContent = {
-                        NavigationDrawer(
-                            onNavigate = { route ->
-                                navController.navigate(route)
-                            },
-                            onCloseDrawer = {
-                                scope.launch {
-                                    drawerState.close()
-                                }
-                            }
-                        )
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = drawerState.isOpen,
+        scrimColor = Color.Black.copy(alpha = 0.32f),
+        drawerContent = {
+            NavigationDrawer(
+                onNavigate = { route ->
+                    navController.navigate(route)
+                    scope.launch { drawerState.close() }
+                },
+                onCloseDrawer = {
+                    scope.launch {
+                        drawerState.close()
                     }
-                ) {
+                }
+            )
+        }
+    ) {
+        MainScaffold(navController = navController) { paddingValues ->
+            NavHost(
+                navController = navController,
+                startDestination = actualStartDestination,
+                modifier = Modifier.padding(paddingValues)
+            ) {
+                // Authentication Screens (no scaffold)
+                composable(Screen.Welcome.route) {
+                    WelcomeScreen(navController = navController)
+                }
+
+                composable(Screen.SignIn.route) {
+                    SignInScreen(navController = navController)
+                }
+
+                composable(Screen.SignUp.route) {
+                    SignUpScreen(navController = navController)
+                }
+
+                composable(Screen.ForgotPassword.route) {
+                    ForgotPasswordScreen(navController = navController)
+                }
+
+                composable("${Screen.EmailVerification.route}/{email}") { backStackEntry ->
+                    val email = backStackEntry.arguments?.getString("email") ?: ""
+                    EmailVerificationScreen(
+                        navController = navController,
+                        userEmail = email
+                    )
+                }
+
+                composable(Screen.RegsitrationForm.route) {
+                    RegistrationFormScreen(navController = navController)
+                }
+
+                // Main App Screens (with scaffold)
+                composable(Screen.Today.route) {
                     TodayScreen(
                         navController = navController,
                         onOpenDrawer = {
@@ -164,56 +167,56 @@ fun AppNavigation(
                         }
                     )
                 }
-            }
-            
-            composable(Screen.Routine.route) {
-                RoutineScreen(navController = navController)
-            }
-            
-            composable(Screen.EmptyRooms.route) {
-                EmptyRoomsScreen()
-            }
-            
-            composable(Screen.Tasks.route) {
-                TaskScreen(navController = navController)
-            }
-            
-            composable(Screen.Notes.route) {
-                NotesScreen(navController = navController)
-            }
+                
+                composable(Screen.Routine.route) {
+                    RoutineScreen(navController = navController)
+                }
+                
+                composable(Screen.EmptyRooms.route) {
+                    EmptyRoomsScreen()
+                }
+                
+                composable(Screen.Tasks.route) {
+                    TaskScreen(navController = navController)
+                }
+                
+                composable(Screen.Notes.route) {
+                    NotesScreen(navController = navController)
+                }
 
-            // Note Editor Screen - supports both create new note and edit existing note
-            composable("note_editor?noteId={noteId}") { backStackEntry ->
-                val noteId = backStackEntry.arguments?.getString("noteId")?.toIntOrNull()
-                NoteEditorScreen(
-                    navController = navController,
-                    noteId = noteId
-                )
-            }
-            
-            composable("note_editor") {
-                NoteEditorScreen(
-                    navController = navController,
-                    noteId = null
-                )
-            }
+                // Note Editor Screen - supports both create new note and edit existing note
+                composable("note_editor?noteId={noteId}") { backStackEntry ->
+                    val noteId = backStackEntry.arguments?.getString("noteId")?.toIntOrNull()
+                    NoteEditorScreen(
+                        navController = navController,
+                        noteId = noteId
+                    )
+                }
+                
+                composable("note_editor") {
+                    NoteEditorScreen(
+                        navController = navController,
+                        noteId = null
+                    )
+                }
 
-            // Profile Screen
-            composable(Screen.Profile.route) {
-                ProfileScreen(navController = navController)
-            }
-            
-            // Placeholder for unimplemented screens
-            composable(Screen.ExamRoutine.route) {
-                PlaceholderScreen(title = "Exam Routine", description = "Exam schedules will be displayed here")
-            }
-            
-            composable(Screen.FacultyInfo.route) {
-                PlaceholderScreen(title = "Faculty Info", description = "Faculty information will be displayed here")
-            }
+                // Profile Screen
+                composable(Screen.Profile.route) {
+                    ProfileScreen(navController = navController)
+                }
+                
+                // Placeholder for unimplemented screens
+                composable(Screen.ExamRoutine.route) {
+                    PlaceholderScreen(title = "Exam Routine", description = "Exam schedules will be displayed here")
+                }
+                
+                composable(Screen.FacultyInfo.route) {
+                    PlaceholderScreen(title = "Faculty Info", description = "Faculty information will be displayed here")
+                }
 
-            composable(Screen.Debug.route) {
-                DebugScreen(navController = navController)
+                composable(Screen.Debug.route) {
+                    DebugScreen(navController = navController)
+                }
             }
         }
     }
