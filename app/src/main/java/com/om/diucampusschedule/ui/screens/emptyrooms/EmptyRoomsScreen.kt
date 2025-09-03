@@ -1,6 +1,5 @@
 package com.om.diucampusschedule.ui.screens.emptyrooms
 
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -103,6 +102,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.om.diucampusschedule.domain.model.DayOfWeek
 import com.om.diucampusschedule.ui.theme.InterFontFamily
+import com.om.diucampusschedule.ui.utils.ScreenConfig
+import com.om.diucampusschedule.ui.utils.ScreenConfig.Modifiers.mainAppScreen
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -113,7 +114,6 @@ fun EmptyRoomsScreen() {
     val viewModel: RoutineViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
     val emptyRoomsMap = viewModel.filterEmptyRooms()
-    val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     // Get data from ViewModel
     val timeSlots = uiState.allTimeSlots
@@ -261,6 +261,7 @@ fun EmptyRoomsScreen() {
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                     actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
+                windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
                 modifier = Modifier.fillMaxWidth()
             )
         },
@@ -273,6 +274,7 @@ fun EmptyRoomsScreen() {
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                 .alpha(contentAlpha)
                 .scale(contentScale)
+                .mainAppScreen()
         ) {
             // Show loading state if data is not yet loaded
             if (timeSlots.isEmpty() || daysOfWeek.isEmpty()) {

@@ -672,7 +672,7 @@ fun ProfileScreen(
                                         isEditing = isEditing,
                                         icon = Icons.Default.Groups,
                                         keyboardType = KeyboardType.Number,
-                                        placeholder = "eg. 41",
+                                        placeholder = "e.g. 41",
                                         errorMessage = batchError,
                                         onValidate = { input ->
                                             val error = validateBatch(input)
@@ -697,7 +697,7 @@ fun ProfileScreen(
                                         },
                                         isEditing = isEditing,
                                         icon = Icons.Default.Class,
-                                        placeholder = "eg. J",
+                                        placeholder = "e.g. J",
                                         errorMessage = sectionError,
                                         onValidate = { input ->
                                             val error = validateSection(input)
@@ -761,7 +761,7 @@ fun ProfileScreen(
                                 onValueChange = { initial = it },
                                 isEditing = isEditing,
                                 icon = Icons.Default.Badge,
-                                placeholder = "eg. MBM",
+                                placeholder = "e.g. MBM",
                                 errorMessage = initialError,
                                 onValidate = { input ->
                                     val error = validateInitial(input)
