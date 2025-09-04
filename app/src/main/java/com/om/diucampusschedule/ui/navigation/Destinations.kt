@@ -32,7 +32,7 @@ sealed class BottomNavItem(
 ) {
     object Today : BottomNavItem(
         route = Screen.Today.route,
-        title = "Today",
+        title = "Dashboard",
         selectedIcon = R.drawable.today_filled,
         unselectedIcon = R.drawable.today_outlined
     )
