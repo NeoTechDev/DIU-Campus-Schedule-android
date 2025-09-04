@@ -5,11 +5,13 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
     id("com.google.gms.google-services")
     alias(libs.plugins.google.firebase.crashlytics) // Added this line in a previous step
+    kotlin("plugin.serialization") version "2.2.10"
+    alias(libs.plugins.kotlin.compose) // Added for Compose Compiler
 }
 
 android {
     namespace = "com.om.diucampusschedule"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.om.diucampusschedule"
@@ -40,9 +42,7 @@ android {
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
-    }
+    // Removed composeOptions block
 }
 
 dependencies {

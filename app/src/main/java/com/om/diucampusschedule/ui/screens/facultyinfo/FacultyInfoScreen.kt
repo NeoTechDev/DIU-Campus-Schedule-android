@@ -16,7 +16,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,11 +31,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,10 +59,12 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -75,6 +79,8 @@ import androidx.navigation.compose.rememberNavController
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.Faculty
 import com.om.diucampusschedule.ui.theme.EaseInOutCubic
+import com.om.diucampusschedule.ui.utils.ScreenConfig
+import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.util.FacultyUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -183,6 +189,7 @@ fun FacultyInfoScreen(onBack: NavHostController) {
                                             Text(
                                                 "Faculty Information",
                                                 style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                         }
@@ -210,7 +217,8 @@ fun FacultyInfoScreen(onBack: NavHostController) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Back",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(topbarIconSize)
                                 )
                             }
                         }
@@ -227,23 +235,32 @@ fun FacultyInfoScreen(onBack: NavHostController) {
                                 }
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Search,
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.search_24),
                                     contentDescription = "Search",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(topbarIconSize)
                                 )
                             }
                         }
-                    }
+                    },
+                    windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true)
                 )
-            }
+            },
+            contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { paddingValues ->
             Column(
                 modifier = Modifier
+                    .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(start = 16.dp, end = 16.dp),
+                    .run { ScreenConfig.run { withTopAppBar() } },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                )
+
                 AnimatedVisibility(
                     visible = filteredFacultyList.isEmpty() && searchQuery.isNotEmpty(),
                     enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic))
@@ -342,7 +359,7 @@ fun FacultyCard(faculty: Faculty, contactNumber: String) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             colors = CardDefaults.cardColors(

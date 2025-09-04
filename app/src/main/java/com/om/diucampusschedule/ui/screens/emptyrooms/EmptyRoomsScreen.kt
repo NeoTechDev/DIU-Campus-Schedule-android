@@ -225,45 +225,56 @@ fun EmptyRoomsScreen() {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Empty Rooms",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+            ) {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "Empty Rooms",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Find available classrooms",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    actions = {
+                        SlidingLabelToggle(
+                            showAllRooms = showAllRooms,
+                            onToggle = {
+                                showAllRooms = it
+                                // Clear search when switching to all rooms mode
+                                if (it) {
+                                    searchQuery = ""
+                                    isSearchMode = false
+                                    showSearchSuggestions = false
+                                }
+                            },
+                            modifier = Modifier.padding(end = 8.dp)
                         )
-                        Text(
-                            text = "Find available classrooms",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    SlidingLabelToggle(
-                        showAllRooms = showAllRooms,
-                        onToggle = {
-                            showAllRooms = it
-                            // Clear search when switching to all rooms mode
-                            if (it) {
-                                searchQuery = ""
-                                isSearchMode = false
-                                showSearchSuggestions = false
-                            }
-                        },
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
-                modifier = Modifier.fillMaxWidth()
-            )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                // Divider below TopBar
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
@@ -1291,7 +1302,7 @@ fun AvailableRoomsList(rooms: List<String>) {
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(top = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(

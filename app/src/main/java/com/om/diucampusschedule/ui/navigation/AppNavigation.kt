@@ -1,8 +1,24 @@
 package com.om.diucampusschedule.ui.navigation
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -13,7 +29,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.launch
 import com.om.diucampusschedule.ui.components.MainScaffold
 import com.om.diucampusschedule.ui.components.NavigationDrawer
 import com.om.diucampusschedule.ui.screens.auth.EmailVerificationScreen
@@ -22,16 +37,18 @@ import com.om.diucampusschedule.ui.screens.auth.RegistrationFormScreen
 import com.om.diucampusschedule.ui.screens.auth.SignInScreen
 import com.om.diucampusschedule.ui.screens.auth.SignUpScreen
 import com.om.diucampusschedule.ui.screens.community.CommunityScreen
-import com.om.diucampusschedule.ui.screens.routine.RoutineScreen
-import com.om.diucampusschedule.ui.screens.today.TodayScreen
-import com.om.diucampusschedule.ui.screens.tasks.TaskScreen
-import com.om.diucampusschedule.ui.screens.notes.NotesScreen
-import com.om.diucampusschedule.ui.screens.notes.NoteEditorScreen
-import com.om.diucampusschedule.ui.screens.emptyrooms.EmptyRoomsScreen
-import com.om.diucampusschedule.ui.screens.welcome.WelcomeScreen
 import com.om.diucampusschedule.ui.screens.debug.DebugScreen
+import com.om.diucampusschedule.ui.screens.emptyrooms.EmptyRoomsScreen
+import com.om.diucampusschedule.ui.screens.facultyinfo.FacultyInfoScreen
+import com.om.diucampusschedule.ui.screens.notes.NoteEditorScreen
+import com.om.diucampusschedule.ui.screens.notes.NotesScreen
 import com.om.diucampusschedule.ui.screens.profile.ProfileScreen
+import com.om.diucampusschedule.ui.screens.routine.RoutineScreen
+import com.om.diucampusschedule.ui.screens.tasks.TaskScreen
+import com.om.diucampusschedule.ui.screens.today.TodayScreen
+import com.om.diucampusschedule.ui.screens.welcome.WelcomeScreen
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -211,7 +228,7 @@ fun AppNavigation(
                 }
                 
                 composable(Screen.FacultyInfo.route) {
-                    PlaceholderScreen(title = "Faculty Info", description = "Faculty information will be displayed here")
+                    FacultyInfoScreen(onBack = navController)
                 }
 
                 composable(Screen.Community.route){

@@ -117,7 +117,7 @@ import java.util.Locale
 // Custom colors for the table design
 private val AppPrimaryColorLight = Color(0xFF3B82F6)
 private val AppPrimaryColor = Color(0xFF1A56DB)
-private val AppBackgroundColorLight = Color(0xFFF8FAFD)
+private val AppBackgroundColorLight = Color(0xFFF8FAFF)
 private val SoftBlue = Color(0xFFE0F2FE)
 
 // Time formatter for 12-hour format
