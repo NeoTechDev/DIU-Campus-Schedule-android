@@ -37,7 +37,7 @@ val md_theme_light_scrim = Color(0xFF000000) // Black scrim overlay
 // Dark Theme Colors - Professional Academic Theme
 val md_theme_dark_primary = Color(0xFF1A56DB) // Light Blue - Academic Excellence
 val md_theme_dark_onPrimary = Color(0xFFFFFFFF) // Dark text on primary
-val md_theme_dark_primaryContainer = Color(0xFFDBE2FF) // Deep Blue Container
+val md_theme_dark_primaryContainer = Color(0xFF1E3A8A) // Deep Blue Container
 val md_theme_dark_onPrimaryContainer = Color(0xFFDBE2FF) // Light text on primary container
 val md_theme_dark_secondary = Color(0xFFCBD5E1) // Light Gray - Professional
 val md_theme_dark_onSecondary = Color(0xFF1E293B) // Dark text on secondary

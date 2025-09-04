@@ -100,6 +100,9 @@ dependencies {
     // Kotlin Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
+    //Splash Screen
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
     // Datastore
     implementation(libs.androidx.datastore.preferences)
 

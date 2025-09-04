@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <style name="Theme.DIUCSSplashScreen" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/AppPrimaryColor</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/dcs_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.DIUCampusSchedule</item>
+    </style>
     <style name="Theme.DIUCampusSchedule" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>
