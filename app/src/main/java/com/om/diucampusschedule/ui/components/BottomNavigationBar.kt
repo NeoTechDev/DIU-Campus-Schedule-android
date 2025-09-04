@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.om.diucampusschedule.ui.navigation.BottomNavItem
+import com.om.diucampusschedule.ui.navigation.Screen
 
 @Composable
 fun DIUBottomNavigationBar(
@@ -59,23 +61,20 @@ fun DIUBottomNavigationBar(
     val currentRoute = navBackStackEntry?.destination?.route
 
     // Enhanced color scheme with gradients
-    val surfaceColor = Color(0xFF161B22)
-    val selectedPrimaryColor = Color(0xFF6366F1) // Indigo
-    val selectedSecondaryColor = Color(0xFF8B5CF6) // Purple
-    val unselectedColor = Color(0xFF6B7280) // Neutral gray
-    val surfaceVariant = Color(0xFF21262D)
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val selectedPrimaryColor = MaterialTheme.colorScheme.primary
+    val selectedSecondaryColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+    val unselectedColor = Color.Gray
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
                 elevation = 24.dp,
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                 ambientColor = Color.Black.copy(alpha = 0.3f),
                 spotColor = Color.Black.copy(alpha = 0.3f)
             ),
-        color = surfaceColor,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        color = surfaceColor
     ) {
         // Subtle gradient overlay
         Box(
@@ -106,7 +105,6 @@ fun DIUBottomNavigationBar(
                         selectedPrimaryColor = selectedPrimaryColor,
                         selectedSecondaryColor = selectedSecondaryColor,
                         unselectedColor = unselectedColor,
-                        surfaceVariant = surfaceVariant,
                         onClick = {
                             if (currentRoute != item.route) {
                                 navController.navigate(item.route) {
@@ -132,16 +130,26 @@ private fun EnhancedBottomNavItemContainer(
     selectedPrimaryColor: Color,
     selectedSecondaryColor: Color,
     unselectedColor: Color,
-    surfaceVariant: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
 
-    // Enhanced animations with different curves
+    // Enhanced animations with different curves - dynamic width based on text length
+    val baseWidth = 56.dp
+    val textWidth = if (isSelected) {
+        // Calculate approximate width based on text length - more generous sizing
+        when (item.title.length) {
+            in 0..4 -> 90.dp
+            in 5..7 -> 110.dp
+            in 8..10 -> 130.dp
+            else -> 150.dp
+        }
+    } else baseWidth
+    
     val animatedWidth by animateDpAsState(
-        targetValue = if (isSelected) 90.dp else 56.dp,
+        targetValue = textWidth,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
@@ -150,7 +158,7 @@ private fun EnhancedBottomNavItemContainer(
     )
 
     val animatedHeight by animateDpAsState(
-        targetValue = if (isSelected) 40.dp else 56.dp,
+        targetValue = if (isSelected) 44.dp else 56.dp,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
@@ -158,20 +166,11 @@ private fun EnhancedBottomNavItemContainer(
         label = "container_height"
     )
 
-    val animatedElevation by animateDpAsState(
-        targetValue = if (isSelected) 8.dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "elevation"
-    )
-
     val backgroundBrush = if (isSelected) {
         Brush.horizontalGradient(
             colors = listOf(
-                selectedPrimaryColor.copy(alpha = 0.15f),
-                selectedSecondaryColor.copy(alpha = 0.15f)
+                selectedPrimaryColor.copy(alpha = 0.12f),
+                selectedSecondaryColor.copy(alpha = 0.12f)
             )
         )
     } else {
@@ -193,16 +192,10 @@ private fun EnhancedBottomNavItemContainer(
         modifier = modifier
             .scale(scale)
             .size(width = animatedWidth, height = animatedHeight)
-            .shadow(
-                elevation = animatedElevation,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = selectedPrimaryColor.copy(alpha = 0.3f),
-                spotColor = selectedPrimaryColor.copy(alpha = 0.3f)
-            )
             .clip(RoundedCornerShape(20.dp))
             .background(
                 brush = if (isSelected) backgroundBrush else Brush.linearGradient(
-                    colors = listOf(surfaceVariant.copy(alpha = 0.3f), Color.Transparent)
+                    colors = listOf(Color.Transparent, Color.Transparent)
                 )
             )
             .clickable(
@@ -218,7 +211,7 @@ private fun EnhancedBottomNavItemContainer(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             EnhancedBottomNavIcon(
                 item = item,
@@ -241,15 +234,18 @@ private fun EnhancedBottomNavItemContainer(
                     animationSpec = tween(200)
                 )
             ) {
-                Row {
-                    Spacer(modifier = Modifier.width(4.dp))
+                Row(
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                ) {
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = item.title,
                         color = selectedPrimaryColor,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
                         maxLines = 1
                     )
+                    Spacer(modifier = Modifier.width(2.dp))
                 }
             }
         }
@@ -284,7 +280,11 @@ private fun EnhancedBottomNavIcon(
 
     // Icon size with bounce effect
     val animatedIconSize by animateDpAsState(
-        targetValue = if (isSelected) 28.dp else 24.dp,
+        targetValue = if (item.route == Screen.Today.route) {
+            if (isSelected) 34.dp else 30.dp
+        } else {
+            if (isSelected) 28.dp else 24.dp
+        },
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
