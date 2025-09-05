@@ -941,9 +941,8 @@ fun ProfileScreen(
                     onClick = {
                         showSignOutDialog = false
                         viewModel.signOutWithGoogle(googleSignInClient)
-                        navController.navigate(Screen.Welcome.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
+                        // Note: Navigation will be handled automatically by AppInitializationViewModel
+                        // when it detects the user is no longer authenticated
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(

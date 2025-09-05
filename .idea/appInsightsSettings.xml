@@ -21,14 +21,6 @@
         <entry key="Firebase Crashlytics">
           <value>
             <InsightsFilterSettings>
-              <option name="connection">
-                <ConnectionSetting>
-                  <option name="appId" value="com.om.diucampusschedule" />
-                  <option name="mobileSdkAppId" value="1:464044924384:android:813fc457880346386a1f85" />
-                  <option name="projectId" value="diu-campus-schedule-cc857" />
-                  <option name="projectNumber" value="464044924384" />
-                </ConnectionSetting>
-              </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
               <option name="timeIntervalDays" value="THIRTY_DAYS" />
               <option name="visibilityType" value="ALL" />

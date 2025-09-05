@@ -5,22 +5,37 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import com.om.diucampusschedule.domain.model.AppState
 import com.om.diucampusschedule.ui.navigation.AppNavigation
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
+import com.om.diucampusschedule.ui.viewmodel.AppInitializationViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    private val appInitializationViewModel: AppInitializationViewModel by viewModels()
+    
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Install splash screen before super.onCreate()
+        val splashScreen = installSplashScreen()
+        
         super.onCreate(savedInstanceState)
-        installSplashScreen()
         enableEdgeToEdge()
+        
+        // Keep splash screen visible until app state is determined
+        splashScreen.setKeepOnScreenCondition {
+            appInitializationViewModel.appState.value is AppState.Initializing
+        }
         
         // Handle navigation from notifications or deep links
         val navigateTo = intent.getStringExtra("navigate_to")
@@ -36,7 +51,7 @@ class MainActivity : ComponentActivity() {
             "rooms" -> Screen.EmptyRooms.route
             "faculty" -> Screen.FacultyInfo.route
             */
-            else -> null // Let AuthViewModel determine the appropriate start destination
+            else -> null // Let AppInitializationViewModel determine the appropriate start destination
         }
         
         setContent {
@@ -45,9 +60,13 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 ) {
                     val navController = rememberNavController()
+                    val appState by appInitializationViewModel.appState.collectAsStateWithLifecycle()
+                    
                     AppNavigation(
                         navController = navController,
-                        startDestination = startDestination
+                        appState = appState,
+                        startDestination = startDestination,
+                        appInitializationViewModel = appInitializationViewModel
                     )
                 }
             }
