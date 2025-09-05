@@ -357,7 +357,7 @@ fun CommunityScreen(navController: NavController) {
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Join our growing community on Facebook Messenger",
+                            text = "Join our growing community on FB Messenger",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
