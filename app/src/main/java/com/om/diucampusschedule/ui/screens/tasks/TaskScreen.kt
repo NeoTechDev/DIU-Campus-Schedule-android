@@ -60,7 +60,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -137,6 +136,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskScreen(navController: NavController) {
     DIUCampusScheduleTheme {
@@ -214,11 +214,29 @@ fun TaskScreen(navController: NavController) {
                 .run { ScreenConfig.run { withTopAppBar() } }
         ) {
             // Task Top App Bar - essential info
-            TaskTopAppBar(
-                selectedGroupId = selectedGroupId,
-                taskGroups = taskGroups,
-                pendingTasksCount = pendingTasks.size,
-                completedTasksCount = completedTasks.size
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Tasks",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Plan ahead with confidence",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
+                modifier = Modifier.fillMaxWidth()
             )
             // Subtle divider for modern look
             HorizontalDivider(
@@ -498,7 +516,7 @@ fun TaskScreen(navController: NavController) {
                                 .background(
                                     color = MaterialTheme.colorScheme.primary,
                                 )
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -680,7 +698,7 @@ fun TaskScreen(navController: NavController) {
                                                     HorizontalDivider(
                                                         thickness = 1.dp,
                                                         color = MaterialTheme.colorScheme.outline.copy(
-                                                            alpha = if (isSystemInDarkTheme()) 0.2f else 0.7f
+                                                            alpha = 0.2f
                                                         )
                                                     )
                                                 }
@@ -803,7 +821,7 @@ fun TaskScreen(navController: NavController) {
                                                     HorizontalDivider(
                                                         thickness = 1.dp,
                                                         color = MaterialTheme.colorScheme.outline.copy(
-                                                            alpha = if (isSystemInDarkTheme()) 0.2f else 0.7f
+                                                            alpha = 0.2f
                                                         )
                                                     )
                                                 }
@@ -1295,14 +1313,14 @@ fun TaskCard(
                                 isPastDate && !task.isCompleted -> MaterialTheme.colorScheme.error
                                 isPastDate && task.isCompleted -> MaterialTheme.colorScheme.onSurfaceVariant
                                 isToday -> MaterialTheme.colorScheme.primary
-                                isTomorrow -> MaterialTheme.colorScheme.tertiary
+                                isTomorrow -> Color(0xFF00ab84)
                                 else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
                             val timeLabelColor = when {
                                 isPastDate && !task.isCompleted -> MaterialTheme.colorScheme.error
                                 isPastDate && task.isCompleted -> MaterialTheme.colorScheme.onSurfaceVariant
                                 isToday -> MaterialTheme.colorScheme.primary
-                                isTomorrow -> MaterialTheme.colorScheme.tertiary
+                                isTomorrow -> Color(0xFF00ab84)
                                 else -> MaterialTheme.colorScheme.primary
                             }
 
@@ -1316,13 +1334,14 @@ fun TaskCard(
                             } else if (isTomorrow) {
                                 DateLabel(
                                     text = "Tomorrow",
-                                    color = MaterialTheme.colorScheme.tertiary
+                                    color = Color(0xFF00ab84)
                                 )
                             } else {
                                 Text(
                                     text = formattedDateTime,
                                     color = dateLabelColor,
                                     fontSize = 14.sp,
+                                    style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Normal,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -1344,6 +1363,7 @@ fun TaskCard(
                                     text = task.time,
                                     color = if (isPastDate && !task.isCompleted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 14.sp,
+                                    style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Normal,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -1470,7 +1490,7 @@ fun TaskCard(
                                     .padding(horizontal = 16.dp, vertical = 8.dp)
                             )
 
-                            Divider(
+                            HorizontalDivider(
                                 thickness = 0.5.dp,
                                 color = MaterialTheme.colorScheme.outlineVariant
                             )
@@ -1532,6 +1552,7 @@ private fun DateLabel(text: String, color: Color) {
             text = text,
             color = color,
             fontSize = 12.sp,
+            style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -1679,12 +1700,14 @@ fun TaskGroupRow(
                         text = group.name,
                         color = textColor,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        style = MaterialTheme.typography.bodySmall,
                         fontSize = 13.sp
                     )
                 }
 
                 // Dropdown Menu for the group
                 DropdownMenu(
+                    containerColor = MaterialTheme.colorScheme.surface,
                     expanded = expandedDropdownGroupId == group.id,
                     onDismissRequest = { expandedDropdownGroupId = null },
                     offset = dropdownOffset
@@ -1743,7 +1766,7 @@ fun TaskGroupRow(
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.secondaryContainer)
                     .clickable { onAddGroupClick() }
-                    .padding(6.dp),
+                    .padding(4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -1755,40 +1778,4 @@ fun TaskGroupRow(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TaskTopAppBar(
-    selectedGroupId: Long,
-    taskGroups: List<TaskGroup>,
-    pendingTasksCount: Int,
-    completedTasksCount: Int
-) {
-    TopAppBar(
-        title = {
-            Column {
-                Text(
-                    text = "Tasks",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                val selectedGroup = taskGroups.find { it.id == selectedGroupId }
-                val groupName = if (selectedGroupId == 0L) "All Tasks" else selectedGroup?.name ?: ""
-                Text(
-                    text = if (groupName.isNotEmpty()) "$groupName • $pendingTasksCount pending, $completedTasksCount completed" else "$pendingTasksCount pending, $completedTasksCount completed",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
-        windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
-        modifier = Modifier.fillMaxWidth()
-    )
 }

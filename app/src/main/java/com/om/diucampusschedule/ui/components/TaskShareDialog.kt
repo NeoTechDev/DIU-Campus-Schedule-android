@@ -187,7 +187,7 @@ fun ShareTaskDialog(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Make sure other devices are on the same\nWi-Fi network and have the app open.",
+                                    text = "Make sure other devices are on the same Wi-Fi network and have the app open.",
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier
@@ -420,7 +420,7 @@ fun MultipleTaskShareDialog(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Make sure other devices are on the same\nWi-Fi network and have the app open.",
+                                    text = "Make sure other devices are on the same Wi-Fi network and have the app open.",
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier

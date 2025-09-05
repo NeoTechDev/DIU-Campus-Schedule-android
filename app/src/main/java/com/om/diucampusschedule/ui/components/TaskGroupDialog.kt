@@ -58,7 +58,7 @@ fun AddTaskGroupDialog(
                         groupName = it
                         isError = it.isBlank()
                     },
-                    placeholder = { Text("Group name (e.g. \"Assignments\")") },
+                    placeholder = { Text("e.g. \"Assignments\"") },
                     isError = isError,
                     supportingText = {
                         if (isError) {

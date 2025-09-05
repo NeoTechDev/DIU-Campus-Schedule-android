@@ -57,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.om.diucampusschedule.R
@@ -245,7 +246,7 @@ fun AddTaskBottomSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .then(
                                 if (isOptionEnabled) {
                                     Modifier.clickable {
@@ -254,7 +255,7 @@ fun AddTaskBottomSheet(
                                     }
                                 } else Modifier
                             ),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
                         ),
@@ -299,6 +300,7 @@ fun AddTaskBottomSheet(
                                 Text(
                                     text = label,
                                     fontSize = 16.sp,
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = if (isSelected){
                                         if (!isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else Color.White
@@ -307,6 +309,7 @@ fun AddTaskBottomSheet(
                                 Text(
                                     text = description,
                                     fontSize = 14.sp,
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = if (isOptionEnabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )
                             }
@@ -444,8 +447,7 @@ fun AddTaskBottomSheet(
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Done
+                    keyboardType = KeyboardType.Text
                 ),
                 keyboardActions = KeyboardActions(
                     onDone = { focusManager.clearFocus() }
@@ -474,7 +476,7 @@ fun AddTaskBottomSheet(
                     val isSelected = group.id == groupId
                     
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(20.dp),
                         color = if (isSelected) 
                             MaterialTheme.colorScheme.primaryContainer 
                         else 
@@ -483,7 +485,7 @@ fun AddTaskBottomSheet(
                             BorderStroke(1.dp, MaterialTheme.colorScheme.primary) 
                         else 
                             BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                        modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { groupId = group.id }
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { groupId = group.id }
                     ) {
                         Text(
                             text = group.name,
@@ -493,6 +495,7 @@ fun AddTaskBottomSheet(
                             else
                                 if(!isSystemInDarkTheme()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                            style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -518,13 +521,14 @@ fun AddTaskBottomSheet(
                                 painter = painterResource(id = R.drawable.add),
                                 contentDescription = "Add Group",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(10.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "New Group",
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium,
+                                style = MaterialTheme.typography.bodySmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -598,6 +602,7 @@ fun AddTaskBottomSheet(
                                 Text(
                                     text = if (date.isEmpty()) "Date and Time" else date,
                                     fontSize = 14.sp,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = if (date.isNotEmpty()) FontWeight.Medium else FontWeight.Normal,
                                     color = if (date.isEmpty()) {
                                         if(!isSystemInDarkTheme()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
@@ -608,6 +613,7 @@ fun AddTaskBottomSheet(
                                     Text(
                                         text = time,
                                         fontSize = 14.sp,
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1
                                     )
@@ -694,6 +700,9 @@ fun AddTaskBottomSheet(
                             Text(
                                 text = reminderText,
                                 fontSize = 14.sp,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    lineHeight = 16.sp
+                                ),
                                 fontWeight = if (reminderOption != ReminderOption.NONE) FontWeight.Medium else FontWeight.Normal,
                                 color = if (time.isEmpty()) {
                                     if(!isSystemInDarkTheme()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -702,7 +711,7 @@ fun AddTaskBottomSheet(
                                 } else {
                                     MaterialTheme.colorScheme.onSurface
                                 },
-                                maxLines = 1
+                                maxLines = 2
                             )
                         }
                     }
@@ -781,4 +790,21 @@ fun AddTaskBottomSheet(
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun AddTaskBottomSheetPreview() {
+    AddTaskBottomSheet(
+        onAddTask = {},
+        onDismiss = {},
+        existingTask = Task(
+            title = "Sample Task",
+            description = "This is a sample task description.",
+            date = "12-25-2023",
+            time = "10:00 AM"
+        ),
+        taskGroups = listOf(TaskGroup(id = 1, name = "Work"), TaskGroup(id = 2, name = "Personal")),
+        selectedGroupId = 1
+    )
 }
