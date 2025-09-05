@@ -13,6 +13,7 @@ import com.om.diucampusschedule.domain.model.ReminderOption
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.TaskGroup
 import com.om.diucampusschedule.receiver.ReminderBroadcastReceiver
+import com.om.diucampusschedule.sharing.TaskSharer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +28,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ModernTaskViewModel @Inject constructor(
     application: Application,
-    private val taskRepository: TaskRepository
+    private val taskRepository: TaskRepository,
+    private val taskSharer: TaskSharer
 ) : AndroidViewModel(application) {
 
     private val _selectedGroupId = MutableStateFlow<Long>(0)
@@ -53,6 +55,9 @@ class ModernTaskViewModel @Inject constructor(
         viewModelScope.launch {
             taskRepository.initializeDefaultGroup()
         }
+        
+        // Set up task sharing
+        setupTaskSharing()
     }
 
     fun loadTasks() {
@@ -329,41 +334,56 @@ class ModernTaskViewModel @Inject constructor(
     )
 
     // Sharing state
-    private val _sharingStatus = MutableStateFlow<SharingStatus>(SharingStatus.Idle)
-    val sharingStatus: StateFlow<SharingStatus> = _sharingStatus.asStateFlow()
+    val discoveredServices = taskSharer.discoveredServices
+    val sharingStatus = taskSharer.sharingStatus
 
     private val _taskReceived = MutableStateFlow<ReceivedTaskInfo?>(null)
     val taskReceived: StateFlow<ReceivedTaskInfo?> = _taskReceived.asStateFlow()
 
-    // Sharing methods
-    fun shareTask(service: NsdServiceInfo, task: Task) {
-        viewModelScope.launch {
-            try {
-                _sharingStatus.value = SharingStatus.Sharing
-                // Simulate sharing - replace with actual sharing implementation
-                kotlinx.coroutines.delay(1000)
-                _sharingStatus.value = SharingStatus.Success(service.serviceName ?: "Unknown Device")
-            } catch (e: Exception) {
-                _sharingStatus.value = SharingStatus.Error("Failed to share task: ${e.message}")
+    private fun setupTaskSharing() {
+        // Set up task received callback
+        taskSharer.onTaskReceived = { task, senderName ->
+            viewModelScope.launch {
+                try {
+                    // Add received task to repository
+                    taskRepository.insertTask(task)
+                    // Notify UI
+                    _taskReceived.value = ReceivedTaskInfo(task, senderName)
+                } catch (e: Exception) {
+                    // Handle error
+                }
             }
         }
+        
+        // Start service registration and discovery
+        taskSharer.registerService()
+        taskSharer.discoverServices()
+    }
+
+    // Sharing methods
+    fun shareTask(service: NsdServiceInfo, task: Task) {
+        taskSharer.sendTask(service, task)
     }
 
     fun shareMultipleTasks(service: NsdServiceInfo, tasks: List<Task>, onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {
-                _sharingStatus.value = SharingStatus.Sharing
-                // Simulate sharing - replace with actual sharing implementation
-                kotlinx.coroutines.delay(1000)
-                _sharingStatus.value = SharingStatus.Success(service.serviceName ?: "Unknown Device")
+                taskSharer.sendMultipleTasks(service, tasks)
                 onSuccess()
             } catch (e: Exception) {
-                _sharingStatus.value = SharingStatus.Error("Failed to share tasks: ${e.message}")
+                // Handle error
             }
         }
     }
 
     fun onTaskReceivedEventHandled() {
         _taskReceived.value = null
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        // Clean up sharing resources
+        taskSharer.unregisterService()
+        taskSharer.stopDiscovery()
     }
 }
