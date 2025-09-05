@@ -82,11 +82,25 @@ fun DateTimePicker(
                 .fillMaxWidth()
                 .padding(start = 16.dp, end = 16.dp, top = 32.dp, bottom = 16.dp)
                 .pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount ->
-                        when {
-                            dragAmount < -15 -> selectedDate = selectedDate.plusMonths(1)
-                            dragAmount > 15 -> selectedDate = selectedDate.minusMonths(1)
+                    var totalDragAmount = 0f
+                    val swipeThreshold = 100f // Increased threshold for more reliable swipe detection
+                    
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            // Only trigger month change when drag gesture ends
+                            when {
+                                totalDragAmount > swipeThreshold -> {
+                                    selectedDate = selectedDate.minusMonths(1)
+                                }
+                                totalDragAmount < -swipeThreshold -> {
+                                    selectedDate = selectedDate.plusMonths(1)
+                                }
+                            }
+                            totalDragAmount = 0f // Reset for next gesture
                         }
+                    ) { _, dragAmount ->
+                        // Accumulate drag amount during the gesture
+                        totalDragAmount += dragAmount
                     }
                 }
         ) {
