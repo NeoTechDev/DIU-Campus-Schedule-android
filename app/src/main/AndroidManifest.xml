@@ -61,6 +61,11 @@
         <receiver
             android:name=".receiver.ReminderBroadcastReceiver"
             android:exported="false" />
+            
+        <!-- Task Complete Broadcast Receiver -->
+        <receiver
+            android:name=".receiver.TaskCompleteReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

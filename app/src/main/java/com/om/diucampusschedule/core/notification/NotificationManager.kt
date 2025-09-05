@@ -105,7 +105,7 @@ class NotificationManager @Inject constructor(
             )
 
             val notification = NotificationCompat.Builder(context, CHANNEL_ROUTINE_UPDATES)
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.drawable.app_notification_logo)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -151,7 +151,7 @@ class NotificationManager @Inject constructor(
             )
 
             val notification = NotificationCompat.Builder(context, CHANNEL_CLASS_REMINDERS)
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.drawable.app_notification_logo)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -195,7 +195,7 @@ class NotificationManager @Inject constructor(
             )
 
             val notification = NotificationCompat.Builder(context, CHANNEL_GENERAL)
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.drawable.app_notification_logo)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)

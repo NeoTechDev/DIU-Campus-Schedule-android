@@ -40,17 +40,14 @@ class MainActivity : ComponentActivity() {
         // Handle navigation from notifications or deep links
         val navigateTo = intent.getStringExtra("navigate_to")
         val startDestination = when (navigateTo) {
-            "routine" -> Screen.Routine.route
-            // TODO: Add other navigation destinations when screens are implemented
-            /*
             "today" -> Screen.Today.route
+            "routine" -> Screen.Routine.route
+            "empty_rooms" -> Screen.EmptyRooms.route
             "tasks" -> Screen.Tasks.route
-            "exams" -> Screen.ExamRoutine.route
-            "profile" -> Screen.Profile.route
             "notes" -> Screen.Notes.route
-            "rooms" -> Screen.EmptyRooms.route
-            "faculty" -> Screen.FacultyInfo.route
-            */
+            "profile" -> Screen.Profile.route
+            "faculty_info" -> Screen.FacultyInfo.route
+            "community" -> Screen.Community.route
             else -> null // Let AppInitializationViewModel determine the appropriate start destination
         }
         

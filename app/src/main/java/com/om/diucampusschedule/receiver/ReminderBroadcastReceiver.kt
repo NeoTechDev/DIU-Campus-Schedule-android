@@ -82,28 +82,46 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        val notificationTitle = when (reminderType) {
-            REMINDER_30_MIN_BEFORE -> "⏰ Task in 30 minutes"
-            else -> "🔔 Task Time!"
+        // Create intent for marking task as complete
+        val completeIntent = Intent(context, TaskCompleteReceiver::class.java).apply {
+            putExtra("task_id", taskId)
         }
         
-        val notificationText = if (taskDescription.isNotBlank()) {
-            "$taskTitle - $taskDescription"
-        } else {
-            taskTitle
-        }
+        val completePendingIntent = PendingIntent.getBroadcast(
+            context,
+            (taskId + 50000).toInt(), // Different request code to avoid conflicts
+            completeIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification) // You'll need to add this icon
-            .setContentTitle(notificationTitle)
-            .setContentText(notificationText)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(notificationText))
+        // Use task title as the main title, description as content text
+        val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.app_notification_logo)
+            .setContentTitle(taskTitle)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setVibrate(longArrayOf(0, 1000, 500, 1000))
-            .build()
+            .addAction(
+                0, // No icon for the action button
+                "Mark Complete",
+                completePendingIntent
+            )
+        
+        // Add description as second line if available
+        if (taskDescription.isNotBlank()) {
+            notificationBuilder
+                .setContentText(taskDescription)
+                .setStyle(NotificationCompat.BigTextStyle()
+                    .bigText(taskDescription)
+                    .setBigContentTitle(taskTitle))
+        } else {
+            // If no description, show empty content text to keep clean layout
+            notificationBuilder.setContentText("")
+        }
+        
+        val notification = notificationBuilder.build()
         
         // Use unique notification ID based on task ID and reminder type
         val notificationId = NOTIFICATION_ID_BASE + taskId.toInt() + if (reminderType == REMINDER_30_MIN_BEFORE) 10000 else 0
