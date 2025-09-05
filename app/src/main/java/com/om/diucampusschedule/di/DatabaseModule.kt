@@ -5,6 +5,8 @@ import androidx.room.Room
 import com.om.diucampusschedule.data.local.AppDatabase
 import com.om.diucampusschedule.data.local.dao.RoutineDao
 import com.om.diucampusschedule.data.local.dao.UserDao
+import com.om.diucampusschedule.data.local.dao.TaskDao
+import com.om.diucampusschedule.data.local.dao.TaskGroupDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,5 +38,15 @@ object DatabaseModule {
     @Provides
     fun provideRoutineDao(database: AppDatabase): RoutineDao {
         return database.routineDao()
+    }
+
+    @Provides
+    fun provideTaskDao(database: AppDatabase): TaskDao {
+        return database.taskDao()
+    }
+
+    @Provides
+    fun provideTaskGroupDao(database: AppDatabase): TaskGroupDao {
+        return database.taskGroupDao()
     }
 }

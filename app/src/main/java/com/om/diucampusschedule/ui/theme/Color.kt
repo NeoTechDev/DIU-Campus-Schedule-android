@@ -111,3 +111,11 @@ object BrandColors {
     val Warning = Color(0xFFEA580C)
     val Info = Color(0xFF0EA5E9)
 }
+
+val AppPrimaryColorLight = Color(0xFF3B82F6)
+
+val AccentOrange = Color(0xFFF59E0B) // Amber that contrasts with blue
+val AccentGreen = Color(0xFF10B981) // Emerald green
+val AccentRed = Color(0xFFEF4444) // Bright red
+val AccentPurple = Color(0xFF8B5CF6) // Vibrant purple
+val AccentTeal = Color(0xFF0EA5E9) // Blue-leaning teal that matches primary color

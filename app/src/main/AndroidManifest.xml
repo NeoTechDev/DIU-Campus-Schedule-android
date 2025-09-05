@@ -13,6 +13,9 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Permissions for Task Reminders -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <!-- Permissions for PDF and Image generation -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
@@ -52,6 +55,11 @@
         <!-- Real-time Notification Service -->
         <service
             android:name=".data.remote.NotificationPollingService"
+            android:exported="false" />
+
+        <!-- Task Reminder Broadcast Receiver -->
+        <receiver
+            android:name=".receiver.ReminderBroadcastReceiver"
             android:exported="false" />
     </application>
 
