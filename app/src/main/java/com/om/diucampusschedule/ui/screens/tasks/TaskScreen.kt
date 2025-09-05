@@ -329,7 +329,7 @@ fun TaskScreen(navController: NavController) {
                         },
                         containerColor =
                             if (isInSelectionMode && selectedTasks.isNotEmpty())
-                                MaterialTheme.colorScheme.tertiary
+                                MaterialTheme.colorScheme.secondary
                             else
                                 MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(16.dp),
@@ -344,7 +344,7 @@ fun TaskScreen(navController: NavController) {
                                 Icon(
                                     painter = painterResource(R.drawable.share_square_24),
                                     contentDescription = "Share Selected",
-                                    tint = MaterialTheme.colorScheme.onTertiary,
+                                    tint = MaterialTheme.colorScheme.onSecondary,
                                     modifier = Modifier.size(25.dp)
                                 )
 
@@ -352,7 +352,7 @@ fun TaskScreen(navController: NavController) {
 
                                 Text(
                                     text = "Share",
-                                    color = MaterialTheme.colorScheme.onTertiary,
+                                    color = MaterialTheme.colorScheme.onSecondary,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -1342,7 +1342,7 @@ fun TaskCard(
                                     color = dateLabelColor,
                                     fontSize = 14.sp,
                                     style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Normal,
+                                    fontWeight = FontWeight.Medium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.padding(top = 4.dp)
@@ -1364,7 +1364,7 @@ fun TaskCard(
                                     color = if (isPastDate && !task.isCompleted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 14.sp,
                                     style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Normal,
+                                    fontWeight = FontWeight.Medium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.padding(top = 4.dp)
