@@ -7,7 +7,7 @@ import com.om.diucampusschedule.domain.model.TaskGroup
 
 @Entity(tableName = "task_groups")
 data class TaskGroupEntity(
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey(autoGenerate = false)
     val id: Long = 0,
     
     @ColumnInfo(name = "name")

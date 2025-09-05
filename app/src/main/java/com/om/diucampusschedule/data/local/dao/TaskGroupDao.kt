@@ -10,6 +10,9 @@ interface TaskGroupDao {
     @Query("SELECT * FROM task_groups ORDER BY created_at ASC")
     fun getAllTaskGroups(): Flow<List<TaskGroupEntity>>
     
+    @Query("SELECT * FROM task_groups ORDER BY created_at ASC")
+    suspend fun getAllTaskGroupsList(): List<TaskGroupEntity>
+    
     @Query("SELECT * FROM task_groups WHERE id = :id")
     suspend fun getTaskGroupById(id: Long): TaskGroupEntity?
     
@@ -27,6 +30,9 @@ interface TaskGroupDao {
     
     @Query("DELETE FROM task_groups WHERE id = :id")
     suspend fun deleteTaskGroupById(id: Long)
+    
+    @Query("DELETE FROM task_groups")
+    suspend fun deleteAllTaskGroups()
     
     @Query("SELECT COUNT(*) FROM task_groups")
     suspend fun getTaskGroupCount(): Int

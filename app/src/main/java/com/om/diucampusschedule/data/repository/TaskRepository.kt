@@ -102,10 +102,51 @@ class TaskRepository @Inject constructor(
     
     // Initialize default task group if needed
     suspend fun initializeDefaultGroup() {
-        val groupCount = getTaskGroupCount()
-        if (groupCount == 0) {
+        // First clean up any duplicate "All Tasks" groups
+        cleanupDuplicateGroups()
+        
+        // Check if default group already exists
+        val defaultGroupExists = taskGroupExists(0)
+        if (!defaultGroupExists) {
             val defaultGroup = TaskGroup(id = 0, name = "All Tasks")
             insertTaskGroup(defaultGroup)
         }
+    }
+    
+    // Clean up duplicate groups with same name
+    private suspend fun cleanupDuplicateGroups() {
+        val allGroups = taskGroupDao.getAllTaskGroupsList()
+        val allTasksGroups = allGroups.filter { it.name == "All Tasks" }
+        
+        if (allTasksGroups.size > 1) {
+            // Keep only the group with id = 0, or the first one if none has id = 0
+            val groupToKeep = allTasksGroups.find { it.id == 0L } ?: allTasksGroups.first()
+            val groupsToDelete = allTasksGroups.filter { it.id != groupToKeep.id }
+            
+            // Move tasks from duplicate groups to the keeper group
+            for (group in groupsToDelete) {
+                taskDao.moveTasksToGroup(group.id, groupToKeep.id)
+                taskGroupDao.deleteTaskGroupById(group.id)
+            }
+        }
+    }
+    
+    // Development helper: Reset all groups (use only for debugging)
+    suspend fun resetTaskGroups() {
+        // Move all tasks to default group first
+        val allGroups = taskGroupDao.getAllTaskGroupsList()
+        for (group in allGroups) {
+            if (group.id != 0L) {
+                taskDao.moveTasksToDefaultGroup(group.id)
+                taskGroupDao.deleteTaskGroupById(group.id)
+            }
+        }
+        
+        // Delete all groups including default
+        taskGroupDao.deleteAllTaskGroups()
+        
+        // Recreate default group
+        val defaultGroup = TaskGroup(id = 0, name = "All Tasks")
+        insertTaskGroup(defaultGroup)
     }
 }

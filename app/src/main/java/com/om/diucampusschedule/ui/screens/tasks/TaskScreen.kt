@@ -854,7 +854,7 @@ fun TaskScreen(navController: NavController) {
                 },
                 existingTask = taskToEdit,
                 taskGroups = taskGroups,
-                selectedGroupId = selectedGroupId,
+                selectedGroupId = if (taskToEdit != null) taskToEdit!!.groupId else 0L, // Default to "All Tasks" for new tasks
                 onAddTaskGroup = { groupName ->
                     taskViewModel.addTaskGroup(groupName)
                 }

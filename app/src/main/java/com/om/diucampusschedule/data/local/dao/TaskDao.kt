@@ -49,6 +49,9 @@ interface TaskDao {
     @Query("UPDATE tasks SET group_id = 0 WHERE group_id = :groupId")
     suspend fun moveTasksToDefaultGroup(groupId: Long)
     
+    @Query("UPDATE tasks SET group_id = :newGroupId WHERE group_id = :oldGroupId")
+    suspend fun moveTasksToGroup(oldGroupId: Long, newGroupId: Long)
+    
     @Query("SELECT COUNT(*) FROM tasks")
     suspend fun getTaskCount(): Int
     

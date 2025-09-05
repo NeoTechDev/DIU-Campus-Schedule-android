@@ -25,7 +25,7 @@ import com.om.diucampusschedule.data.local.entities.TaskGroupEntity
         TaskEntity::class,
         TaskGroupEntity::class
     ],
-    version = 6, // Incremented version for new entities
+    version = 7, // Incremented version for entity structure changes
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

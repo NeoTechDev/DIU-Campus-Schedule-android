@@ -59,7 +59,8 @@ class ModernTaskViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                taskRepository.initializeDefaultGroup()
+                // Remove duplicate initializeDefaultGroup call
+                // Default group is already initialized in init block
             } finally {
                 _isLoading.value = false
             }
@@ -135,7 +136,9 @@ class ModernTaskViewModel @Inject constructor(
     fun addTaskGroup(groupName: String) {
         viewModelScope.launch {
             try {
-                val newGroup = TaskGroup(name = groupName)
+                // Generate a new ID for the group
+                val newId = System.currentTimeMillis()
+                val newGroup = TaskGroup(id = newId, name = groupName)
                 taskRepository.insertTaskGroup(newGroup)
             } catch (e: Exception) {
                 // Handle error
@@ -175,6 +178,17 @@ class ModernTaskViewModel @Inject constructor(
 
     fun selectTaskGroup(groupId: Long) {
         _selectedGroupId.value = groupId
+    }
+    
+    // Development helper - call this to reset groups if you see duplicates
+    fun resetTaskGroups() {
+        viewModelScope.launch {
+            try {
+                taskRepository.resetTaskGroups()
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
     }
 
     fun getTasksByDate(date: String) = taskRepository.getTasksByDate(date)
