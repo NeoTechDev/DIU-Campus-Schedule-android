@@ -67,10 +67,12 @@ private val DIALOG_MAX_HEIGHT = 550.dp
 @Composable
 fun DateTimePicker(
     onDateTimeConfirmed: (LocalDate?, Pair<Int, Int>?) -> Unit, // Modified callback
-    onDismissDialog: () -> Unit
+    onDismissDialog: () -> Unit,
+    initialDate: LocalDate? = null,
+    initialTime: Pair<Int, Int>? = null
 ) {
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-    var selectedTime by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var selectedDate by remember { mutableStateOf(initialDate ?: LocalDate.now()) }
+    var selectedTime by remember { mutableStateOf(initialTime) }
 
     Dialog(onDismissRequest = onDismissDialog) {
         Column(

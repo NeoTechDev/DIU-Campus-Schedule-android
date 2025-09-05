@@ -113,8 +113,11 @@ fun AddTaskBottomSheet(
                 try {
                     val inputFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy", Locale.US)
                     selectedLocalDate = LocalDate.parse(existingTask.date, inputFormat)
+                    // Update the display format for the date
+                    date = selectedLocalDate?.format(displayDateFormatter) ?: ""
                 } catch (e: Exception) {
-                    // Handle parsing error
+                    // Handle parsing error - keep original date format if parsing fails
+                    selectedLocalDate = null
                 }
             }
 
@@ -126,8 +129,11 @@ fun AddTaskBottomSheet(
                     val calendar = Calendar.getInstance()
                     calendar.time = parsedTime!!
                     selectedTimePair = Pair(calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE))
+                    // Keep the original time format for display
+                    time = existingTask.time
                 } catch (e: Exception) {
-                    // Handle parsing error
+                    // Handle parsing error - keep original time format if parsing fails
+                    selectedTimePair = null
                 }
             }
         }
@@ -138,6 +144,8 @@ fun AddTaskBottomSheet(
 
     if (showDateTimePicker) {
         DateTimePicker(
+            initialDate = selectedLocalDate,
+            initialTime = selectedTimePair,
             onDateTimeConfirmed = { pickedDate, pickedTime ->
                 showDateTimePicker = false
                 selectedLocalDate = pickedDate
