@@ -1,5 +1,15 @@
 package com.om.diucampusschedule.ui.navigation
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +59,173 @@ import com.om.diucampusschedule.ui.viewmodel.AppInitializationViewModel
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
+// Animation constants
+private const val ANIMATION_DURATION = 400
+private const val FADE_DURATION = 200
+
+/**
+ * Animation specifications for different navigation scenarios
+ */
+private object NavigationAnimations {
+    
+    // Forward navigation animations (going deeper into app)
+    val slideInFromRight = slideInHorizontally(
+        initialOffsetX = { fullWidth -> fullWidth },
+        animationSpec = tween(
+            durationMillis = ANIMATION_DURATION,
+            easing = FastOutSlowInEasing
+        )
+    ) + fadeIn(
+        animationSpec = tween(
+            durationMillis = FADE_DURATION,
+            easing = LinearOutSlowInEasing
+        )
+    )
+    
+    val slideOutToLeft = slideOutHorizontally(
+        targetOffsetX = { fullWidth -> -fullWidth },
+        animationSpec = tween(
+            durationMillis = ANIMATION_DURATION,
+            easing = FastOutSlowInEasing
+        )
+    ) + fadeOut(
+        animationSpec = tween(
+            durationMillis = FADE_DURATION,
+            easing = LinearOutSlowInEasing
+        )
+    )
+    
+    // Backward navigation animations (going back/up in hierarchy)
+    val slideInFromLeft = slideInHorizontally(
+        initialOffsetX = { fullWidth -> -fullWidth },
+        animationSpec = tween(
+            durationMillis = ANIMATION_DURATION,
+            easing = FastOutSlowInEasing
+        )
+    ) + fadeIn(
+        animationSpec = tween(
+            durationMillis = FADE_DURATION,
+            easing = LinearOutSlowInEasing
+        )
+    )
+    
+    val slideOutToRight = slideOutHorizontally(
+        targetOffsetX = { fullWidth -> fullWidth },
+        animationSpec = tween(
+            durationMillis = ANIMATION_DURATION,
+            easing = FastOutSlowInEasing
+        )
+    ) + fadeOut(
+        animationSpec = tween(
+            durationMillis = FADE_DURATION,
+            easing = LinearOutSlowInEasing
+        )
+    )
+    
+    // Fade animations for home screen and special cases
+    val fadeIn = fadeIn(
+        animationSpec = tween(
+            durationMillis = ANIMATION_DURATION,
+            easing = FastOutSlowInEasing
+        )
+    )
+    
+    val fadeOut = fadeOut(
+        animationSpec = tween(
+            durationMillis = ANIMATION_DURATION,
+            easing = LinearOutSlowInEasing
+        )
+    )
+    
+    // Bottom navigation animations (horizontal movement between tabs)
+    val slideInFromRightTab = slideInHorizontally(
+        initialOffsetX = { fullWidth -> fullWidth },
+        animationSpec = tween(
+            durationMillis = 300,
+            easing = FastOutSlowInEasing
+        )
+    ) + fadeIn(
+        animationSpec = tween(
+            durationMillis = 150,
+            easing = LinearOutSlowInEasing
+        )
+    )
+    
+    val slideOutToLeftTab = slideOutHorizontally(
+        targetOffsetX = { fullWidth -> -fullWidth },
+        animationSpec = tween(
+            durationMillis = 300,
+            easing = FastOutSlowInEasing
+        )
+    ) + fadeOut(
+        animationSpec = tween(
+            durationMillis = 150,
+            easing = LinearOutSlowInEasing
+        )
+    )
+    
+    val slideInFromLeftTab = slideInHorizontally(
+        initialOffsetX = { fullWidth -> -fullWidth },
+        animationSpec = tween(
+            durationMillis = 300,
+            easing = FastOutSlowInEasing
+        )
+    ) + fadeIn(
+        animationSpec = tween(
+            durationMillis = 150,
+            easing = LinearOutSlowInEasing
+        )
+    )
+    
+    val slideOutToRightTab = slideOutHorizontally(
+        targetOffsetX = { fullWidth -> fullWidth },
+        animationSpec = tween(
+            durationMillis = 300,
+            easing = FastOutSlowInEasing
+        )
+    ) + fadeOut(
+        animationSpec = tween(
+            durationMillis = 150,
+            easing = LinearOutSlowInEasing
+        )
+    )
+}
+
+/**
+ * Helper function to determine animation direction based on screen hierarchy
+ */
+private fun getTabAnimations(
+    targetRoute: String,
+    initialRoute: String?
+): Pair<androidx.compose.animation.EnterTransition, androidx.compose.animation.ExitTransition> {
+    // Define tab order for proper directional animations
+    val tabOrder = listOf(
+        Screen.Today.route,
+        Screen.Routine.route,
+        Screen.EmptyRooms.route,
+        Screen.Tasks.route,
+        Screen.Notes.route
+    )
+    
+    val targetIndex = tabOrder.indexOf(targetRoute)
+    val initialIndex = initialRoute?.let { tabOrder.indexOf(it) } ?: -1
+    
+    return when {
+        // Moving to a tab to the right
+        targetIndex > initialIndex && initialIndex != -1 -> {
+            NavigationAnimations.slideInFromRightTab to NavigationAnimations.slideOutToLeftTab
+        }
+        // Moving to a tab to the left
+        targetIndex < initialIndex && initialIndex != -1 -> {
+            NavigationAnimations.slideInFromLeftTab to NavigationAnimations.slideOutToRightTab
+        }
+        // Default animations for non-tab screens or first load
+        else -> {
+            NavigationAnimations.slideInFromRight to NavigationAnimations.slideOutToLeft
+        }
+    }
+}
+
 /**
  * Main navigation component that handles app-wide navigation based on app state
  * 
@@ -65,45 +242,64 @@ fun AppNavigation(
     startDestination: String? = null,
     appInitializationViewModel: AppInitializationViewModel = hiltViewModel()
 ) {
-    when (appState) {
-        is AppState.Initializing -> {
-            // Show loading screen while app initializes
-            LoadingScreen()
-        }
-        
-        is AppState.Unauthenticated -> {
-            // Show authentication flow
-            AuthNavigationHost(
-                navController = navController,
-                startDestination = startDestination ?: Screen.Welcome.route
+    // Add animated content for smooth state transitions
+    androidx.compose.animation.AnimatedContent(
+        targetState = appState,
+        transitionSpec = {
+            fadeIn(
+                animationSpec = tween(
+                    durationMillis = ANIMATION_DURATION,
+                    easing = FastOutSlowInEasing
+                )
+            ) togetherWith fadeOut(
+                animationSpec = tween(
+                    durationMillis = ANIMATION_DURATION,
+                    easing = LinearOutSlowInEasing
+                )
             )
-        }
-        
-        is AppState.AuthenticatedIncomplete -> {
-            // Show profile completion flow
-            AuthNavigationHost(
-                navController = navController,
-                startDestination = startDestination ?: Screen.RegsitrationForm.route
-            )
-        }
-        
-        is AppState.AuthenticatedComplete -> {
-            // Show main app flow
-            MainAppNavigationHost(
-                navController = navController,
-                startDestination = startDestination ?: Screen.Today.route
-            )
-        }
-        
-        is AppState.Error -> {
-            // Show error screen with retry option
-            ErrorScreen(
-                message = appState.message,
-                onRetry = {
-                    // Retry app initialization
-                    appInitializationViewModel.refreshAppState()
-                }
-            )
+        },
+        label = "app_state_transition"
+    ) { targetState ->
+        when (targetState) {
+            is AppState.Initializing -> {
+                // Show loading screen while app initializes
+                LoadingScreen()
+            }
+            
+            is AppState.Unauthenticated -> {
+                // Show authentication flow
+                AuthNavigationHost(
+                    navController = navController,
+                    startDestination = startDestination ?: Screen.Welcome.route
+                )
+            }
+            
+            is AppState.AuthenticatedIncomplete -> {
+                // Show profile completion flow
+                AuthNavigationHost(
+                    navController = navController,
+                    startDestination = startDestination ?: Screen.RegsitrationForm.route
+                )
+            }
+            
+            is AppState.AuthenticatedComplete -> {
+                // Show main app flow
+                MainAppNavigationHost(
+                    navController = navController,
+                    startDestination = startDestination ?: Screen.Today.route
+                )
+            }
+            
+            is AppState.Error -> {
+                // Show error screen with retry option
+                ErrorScreen(
+                    message = targetState.message,
+                    onRetry = {
+                        // Retry app initialization
+                        appInitializationViewModel.refreshAppState()
+                    }
+                )
+            }
         }
     }
 }
@@ -167,7 +363,7 @@ private fun ErrorScreen(
 }
 
 /**
- * Navigation host for authentication flow
+ * Navigation host for authentication flow with smooth animations
  */
 @Composable
 private fun AuthNavigationHost(
@@ -178,24 +374,52 @@ private fun AuthNavigationHost(
         navController = navController,
         startDestination = startDestination
     ) {
-        // Authentication Screens
-        composable(Screen.Welcome.route) {
+        // Authentication Screens with fade animations
+        composable(
+            route = Screen.Welcome.route,
+            enterTransition = { NavigationAnimations.fadeIn },
+            exitTransition = { NavigationAnimations.fadeOut }
+        ) {
             WelcomeScreen(navController = navController)
         }
 
-        composable(Screen.SignIn.route) {
+        composable(
+            route = Screen.SignIn.route,
+            enterTransition = { NavigationAnimations.slideInFromRight },
+            exitTransition = { NavigationAnimations.slideOutToLeft },
+            popEnterTransition = { NavigationAnimations.slideInFromLeft },
+            popExitTransition = { NavigationAnimations.slideOutToRight }
+        ) {
             SignInScreen(navController = navController)
         }
 
-        composable(Screen.SignUp.route) {
+        composable(
+            route = Screen.SignUp.route,
+            enterTransition = { NavigationAnimations.slideInFromRight },
+            exitTransition = { NavigationAnimations.slideOutToLeft },
+            popEnterTransition = { NavigationAnimations.slideInFromLeft },
+            popExitTransition = { NavigationAnimations.slideOutToRight }
+        ) {
             SignUpScreen(navController = navController)
         }
 
-        composable(Screen.ForgotPassword.route) {
+        composable(
+            route = Screen.ForgotPassword.route,
+            enterTransition = { NavigationAnimations.slideInFromRight },
+            exitTransition = { NavigationAnimations.slideOutToLeft },
+            popEnterTransition = { NavigationAnimations.slideInFromLeft },
+            popExitTransition = { NavigationAnimations.slideOutToRight }
+        ) {
             ForgotPasswordScreen(navController = navController)
         }
 
-        composable("${Screen.EmailVerification.route}/{email}") { backStackEntry ->
+        composable(
+            route = "${Screen.EmailVerification.route}/{email}",
+            enterTransition = { NavigationAnimations.slideInFromRight },
+            exitTransition = { NavigationAnimations.slideOutToLeft },
+            popEnterTransition = { NavigationAnimations.slideInFromLeft },
+            popExitTransition = { NavigationAnimations.slideOutToRight }
+        ) { backStackEntry ->
             val email = backStackEntry.arguments?.getString("email") ?: ""
             EmailVerificationScreen(
                 navController = navController,
@@ -203,14 +427,20 @@ private fun AuthNavigationHost(
             )
         }
 
-        composable(Screen.RegsitrationForm.route) {
+        composable(
+            route = Screen.RegsitrationForm.route,
+            enterTransition = { NavigationAnimations.slideInFromRight },
+            exitTransition = { NavigationAnimations.slideOutToLeft },
+            popEnterTransition = { NavigationAnimations.slideInFromLeft },
+            popExitTransition = { NavigationAnimations.slideOutToRight }
+        ) {
             RegistrationFormScreen(navController = navController)
         }
     }
 }
 
 /**
- * Navigation host for main app flow with scaffold
+ * Navigation host for main app flow with scaffold and smooth animations
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -245,8 +475,21 @@ private fun MainAppNavigationHost(
                 startDestination = startDestination,
                 modifier = Modifier.padding(paddingValues)
             ) {
-                // Main App Screens
-                composable(Screen.Today.route) {
+                // Main App Screens with smart directional transitions
+                composable(
+                    route = Screen.Today.route,
+                    enterTransition = { NavigationAnimations.fadeIn },
+                    exitTransition = { 
+                        // Check where we're going and animate accordingly
+                        when (targetState.destination.route) {
+                            Screen.Routine.route, Screen.EmptyRooms.route, 
+                            Screen.Tasks.route, Screen.Notes.route -> NavigationAnimations.slideOutToLeftTab
+                            else -> NavigationAnimations.fadeOut
+                        }
+                    },
+                    popEnterTransition = { NavigationAnimations.fadeIn },
+                    popExitTransition = { NavigationAnimations.fadeOut }
+                ) {
                     TodayScreen(
                         navController = navController,
                         onOpenDrawer = {
@@ -257,24 +500,102 @@ private fun MainAppNavigationHost(
                     )
                 }
                 
-                composable(Screen.Routine.route) {
+                composable(
+                    route = Screen.Routine.route,
+                    enterTransition = { 
+                        when (initialState.destination.route) {
+                            Screen.Today.route -> NavigationAnimations.slideInFromRightTab
+                            Screen.EmptyRooms.route, Screen.Tasks.route, Screen.Notes.route -> NavigationAnimations.slideInFromLeftTab
+                            else -> NavigationAnimations.slideInFromRight
+                        }
+                    },
+                    exitTransition = { 
+                        when (targetState.destination.route) {
+                            Screen.Today.route -> NavigationAnimations.slideOutToLeftTab
+                            Screen.EmptyRooms.route, Screen.Tasks.route, Screen.Notes.route -> NavigationAnimations.slideOutToLeftTab
+                            else -> NavigationAnimations.slideOutToLeft
+                        }
+                    },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
                     RoutineScreen()
                 }
                 
-                composable(Screen.EmptyRooms.route) {
+                composable(
+                    route = Screen.EmptyRooms.route,
+                    enterTransition = { 
+                        when (initialState.destination.route) {
+                            Screen.Today.route, Screen.Routine.route -> NavigationAnimations.slideInFromRightTab
+                            Screen.Tasks.route, Screen.Notes.route -> NavigationAnimations.slideInFromLeftTab
+                            else -> NavigationAnimations.slideInFromRight
+                        }
+                    },
+                    exitTransition = { 
+                        when (targetState.destination.route) {
+                            Screen.Today.route, Screen.Routine.route -> NavigationAnimations.slideOutToLeftTab
+                            Screen.Tasks.route, Screen.Notes.route -> NavigationAnimations.slideOutToLeftTab
+                            else -> NavigationAnimations.slideOutToLeft
+                        }
+                    },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
                     EmptyRoomsScreen()
                 }
                 
-                composable(Screen.Tasks.route) {
+                composable(
+                    route = Screen.Tasks.route,
+                    enterTransition = { 
+                        when (initialState.destination.route) {
+                            Screen.Today.route, Screen.Routine.route, Screen.EmptyRooms.route -> NavigationAnimations.slideInFromRightTab
+                            Screen.Notes.route -> NavigationAnimations.slideInFromLeftTab
+                            else -> NavigationAnimations.slideInFromRight
+                        }
+                    },
+                    exitTransition = { 
+                        when (targetState.destination.route) {
+                            Screen.Today.route, Screen.Routine.route, Screen.EmptyRooms.route -> NavigationAnimations.slideOutToLeftTab
+                            Screen.Notes.route -> NavigationAnimations.slideOutToLeftTab
+                            else -> NavigationAnimations.slideOutToLeft
+                        }
+                    },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
                     TaskScreen(navController = navController)
                 }
                 
-                composable(Screen.Notes.route) {
+                composable(
+                    route = Screen.Notes.route,
+                    enterTransition = { 
+                        when (initialState.destination.route) {
+                            Screen.Today.route, Screen.Routine.route, 
+                            Screen.EmptyRooms.route, Screen.Tasks.route -> NavigationAnimations.slideInFromRightTab
+                            else -> NavigationAnimations.slideInFromRight
+                        }
+                    },
+                    exitTransition = { 
+                        when (targetState.destination.route) {
+                            Screen.Today.route, Screen.Routine.route, 
+                            Screen.EmptyRooms.route, Screen.Tasks.route -> NavigationAnimations.slideOutToLeftTab
+                            else -> NavigationAnimations.slideOutToLeft
+                        }
+                    },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
                     NotesScreen(navController = navController)
                 }
 
                 // Note Editor Screen - supports both create new note and edit existing note
-                composable("note_editor?noteId={noteId}") { backStackEntry ->
+                composable(
+                    route = "note_editor?noteId={noteId}",
+                    enterTransition = { NavigationAnimations.slideInFromRight },
+                    exitTransition = { NavigationAnimations.slideOutToLeft },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) { backStackEntry ->
                     val noteId = backStackEntry.arguments?.getString("noteId")?.toIntOrNull()
                     NoteEditorScreen(
                         navController = navController,
@@ -282,7 +603,13 @@ private fun MainAppNavigationHost(
                     )
                 }
                 
-                composable("note_editor") {
+                composable(
+                    route = "note_editor",
+                    enterTransition = { NavigationAnimations.slideInFromRight },
+                    exitTransition = { NavigationAnimations.slideOutToLeft },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
                     NoteEditorScreen(
                         navController = navController,
                         noteId = null
@@ -290,24 +617,54 @@ private fun MainAppNavigationHost(
                 }
 
                 // Profile Screen
-                composable(Screen.Profile.route) {
+                composable(
+                    route = Screen.Profile.route,
+                    enterTransition = { NavigationAnimations.slideInFromRight },
+                    exitTransition = { NavigationAnimations.slideOutToLeft },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
                     ProfileScreen(navController = navController)
                 }
                 
                 // Placeholder for unimplemented screens
-                composable(Screen.ExamRoutine.route) {
+                composable(
+                    route = Screen.ExamRoutine.route,
+                    enterTransition = { NavigationAnimations.slideInFromRight },
+                    exitTransition = { NavigationAnimations.slideOutToLeft },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
                     PlaceholderScreen(title = "Exam Routine", description = "Exam schedules will be displayed here")
                 }
                 
-                composable(Screen.FacultyInfo.route) {
+                composable(
+                    route = Screen.FacultyInfo.route,
+                    enterTransition = { NavigationAnimations.slideInFromRight },
+                    exitTransition = { NavigationAnimations.slideOutToLeft },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
                     FacultyInfoScreen(onBack = navController)
                 }
 
-                composable(Screen.Community.route){
+                composable(
+                    route = Screen.Community.route,
+                    enterTransition = { NavigationAnimations.slideInFromRight },
+                    exitTransition = { NavigationAnimations.slideOutToLeft },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ){
                     CommunityScreen(navController = navController)
                 }
 
-                composable(Screen.Debug.route) {
+                composable(
+                    route = Screen.Debug.route,
+                    enterTransition = { NavigationAnimations.slideInFromRight },
+                    exitTransition = { NavigationAnimations.slideOutToLeft },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
                     DebugScreen(navController = navController)
                 }
             }
