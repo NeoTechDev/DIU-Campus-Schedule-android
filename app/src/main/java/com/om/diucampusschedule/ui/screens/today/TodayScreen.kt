@@ -43,8 +43,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,6 +59,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
+import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.screens.today.components.MiniCalendar
 import com.om.diucampusschedule.ui.utils.ScreenConfig
@@ -176,17 +179,35 @@ private fun CustomTopAppBar(
             actions = {
                 // "Back to Today" button - only show when not on current date
                 if (selectedDate != LocalDate.now()) {
-                    IconButton(
-                        onClick = {
-                            todayViewModel.selectDate(LocalDate.now())
-                        }
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                            )
+                            .clickable {
+                                todayViewModel.selectDate(LocalDate.now())
+                            }
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Today,
-                            contentDescription = "Back to Today",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(topbarIconSize)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.undo_24px),
+                                contentDescription = "Back to Today",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Today",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
                 
