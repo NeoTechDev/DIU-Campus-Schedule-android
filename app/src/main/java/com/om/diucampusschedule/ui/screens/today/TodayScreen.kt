@@ -1,11 +1,13 @@
 package com.om.diucampusschedule.ui.screens.today
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -43,8 +45,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -81,11 +85,15 @@ fun TodayScreen(
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val selectedDate by todayViewModel.selectedDate.collectAsStateWithLifecycle()
 
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    val focusManager = LocalFocusManager.current
     
     // State for action button
     var isActionButtonExpanded by remember { mutableStateOf(false) }
+    
+    // Handle back button press to close action button
+    BackHandler(enabled = isActionButtonExpanded) {
+        isActionButtonExpanded = false
+    }
     
     // Reset to today's date when screen is first composed or revisited
     LaunchedEffect(Unit) {
@@ -113,7 +121,19 @@ fun TodayScreen(
         
         // Main content area for future schedule content
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(isActionButtonExpanded) {
+                    // Professional approach: detect taps outside the action button when expanded
+                    if (isActionButtonExpanded) {
+                        detectTapGestures(
+                            onTap = { 
+                                isActionButtonExpanded = false
+                                focusManager.clearFocus() // Clear focus for accessibility
+                            }
+                        )
+                    }
+                }
         ) {
             // Schedule content
             Box(
