@@ -4,14 +4,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EventBusy
@@ -24,15 +27,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.om.diucampusschedule.domain.model.RoutineItem
+import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.viewmodel.ClassStatus
+import com.om.diucampusschedule.ui.screens.tasks.TaskCard
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -47,19 +53,24 @@ sealed class ScheduleItem {
 @Composable
 fun TodayRoutineContent(
     routineItems: List<RoutineItem>,
+    tasks: List<Task>,
     currentUser: User?,
     isLoading: Boolean,
     getCourseName: (String) -> String = { it }, // Function to get course name from course code
     onClassClick: (RoutineItem) -> Unit = {},
+    onUpdateTask: (Task) -> Unit = {},
+    onDeleteTask: (Task) -> Unit = {},
+    onEditTask: (Task) -> Unit = {},
+    onShareTask: (Task) -> Unit = {},
     isToday: Boolean,
     modifier: Modifier = Modifier
 ) {
     if (isLoading) {
         LoadingContent()
-    } else if (routineItems.isEmpty()) {
-        NoClassesToday(currentUser)
+    } else if (routineItems.isEmpty() && tasks.isEmpty()) {
+        NoContentToday(currentUser)
     } else {
-        val scheduleItems = createScheduleWithBreaks(routineItems)
+        val scheduleItems = if (routineItems.isNotEmpty()) createScheduleWithBreaks(routineItems) else emptyList()
         val classRoutines = routineItems.map { it.toClassRoutine() }
         
         LazyColumn(
@@ -69,65 +80,105 @@ fun TodayRoutineContent(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             // Add ClassRoutineSectionHeader when routine items are not empty
-            item {
-                ClassRoutineSectionHeader(
-                    count = routineItems.size,
-                    title = "Your Classes",
-                    countColor = Color(0xFF6200EE),
-                    filteredRoutines = classRoutines,
-                    formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
-                    selectedDate = if (isToday) LocalDate.now() else null
-                )
-            }
-            
-            item {
-                Spacer(modifier = Modifier.height(1.dp))
-            }
-            
-            items(
-                items = scheduleItems,
-                key = { item ->
-                    when (item) {
-                        is ScheduleItem.Class -> item.routineItem.id.ifEmpty { 
-                            "${item.routineItem.courseCode}_${item.routineItem.time}_${item.routineItem.room}" 
+            if (routineItems.isNotEmpty()) {
+                item {
+                    ClassRoutineSectionHeader(
+                        count = routineItems.size,
+                        title = "Your Classes",
+                        countColor = Color(0xFF6200EE),
+                        filteredRoutines = classRoutines,
+                        formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                        selectedDate = if (isToday) LocalDate.now() else null
+                    )
+                }
+                
+                item {
+                    Spacer(modifier = Modifier.height(1.dp))
+                }
+                
+                items(
+                    items = scheduleItems,
+                    key = { item ->
+                        when (item) {
+                            is ScheduleItem.Class -> item.routineItem.id.ifEmpty { 
+                                "${item.routineItem.courseCode}_${item.routineItem.time}_${item.routineItem.room}" 
+                            }
+                            is ScheduleItem.Break -> "break_${item.startTime}_${item.endTime}"
                         }
-                        is ScheduleItem.Break -> "break_${item.startTime}_${item.endTime}"
+                    }
+                ) { scheduleItem ->
+                    when (scheduleItem) {
+                        is ScheduleItem.Class -> {
+                            RoutineCard(
+                                routine = scheduleItem.routineItem.toClassRoutine(),
+                                courseName = getCourseName(scheduleItem.routineItem.courseCode),
+                                selectedDate = LocalDate.now(),
+                                formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                                isToday = isToday
+                            )
+                        }
+                        is ScheduleItem.Break -> {
+                            // Parse the break time strings back to LocalTime for the BreakTimeCard
+                            val formatter = DateTimeFormatter.ofPattern("hh:mm a")
+                            val startTime = try {
+                                LocalTime.parse(scheduleItem.startTime, formatter)
+                            } catch (e: Exception) {
+                                LocalTime.parse(scheduleItem.startTime, DateTimeFormatter.ofPattern("h:mm a"))
+                            }
+                            val endTime = try {
+                                LocalTime.parse(scheduleItem.endTime, formatter)
+                            } catch (e: Exception) {
+                                LocalTime.parse(scheduleItem.endTime, DateTimeFormatter.ofPattern("h:mm a"))
+                            }
+                            
+                            BreakTimeCard(
+                                breakText = if(currentUser?.role == UserRole.STUDENT) "Break Time" else "Counselling Hour",
+                                subText = if(currentUser?.role == UserRole.STUDENT) "Time to recharge and\nget ready!" else "Time for student\nconsultations and guidance",
+                                startTime = startTime,
+                                endTime = endTime,
+                                formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                                isToday = isToday
+                            )
+                        }
                     }
                 }
-            ) { scheduleItem ->
-                when (scheduleItem) {
-                    is ScheduleItem.Class -> {
-                        RoutineCard(
-                            routine = scheduleItem.routineItem.toClassRoutine(),
-                            courseName = getCourseName(scheduleItem.routineItem.courseCode),
-                            selectedDate = LocalDate.now(),
-                            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
-                            isToday = isToday
-                        )
-                    }
-                    is ScheduleItem.Break -> {
-                        // Parse the break time strings back to LocalTime for the BreakTimeCard
-                        val formatter = DateTimeFormatter.ofPattern("hh:mm a")
-                        val startTime = try {
-                            LocalTime.parse(scheduleItem.startTime, formatter)
-                        } catch (e: Exception) {
-                            LocalTime.parse(scheduleItem.startTime, DateTimeFormatter.ofPattern("h:mm a"))
-                        }
-                        val endTime = try {
-                            LocalTime.parse(scheduleItem.endTime, formatter)
-                        } catch (e: Exception) {
-                            LocalTime.parse(scheduleItem.endTime, DateTimeFormatter.ofPattern("h:mm a"))
-                        }
-                        
-                        BreakTimeCard(
-                            breakText = if(currentUser?.role == UserRole.STUDENT) "Break Time" else "Counselling Hour",
-                            subText = if(currentUser?.role == UserRole.STUDENT) "Time to recharge and\nget ready!" else "Time for student\nconsultations and guidance",
-                            startTime = startTime,
-                            endTime = endTime,
-                            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
-                            isToday = isToday
-                        )
-                    }
+            }
+            
+            // Add Tasks section if tasks are available
+            if (tasks.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(if (routineItems.isNotEmpty()) 16.dp else 10.dp))
+                }
+                
+                item {
+                    TaskSectionHeader(
+                        count = tasks.size,
+                        title = "Pending Tasks",
+                        countColor = Color(0xFFFF6F00),
+                    )
+                }
+                
+                item {
+                    Spacer(modifier = Modifier.height(3.dp))
+                }
+                
+                items(
+                    items = tasks,
+                    key = { task -> task.id }
+                ) { task ->
+                    TaskCard(
+                        task = task,
+                        onUpdateTask = onUpdateTask,
+                        onDeleteTask = onDeleteTask,
+                        onEditTask = onEditTask,
+                        onShareTask = onShareTask,
+                        enableContextMenu = false, // Disable context menu for today screen
+                        isInSelectionMode = false,
+                        isSelected = false,
+                        onSelectionChange = { _, _ -> },
+                        bgColor = MaterialTheme.colorScheme.surface,
+                        cardShape = RoundedCornerShape(20.dp)
+                    )
                 }
             }
             
@@ -164,7 +215,7 @@ private fun LoadingContent() {
 }
 
 @Composable
-private fun NoClassesToday(currentUser: User?) {
+private fun NoContentToday(currentUser: User?) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -205,7 +256,7 @@ private fun NoClassesToday(currentUser: User?) {
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 Text(
-                    text = "No Classes Today",
+                    text = "Nothing Scheduled Today",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -214,13 +265,7 @@ private fun NoClassesToday(currentUser: User?) {
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                val message = if (currentUser?.labSection?.isNotEmpty() == true) {
-                    "No classes scheduled for your section ${currentUser.section} and lab section ${currentUser.labSection} today."
-                } else if (currentUser?.section?.isNotEmpty() == true) {
-                    "No classes scheduled for your section ${currentUser.section} today."
-                } else {
-                    "No classes scheduled for today. Enjoy your free time!"
-                }
+                val message = "No classes or tasks scheduled for today. Enjoy your free time!"
                 
                 Text(
                     text = message,

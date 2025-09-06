@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.om.diucampusschedule.core.error.AppError
 import com.om.diucampusschedule.core.service.CourseNameService
 import com.om.diucampusschedule.domain.model.RoutineItem
+import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineForDayUseCase
+import com.om.diucampusschedule.data.repository.TaskRepository
 import com.om.diucampusschedule.ui.screens.today.components.CourseUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +28,7 @@ import javax.inject.Inject
 data class TodayUiState(
     val isLoading: Boolean = false,
     val routineItems: List<RoutineItem> = emptyList(),
+    val tasks: List<Task> = emptyList(),
     val currentUser: User? = null,
     val error: AppError? = null,
     val selectedDate: LocalDate = LocalDate.now(),
@@ -36,7 +39,8 @@ data class TodayUiState(
 class TodayViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getUserRoutineForDayUseCase: GetUserRoutineForDayUseCase,
-    private val courseNameService: CourseNameService
+    private val courseNameService: CourseNameService,
+    private val taskRepository: TaskRepository
 ) : ViewModel() {
     
     private val _selectedDate = MutableStateFlow(LocalDate.now())
@@ -64,10 +68,12 @@ class TodayViewModel @Inject constructor(
                     error = null
                 )
                 loadRoutineForDay(user, date)
+                loadTasksForDay(date)
             } else {
                 _uiState.value = _uiState.value.copy(
                     currentUser = null,
                     routineItems = emptyList(),
+                    tasks = emptyList(),
                     isLoading = false,
                     selectedDate = date
                 )
@@ -120,6 +126,19 @@ class TodayViewModel @Inject constructor(
         }
     }
     
+    private fun loadTasksForDay(date: LocalDate) {
+        val dateString = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"))
+        
+        viewModelScope.launch {
+            taskRepository.getTasksByDate(dateString).collect { allTasks ->
+                // Filter to only show pending (incomplete) tasks
+                val pendingTasks = allTasks.filter { !it.isCompleted }
+                android.util.Log.d("TodayViewModel", "Loaded ${pendingTasks.size} pending tasks for $dateString (${allTasks.size} total)")
+                _uiState.value = _uiState.value.copy(tasks = pendingTasks)
+            }
+        }
+    }
+    
     private suspend fun loadCourseNames(routineItems: List<RoutineItem>) {
         val currentNames = _uiState.value.courseNames.toMutableMap()
         
@@ -145,6 +164,29 @@ class TodayViewModel @Inject constructor(
     
     fun getCourseName(courseCode: String): String {
         return _uiState.value.courseNames[courseCode] ?: courseCode
+    }
+    
+    // Task management methods
+    fun updateTask(task: Task) {
+        viewModelScope.launch {
+            try {
+                taskRepository.updateTask(task)
+                android.util.Log.d("TodayViewModel", "Task updated: ${task.title}")
+            } catch (e: Exception) {
+                android.util.Log.e("TodayViewModel", "Error updating task: ${e.message}")
+            }
+        }
+    }
+    
+    fun deleteTask(task: Task) {
+        viewModelScope.launch {
+            try {
+                taskRepository.deleteTask(task)
+                android.util.Log.d("TodayViewModel", "Task deleted: ${task.title}")
+            } catch (e: Exception) {
+                android.util.Log.e("TodayViewModel", "Error deleting task: ${e.message}")
+            }
+        }
     }
     
     fun selectDate(date: LocalDate) {

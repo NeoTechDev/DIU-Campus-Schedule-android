@@ -149,11 +149,20 @@ fun TodayScreen(
             // Routine content
             TodayRoutineContent(
                 routineItems = todayState.routineItems,
+                tasks = todayState.tasks,
                 currentUser = todayState.currentUser,
                 isLoading = todayState.isLoading,
                 getCourseName = todayViewModel::getCourseName,
                 onClassClick = { routineItem ->
                     // TODO: Navigate to class details or course info
+                },
+                onUpdateTask = todayViewModel::updateTask,
+                onDeleteTask = todayViewModel::deleteTask,
+                onEditTask = { task ->
+                    // TODO: Navigate to edit task screen
+                },
+                onShareTask = { task ->
+                    // TODO: Implement task sharing
                 },
                 isToday = todayState.selectedDate == LocalDate.now(),
                 modifier = Modifier.fillMaxSize()
