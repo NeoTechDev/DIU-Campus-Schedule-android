@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.EventBusy
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,6 +36,7 @@ import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.viewmodel.ClassStatus
 import com.om.diucampusschedule.ui.screens.today.components.toClassRoutine
+import androidx.compose.ui.graphics.Color
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -64,6 +64,7 @@ fun TodayRoutineContent(
         NoClassesToday(currentUser)
     } else {
         val scheduleItems = createScheduleWithBreaks(routineItems)
+        val classRoutines = routineItems.map { it.toClassRoutine() }
         
         LazyColumn(
             modifier = modifier
@@ -71,15 +72,20 @@ fun TodayRoutineContent(
                 .padding(horizontal = 6.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            // Show filter info if user has lab section
-            if (currentUser?.labSection?.isNotEmpty() == true) {
-                item {
-                    FilterInfoCard(currentUser)
-                }
+            // Add ClassRoutineSectionHeader when routine items are not empty
+            item {
+                ClassRoutineSectionHeader(
+                    count = routineItems.size,
+                    title = "Your Classes",
+                    countColor = Color(0xFF6200EE),
+                    filteredRoutines = classRoutines,
+                    formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                    selectedDate = if (isToday) LocalDate.now() else null
+                )
             }
             
             item {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(1.dp))
             }
             
             items(
@@ -131,56 +137,6 @@ fun TodayRoutineContent(
             
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilterInfoCard(user: User) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Column {
-                Text(
-                    text = "Showing classes for:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
-                val filterText = if (user.labSection.isNotEmpty()) {
-                    "Section ${user.section} + Lab Section ${user.labSection} only"
-                } else {
-                    "Section ${user.section} (all lab sections)"
-                }
-                
-                Text(
-                    text = filterText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }
