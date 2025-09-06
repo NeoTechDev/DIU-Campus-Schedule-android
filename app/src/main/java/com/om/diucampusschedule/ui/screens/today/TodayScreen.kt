@@ -38,6 +38,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +69,8 @@ import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.User
+import com.om.diucampusschedule.domain.model.Task
+import com.om.diucampusschedule.ui.components.AddTaskBottomSheet
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.screens.today.components.FindCourseBottomSheetContent
 import com.om.diucampusschedule.ui.screens.today.components.MiniCalendar
@@ -76,6 +79,7 @@ import com.om.diucampusschedule.ui.screens.today.components.TodayRoutineContent
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
+import com.om.diucampusschedule.ui.viewmodel.ModernTaskViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -86,11 +90,13 @@ fun TodayScreen(
     navController: NavController,
     onOpenDrawer: () -> Unit = {}, // Add drawer parameter
     authViewModel: AuthViewModel = hiltViewModel(),
-    todayViewModel: TodayViewModel = hiltViewModel()
+    todayViewModel: TodayViewModel = hiltViewModel(),
+    taskViewModel: ModernTaskViewModel = hiltViewModel()
 ) {
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val selectedDate by todayViewModel.selectedDate.collectAsStateWithLifecycle()
     val todayState by todayViewModel.uiState.collectAsStateWithLifecycle()
+    val taskGroups by taskViewModel.taskGroups.collectAsState(initial = emptyList())
 
     val focusManager = LocalFocusManager.current
     
@@ -100,6 +106,10 @@ fun TodayScreen(
     // State for Find Course bottom sheet
     var showFindCourseBottomSheet by remember { mutableStateOf(false) }
     val findCourseSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
+    // State for Add/Edit Task bottom sheet
+    var showTaskBottomSheet by remember { mutableStateOf(false) }
+    var taskToEdit by remember { mutableStateOf<Task?>(null) }
     
     // Handle back button press to close action button
     BackHandler(enabled = isActionButtonExpanded) {
@@ -159,7 +169,8 @@ fun TodayScreen(
                 onUpdateTask = todayViewModel::updateTask,
                 onDeleteTask = todayViewModel::deleteTask,
                 onEditTask = { task ->
-                    // TODO: Navigate to edit task screen
+                    taskToEdit = task
+                    showTaskBottomSheet = true
                 },
                 onShareTask = { task ->
                     // TODO: Implement task sharing
@@ -183,7 +194,8 @@ fun TodayScreen(
                     },
                     onAddTaskClick = {
                         isActionButtonExpanded = false
-                        // TODO: Navigate to add task screen
+                        taskToEdit = null // Clear any existing task to edit
+                        showTaskBottomSheet = true
                     },
                     onFacultyInfoClick = {
                         isActionButtonExpanded = false
@@ -227,6 +239,31 @@ fun TodayScreen(
                 onDismiss = { showFindCourseBottomSheet = false }
             )
         }
+    }
+    
+    // Add/Edit Task Bottom Sheet
+    if (showTaskBottomSheet) {
+        AddTaskBottomSheet(
+            onAddTask = { task ->
+                if (taskToEdit == null) {
+                    taskViewModel.addTask(task)
+                } else {
+                    taskViewModel.updateTask(task.copy(id = taskToEdit!!.id))
+                    taskToEdit = null
+                }
+                showTaskBottomSheet = false
+            },
+            onDismiss = {
+                showTaskBottomSheet = false
+                taskToEdit = null
+            },
+            existingTask = taskToEdit,
+            taskGroups = taskGroups,
+            selectedGroupId = if (taskToEdit != null) taskToEdit!!.groupId else 0L, // Default to "All Tasks" for new tasks
+            onAddTaskGroup = { groupName ->
+                taskViewModel.addTaskGroup(groupName)
+            }
+        )
     }
 }
 
