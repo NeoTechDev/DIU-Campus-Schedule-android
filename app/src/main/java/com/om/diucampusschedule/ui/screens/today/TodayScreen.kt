@@ -55,6 +55,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,6 +81,7 @@ import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 import com.om.diucampusschedule.ui.viewmodel.ModernTaskViewModel
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -97,6 +99,10 @@ fun TodayScreen(
     val selectedDate by todayViewModel.selectedDate.collectAsStateWithLifecycle()
     val todayState by todayViewModel.uiState.collectAsStateWithLifecycle()
     val taskGroups by taskViewModel.taskGroups.collectAsState(initial = emptyList())
+
+    val isToday = todayState.selectedDate == LocalDate.now()
+    val noScheduleMessage = if(isToday) "Nothing scheduled today!" else "Nothing scheduled that day"
+    val noScheduleSubMessage = if(isToday) "No classes or tasks scheduled for today. Enjoy your free time!" else "No classes or tasks will be scheduled for that day. All yours to chill and enjoy!"
 
     val focusManager = LocalFocusManager.current
     
@@ -172,11 +178,11 @@ fun TodayScreen(
                     taskToEdit = task
                     showTaskBottomSheet = true
                 },
-                onShareTask = { task ->
-                    // TODO: Implement task sharing
-                },
-                isToday = todayState.selectedDate == LocalDate.now(),
-                modifier = Modifier.fillMaxSize()
+                isToday = isToday,
+                modifier = Modifier.fillMaxSize(),
+                noContentImage = if(todayState.selectedDate.dayOfWeek == DayOfWeek.FRIDAY) painterResource(id = R.drawable.muslim) else painterResource(id = R.drawable.sleep),
+                noScheduleMessages = if(todayState.selectedDate.dayOfWeek == DayOfWeek.FRIDAY) "It's Friday!" else noScheduleMessage,
+                noScheduleSubMessage = if(todayState.selectedDate.dayOfWeek == DayOfWeek.FRIDAY) "Offer your Jumma prayer, may Allah grant barakah in your life." else noScheduleSubMessage
             )
             
             // Action Button positioned at bottom right
