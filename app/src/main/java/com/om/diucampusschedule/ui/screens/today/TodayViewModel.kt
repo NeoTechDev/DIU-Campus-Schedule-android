@@ -17,4 +17,8 @@ class TodayViewModel @Inject constructor() : ViewModel() {
     fun selectDate(date: LocalDate) {
         _selectedDate.value = date
     }
+    
+    fun resetToToday() {
+        _selectedDate.value = LocalDate.now()
+    }
 }

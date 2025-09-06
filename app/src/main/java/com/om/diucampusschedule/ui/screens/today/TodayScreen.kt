@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -76,6 +79,11 @@ fun TodayScreen(
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    
+    // Reset to today's date when screen is first composed or revisited
+    LaunchedEffect(Unit) {
+        todayViewModel.resetToToday()
+    }
     
     Column(
         modifier = Modifier
@@ -128,6 +136,11 @@ private fun CustomTopAppBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+                clip = false
+            )
             .background(
                 color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
@@ -161,6 +174,22 @@ private fun CustomTopAppBar(
                 }
             },
             actions = {
+                // "Back to Today" button - only show when not on current date
+                if (selectedDate != LocalDate.now()) {
+                    IconButton(
+                        onClick = {
+                            todayViewModel.selectDate(LocalDate.now())
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Today,
+                            contentDescription = "Back to Today",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(topbarIconSize)
+                        )
+                    }
+                }
+                
                 // Right side: Notification + Menu icons
                 IconButton(
                     onClick = onNotificationClick
