@@ -1,5 +1,6 @@
 package com.om.diucampusschedule.ui.screens.today
 
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -15,8 +16,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,9 +33,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -65,6 +72,7 @@ import coil.request.ImageRequest
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.navigation.Screen
+import com.om.diucampusschedule.ui.screens.today.components.FindCourseBottomSheetContent
 import com.om.diucampusschedule.ui.screens.today.components.MiniCalendar
 import com.om.diucampusschedule.ui.screens.today.components.TodayActionButton
 import com.om.diucampusschedule.ui.utils.ScreenConfig
@@ -89,6 +97,10 @@ fun TodayScreen(
     
     // State for action button
     var isActionButtonExpanded by remember { mutableStateOf(false) }
+    
+    // State for Find Course bottom sheet
+    var showFindCourseBottomSheet by remember { mutableStateOf(false) }
+    val findCourseSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     
     // Handle back button press to close action button
     BackHandler(enabled = isActionButtonExpanded) {
@@ -161,7 +173,7 @@ fun TodayScreen(
                     onToggleExpand = { isActionButtonExpanded = !isActionButtonExpanded },
                     onFindCourseClick = {
                         isActionButtonExpanded = false
-                        // TODO: Navigate to find course screen
+                        showFindCourseBottomSheet = true
                     },
                     onAddTaskClick = {
                         isActionButtonExpanded = false
@@ -173,6 +185,32 @@ fun TodayScreen(
                     }
                 )
             }
+        }
+    }
+    
+    // Find Course Bottom Sheet
+    if (showFindCourseBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showFindCourseBottomSheet = false },
+            sheetState = findCourseSheetState,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(
+                            Color.Gray.copy(alpha = 0.3f),
+                            RoundedCornerShape(2.dp)
+                        )
+                )
+            }
+        ) {
+            FindCourseBottomSheetContent(
+                onDismiss = { showFindCourseBottomSheet = false }
+            )
         }
     }
 }
