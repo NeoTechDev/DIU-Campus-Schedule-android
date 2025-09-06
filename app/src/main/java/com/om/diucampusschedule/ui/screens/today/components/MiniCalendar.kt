@@ -93,9 +93,9 @@ fun MiniCalendar(
     LazyRow(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 1.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp),
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(horizontal = 6.dp),
         state = listState
     ) {
         items(dates.size) { index ->
@@ -179,7 +179,7 @@ fun DateItem(date: LocalDate, isSelected: Boolean, onClick: () -> Unit) {
             contentAlignment = Alignment.TopCenter
         ) {
             Text(
-                text = dayOfWeekName.uppercase(Locale.ROOT),
+                text = dayOfWeekName.uppercase(),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isSelected) selectedTextColor else unselectedTextColor,
                 textAlign = TextAlign.Center,

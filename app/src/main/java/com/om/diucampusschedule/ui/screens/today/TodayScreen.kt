@@ -326,7 +326,7 @@ private fun CustomTopAppBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 8.dp, end = 8.dp, top = 0.dp, bottom = 8.dp)
+                .padding(start = 8.dp, end = 8.dp, top = 0.dp, bottom = 4.dp)
                 .clickable (
                     interactionSource = interactionSource,
                     indication = null,
