@@ -104,7 +104,7 @@ object CourseUtils {
 }
 
 // Define the missing color constant
-val AppSecondaryColorDark = Color(0xFF6B46C1) // Purple color similar to secondary
+val AppSecondaryColorDark = Color(0xFF3730A3) // Purple color similar to secondary
 
 @Composable
 fun RoutineCard(
@@ -152,7 +152,7 @@ fun RoutineCard(
     )
 
     // Select color based on course code
-    val colorIndex = (colorSeed % pastelColors.size).toInt()
+    val colorIndex = (colorSeed % pastelColors.size)
     val pastelColor = pastelColors[colorIndex]
     val primaryColor = accentColors[colorIndex]
 
@@ -203,7 +203,7 @@ fun RoutineCard(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(vertical = 4.dp, horizontal = 7.dp),
+                            .padding(vertical = 4.dp, horizontal = 6.dp),
                         horizontalAlignment = Alignment.Start,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -223,6 +223,8 @@ fun RoutineCard(
                                 color = Color(0xFFDDD6FE),
                                 fontFamily = customFontFamily(),
                                 textAlign = TextAlign.Start,
+                                lineHeight = 14.sp,
+                                letterSpacing = (-0.5).sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -243,7 +245,7 @@ fun RoutineCard(
                                         brush = Brush.verticalGradient(
                                             colors = listOf(
                                                 MaterialTheme.colorScheme.primary,
-                                                MaterialTheme.colorScheme.tertiary
+                                                Color(0xFF0EA5E9)
                                             )
                                         ),
                                         shape = RoundedCornerShape(2.dp)
@@ -270,6 +272,8 @@ fun RoutineCard(
                                     fontFamily = customFontFamily()
                                 ),
                                 textAlign = TextAlign.Start,
+                                lineHeight = 14.sp,
+                                letterSpacing = (-0.5).sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -280,7 +284,7 @@ fun RoutineCard(
                 // White divider between sections
                 Box(
                     modifier = Modifier
-                        .width(10.dp)
+                        .width(8.dp)
                         .height(90.dp)
                         .background(MaterialTheme.colorScheme.background)
                 )
@@ -316,7 +320,7 @@ fun RoutineCard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 12.dp),
+                                .padding(horizontal = 8.dp, vertical = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -338,7 +342,7 @@ fun RoutineCard(
                                         style = MaterialTheme.typography.titleLarge.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 16.sp,
-                                            lineHeight = 17.sp,
+                                            lineHeight = 16.sp,
                                             color = Color(0xFF0D2137),
                                             fontFamily = customFontFamily()
                                         ),
@@ -414,9 +418,10 @@ fun RoutineCard(
 
                                             Text(
                                                 text = roomNo,
-                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                style = MaterialTheme.typography.titleLarge.copy(
                                                     color = Color(0xFF34495E),
                                                     fontSize = if (roomNo.length > 5) 15.sp else 19.sp,
+                                                    letterSpacing = (-0.5).sp,
                                                     fontWeight = FontWeight.Bold,
                                                     fontFamily = customFontFamily()
                                                 )
@@ -471,7 +476,7 @@ private fun InfoChip(
 ) {
     Box(
         modifier = Modifier
-            .background(backgroundColor, RoundedCornerShape(8.dp))
+            .background(backgroundColor, RoundedCornerShape(10.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Row(
@@ -523,15 +528,15 @@ private fun DrawScope.drawDecorativeElements(
     // Draw a decorative path
     val path = Path().apply {
         moveTo(size.width * 0.8f, size.height * 0.2f)
-        quadraticBezierTo(
+        quadraticTo(
             size.width * 0.9f, size.height * 0.3f,
             size.width * 0.8f, size.height * 0.4f
         )
-        quadraticBezierTo(
+        quadraticTo(
             size.width * 0.7f, size.height * 0.5f,
             size.width * 0.8f, size.height * 0.6f
         )
-        quadraticBezierTo(
+        quadraticTo(
             size.width * 0.9f, size.height * 0.7f,
             size.width * 0.8f, size.height * 0.8f
         )
@@ -641,7 +646,7 @@ fun BreakTimeCard(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(vertical = 4.dp, horizontal = 7.dp),
+                        .padding(vertical = 4.dp, horizontal = 6.dp),
                     horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -661,6 +666,8 @@ fun BreakTimeCard(
                                 fontFamily = customFontFamily()
                             ),
                             textAlign = TextAlign.Start,
+                            lineHeight = 14.sp,
+                            letterSpacing = (-0.5).sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -702,6 +709,8 @@ fun BreakTimeCard(
                                 color = Color.White.copy(alpha = 0.8f),
                                 fontFamily = customFontFamily()
                             ),
+                            lineHeight = 14.sp,
+                            letterSpacing = (-0.5).sp,
                             textAlign = TextAlign.Start,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -713,7 +722,7 @@ fun BreakTimeCard(
             // White divider between sections
             Box(
                 modifier = Modifier
-                    .width(10.dp)
+                    .width(8.dp)
                     .height(90.dp)
                     .background(MaterialTheme.colorScheme.background)
             )
@@ -731,14 +740,14 @@ fun BreakTimeCard(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(12.dp),
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     // Left content (icon and text)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         // Icon
                         AnimatedVisibility(
@@ -789,6 +798,7 @@ fun BreakTimeCard(
                                         fontSize = 14.sp,
                                         fontFamily = customFontFamily()
                                     ),
+                                    lineHeight = 14.sp,
                                     color = BreakTextColor.copy(alpha = 0.7f),
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
@@ -815,9 +825,11 @@ fun BreakTimeCard(
                             text = durationText,
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Medium,
-                                fontSize = 12.sp,
+                                fontSize = 10.sp,
                                 fontFamily = customFontFamily()
                             ),
+                            lineHeight = 10.sp,
+                            textAlign = TextAlign.Center,
                             color = BreakTextColor,
                             modifier = Modifier
                                 .background(

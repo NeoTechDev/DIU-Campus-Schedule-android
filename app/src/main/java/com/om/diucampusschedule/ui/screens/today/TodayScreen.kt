@@ -155,6 +155,7 @@ fun TodayScreen(
                 onClassClick = { routineItem ->
                     // TODO: Navigate to class details or course info
                 },
+                isToday = todayState.selectedDate == LocalDate.now(),
                 modifier = Modifier.fillMaxSize()
             )
             

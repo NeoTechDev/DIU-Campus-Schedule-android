@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
+import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.viewmodel.ClassStatus
 import com.om.diucampusschedule.ui.screens.today.components.toClassRoutine
 import java.time.LocalDate
@@ -54,6 +55,7 @@ fun TodayRoutineContent(
     isLoading: Boolean,
     getCourseName: (String) -> String = { it }, // Function to get course name from course code
     onClassClick: (RoutineItem) -> Unit = {},
+    isToday: Boolean,
     modifier: Modifier = Modifier
 ) {
     if (isLoading) {
@@ -66,8 +68,8 @@ fun TodayRoutineContent(
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             // Show filter info if user has lab section
             if (currentUser?.labSection?.isNotEmpty() == true) {
@@ -98,7 +100,7 @@ fun TodayRoutineContent(
                             courseName = getCourseName(scheduleItem.routineItem.courseCode),
                             selectedDate = LocalDate.now(),
                             formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
-                            isToday = true
+                            isToday = isToday
                         )
                     }
                     is ScheduleItem.Break -> {
@@ -116,12 +118,12 @@ fun TodayRoutineContent(
                         }
                         
                         BreakTimeCard(
-                            breakText = "Break Time",
-                            subText = "Take a break!",
+                            breakText = if(currentUser?.role == UserRole.STUDENT) "Break Time" else "Counselling Hour",
+                            subText = if(currentUser?.role == UserRole.STUDENT) "Time to recharge and\nget ready!" else "Time for student\nconsultations and guidance",
                             startTime = startTime,
                             endTime = endTime,
                             formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
-                            isToday = true
+                            isToday = isToday
                         )
                     }
                 }
