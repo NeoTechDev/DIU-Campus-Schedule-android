@@ -171,3 +171,9 @@ val AcademicTextStyles = object {
     )
 
 }
+
+// Custom font family function for consistent usage across the app
+@Composable
+fun customFontFamily(): FontFamily {
+    return RobotoFontFamily
+}
