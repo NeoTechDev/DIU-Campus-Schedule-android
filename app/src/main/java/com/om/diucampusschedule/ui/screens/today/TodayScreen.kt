@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,7 +60,9 @@ import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.User
+import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.screens.today.components.MiniCalendar
+import com.om.diucampusschedule.ui.screens.today.components.TodayActionButton
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -82,6 +83,9 @@ fun TodayScreen(
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    
+    // State for action button
+    var isActionButtonExpanded by remember { mutableStateOf(false) }
     
     // Reset to today's date when screen is first composed or revisited
     LaunchedEffect(Unit) {
@@ -109,17 +113,46 @@ fun TodayScreen(
         
         // Main content area for future schedule content
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+            modifier = Modifier.fillMaxSize()
         ) {
-            Text(
-                text = "Schedule content for\n${selectedDate.format(DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()))}\ncoming soon...",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center
-            )
+            // Schedule content
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Schedule content for\n${selectedDate.format(DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()))}\ncoming soon...",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center
+                )
+            }
+            
+            // Action Button positioned at bottom right
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                TodayActionButton(
+                    isExpanded = isActionButtonExpanded,
+                    onToggleExpand = { isActionButtonExpanded = !isActionButtonExpanded },
+                    onFindCourseClick = {
+                        isActionButtonExpanded = false
+                        // TODO: Navigate to find course screen
+                    },
+                    onAddTaskClick = {
+                        isActionButtonExpanded = false
+                        // TODO: Navigate to add task screen
+                    },
+                    onFacultyInfoClick = {
+                        isActionButtonExpanded = false
+                        navController.navigate(Screen.FacultyInfo.route)
+                    }
+                )
+            }
         }
     }
 }
