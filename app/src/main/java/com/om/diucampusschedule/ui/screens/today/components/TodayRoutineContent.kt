@@ -4,19 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -35,8 +33,6 @@ import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.viewmodel.ClassStatus
-import com.om.diucampusschedule.ui.screens.today.components.toClassRoutine
-import androidx.compose.ui.graphics.Color
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -252,81 +248,6 @@ private fun getClassStatus(routineItem: RoutineItem): ClassStatus {
     }
 }
 
-@Composable
-private fun BreakTimeCard(
-    duration: String,
-    startTime: String,
-    endTime: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(20.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Coffee,
-                    contentDescription = "Break time",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = "Break Time",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
-                Text(
-                    text = "$startTime - $endTime",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            Text(
-                text = duration,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
-        }
-    }
-}
-
 private fun createScheduleWithBreaks(routineItems: List<RoutineItem>): List<ScheduleItem> {
     val scheduleItems = mutableListOf<ScheduleItem>()
     val sortedItems = routineItems
@@ -335,13 +256,16 @@ private fun createScheduleWithBreaks(routineItems: List<RoutineItem>): List<Sche
     
     if (sortedItems.isEmpty()) return emptyList()
     
+    // Merge consecutive identical classes
+    val mergedItems = mergeConsecutiveClasses(sortedItems)
+    
     // Add first class
-    scheduleItems.add(ScheduleItem.Class(sortedItems.first()))
+    scheduleItems.add(ScheduleItem.Class(mergedItems.first()))
     
     // Add breaks between classes
-    for (i in 1 until sortedItems.size) {
-        val previousClass = sortedItems[i - 1]
-        val currentClass = sortedItems[i]
+    for (i in 1 until mergedItems.size) {
+        val previousClass = mergedItems[i - 1]
+        val currentClass = mergedItems[i]
         
         val previousEndTime = previousClass.endTime
         val currentStartTime = currentClass.startTime
@@ -378,4 +302,40 @@ private fun formatBreakDuration(minutes: Long): String {
         minutes % 60 == 0L -> "${minutes / 60}h"
         else -> "${minutes / 60}h ${minutes % 60}m"
     }
+}
+
+private fun mergeConsecutiveClasses(routineItems: List<RoutineItem>): List<RoutineItem> {
+    if (routineItems.isEmpty()) return emptyList()
+    
+    val mergedList = mutableListOf<RoutineItem>()
+    var currentRoutine = routineItems.first()
+    
+    for (i in 1 until routineItems.size) {
+        val routine = routineItems[i]
+        
+        // Check if current routine is the same course and consecutive
+        if (currentRoutine.courseCode == routine.courseCode &&
+            currentRoutine.endTime == routine.startTime &&
+            currentRoutine.room == routine.room &&
+            currentRoutine.batch == routine.batch &&
+            currentRoutine.section == routine.section &&
+            currentRoutine.teacherInitial == routine.teacherInitial) {
+            // Merge the routines by updating the time string
+            val startTimeFormatted = currentRoutine.startTime?.format(DateTimeFormatter.ofPattern("hh:mm a"))
+            val endTimeFormatted = routine.endTime?.format(DateTimeFormatter.ofPattern("hh:mm a"))
+            if (startTimeFormatted != null && endTimeFormatted != null) {
+                val mergedTime = "$startTimeFormatted - $endTimeFormatted"
+                currentRoutine = currentRoutine.copy(time = mergedTime)
+            }
+        } else {
+            // Add the current routine to the merged list and start a new one
+            mergedList.add(currentRoutine)
+            currentRoutine = routine
+        }
+    }
+    
+    // Add the last routine
+    mergedList.add(currentRoutine)
+    
+    return mergedList
 }
