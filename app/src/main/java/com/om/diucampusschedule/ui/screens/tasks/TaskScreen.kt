@@ -1134,7 +1134,7 @@ fun TaskCard(
     val uncheckIcon = painterResource(id = R.drawable.uncheck)
     val deleteIcon = painterResource(id = R.drawable.delete)
     val editIcon = painterResource(id = R.drawable.edit_24px)
-    val reminderIcon = painterResource(id = R.drawable.reminder_icon)
+    val reminderIcon = painterResource(id = R.drawable.active_reminder)
     val shareIcon = painterResource(id = R.drawable.share)
     val selectIcon =
         painterResource(id = if (isSelected) R.drawable.check_circle else R.drawable.circle)
