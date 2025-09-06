@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -84,9 +83,11 @@ fun TodayScreen(
             .background(MaterialTheme.colorScheme.background)
             .run { ScreenConfig.run { withTopAppBar() } }
     ) {
-        // Custom Top App Bar with modern design
+        // Custom Top App Bar with Header and Calendar content
         CustomTopAppBar(
             user = authState.user,
+            selectedDate = selectedDate,
+            todayViewModel = todayViewModel,
             onProfileClick = {
                 onOpenDrawer() // Open drawer instead of navigating to profile
             },
@@ -95,99 +96,19 @@ fun TodayScreen(
             }
         )
         
-        // Subtle divider for modern look
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
-        )
-        
-        // Main content area with Header and Calendar
-        Column(
+        // Main content area for future schedule content
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 8.dp)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            // Header with "Today's Schedule" and Date
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp, end = 8.dp, top = 0.dp, bottom = 8.dp)
-                    .clickable (
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = {
-                            // TODO: Open full calendar bottom sheet
-                        }
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Left side: Today's Schedule title
-                Text(
-                    text = if(selectedDate == LocalDate.now()) "Today's Schedule" else "Schedule On",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 14.sp
-                )
-                
-                // Right side: Date with dropdown arrow
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
-                ) {
-                    // Date with dropdown arrow on the same row
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Open Calendar",
-                            tint = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = selectedDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())),
-                            color = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            lineHeight = 14.sp
-                        )
-                    }
-                    // Day below the date - no padding
-                    Text(
-                        text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE", Locale.getDefault())).uppercase(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
-                        lineHeight = 11.sp
-                    )
-                }
-            }
-            
-            // Mini Calendar Section
-            MiniCalendar(
-                selectedDate = selectedDate,
-                onDateSelected = { date ->
-                    todayViewModel.selectDate(date)
-                },
-                modifier = Modifier.padding(bottom = 8.dp)
+            Text(
+                text = "Schedule content for\n${selectedDate.format(DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()))}\ncoming soon...",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center
             )
-            
-            // Rest of content placeholder
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Schedule content for\n${selectedDate.format(DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()))}\ncoming soon...",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center
-                )
-            }
         }
     }
 }
@@ -196,55 +117,138 @@ fun TodayScreen(
 @Composable
 private fun CustomTopAppBar(
     user: User?,
+    selectedDate: LocalDate,
+    todayViewModel: TodayViewModel,
     onProfileClick: () -> Unit,
     onNotificationClick: () -> Unit
 ) {
-    TopAppBar(
-        title = {
-            // Left side: User profile section only
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable { onProfileClick() },
-                verticalAlignment = Alignment.CenterVertically
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+            )
+            .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+    ) {
+        // Original TopAppBar
+        TopAppBar(
+            title = {
+                // Left side: User profile section only
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { onProfileClick() },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Clean profile picture
+                    ProfilePicture(
+                        user = user,
+                        size = 36.dp
+                    )
+                    
+                    Spacer(modifier = Modifier.width(10.dp))
+                    
+                    // Clean user info
+                    UserInfoSection(
+                        user = user,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            },
+            actions = {
+                // Right side: Notification + Menu icons
+                IconButton(
+                    onClick = onNotificationClick
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notifications",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(topbarIconSize)
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true)
+        )
+        
+        // Header with "Today's Schedule" and Date
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 8.dp, end = 8.dp, top = 0.dp, bottom = 8.dp)
+                .clickable (
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = {
+                        // TODO: Open full calendar bottom sheet
+                    }
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Left side: Today's Schedule title
+            Text(
+                text = if(selectedDate == LocalDate.now()) "Today's Schedule" else "Schedule On",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 14.sp
+            )
+            
+            // Right side: Date with dropdown arrow
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                // Clean profile picture
-                ProfilePicture(
-                    user = user,
-                    size = 36.dp
-                )
-                
-                Spacer(modifier = Modifier.width(10.dp))
-                
-                // Clean user info
-                UserInfoSection(
-                    user = user,
-                    modifier = Modifier.weight(1f)
+                // Date with dropdown arrow on the same row
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Open Calendar",
+                        tint = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = selectedDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())),
+                        color = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 14.sp
+                    )
+                }
+                // Day below the date - no padding
+                Text(
+                    text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE", Locale.getDefault())).uppercase(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp,
+                    lineHeight = 11.sp
                 )
             }
-        },
-        actions = {
-            // Right side: Notification + Menu icons
-            IconButton(
-                onClick = onNotificationClick
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notifications",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(topbarIconSize)
-                )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
-        windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
-        modifier = Modifier.fillMaxWidth()
-    )
+        }
+        
+        // Mini Calendar Section
+        MiniCalendar(
+            selectedDate = selectedDate,
+            onDateSelected = { date ->
+                todayViewModel.selectDate(date)
+            },
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+    }
 }
 
 @Composable
