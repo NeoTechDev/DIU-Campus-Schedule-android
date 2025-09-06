@@ -68,7 +68,7 @@ val md_theme_dark_onBackground = Color(0xFFE8EAF0) // Brighter Light Gray Text
 val md_theme_dark_surface = Color(0xFF242831) // Lighter Surface - Cards More Visible
 val md_theme_dark_onSurface = Color(0xFFE8EAF0) // Brighter Light Gray Text
 
-val md_theme_dark_surfaceVariant = Color(0xFF525A6B) // Lighter Blue-Gray - Better Card Visibility
+val md_theme_dark_surfaceVariant = Color(0xFF3A3F4A) // Lighter Blue-Gray - Better Card Visibility
 val md_theme_dark_onSurfaceVariant = Color(0xFFD1D5E0) // Brighter Light Gray Text
 val md_theme_dark_outline = Color(0xFF9BA3B0) // Lighter Gray - More Visible Borders
 val md_theme_dark_outlineVariant = Color(0xFF525A6B) // Lighter Gray - Subtle but Visible Borders

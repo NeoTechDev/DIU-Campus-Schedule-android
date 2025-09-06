@@ -564,9 +564,9 @@ fun AddTaskBottomSheet(
                     Card(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .clickable { showDateTimePicker = true },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (date.isEmpty() && time.isEmpty()) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer
                         ),
@@ -634,9 +634,9 @@ fun AddTaskBottomSheet(
                     Card(
                         modifier = Modifier
                             .weight(0.8f)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .then(if (time.isNotEmpty()) Modifier.clickable { showReminderSheet = true } else Modifier), // Conditional clickable
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (time.isEmpty()) {
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
