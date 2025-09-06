@@ -6,6 +6,7 @@ import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.util.Log
 import com.om.diucampusschedule.domain.model.Task
+import dagger.hilt.android.qualifiers.ApplicationContext // Added this import
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -34,7 +35,7 @@ data class TaskWithSender(
 
 @Singleton
 class TaskSharer @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context // Added @ApplicationContext
 ) {
 
     private val nsdManager by lazy { context.getSystemService(Context.NSD_SERVICE) as NsdManager }
@@ -144,7 +145,7 @@ class TaskSharer @Inject constructor(
 
             override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
                 Log.e("TaskSharer", "Discovery failed: Error code:$errorCode")
-                // Don't try to stop discovery if it failed to start - the listener isn't registered yet
+                // Don\'t try to stop discovery if it failed to start - the listener isn\'t registered yet
             }
 
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
