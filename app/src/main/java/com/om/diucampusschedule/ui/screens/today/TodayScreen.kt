@@ -16,11 +16,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -58,7 +56,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -75,6 +72,7 @@ import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.screens.today.components.FindCourseBottomSheetContent
 import com.om.diucampusschedule.ui.screens.today.components.MiniCalendar
 import com.om.diucampusschedule.ui.screens.today.components.TodayActionButton
+import com.om.diucampusschedule.ui.screens.today.components.TodayRoutineContent
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -92,6 +90,7 @@ fun TodayScreen(
 ) {
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val selectedDate by todayViewModel.selectedDate.collectAsStateWithLifecycle()
+    val todayState by todayViewModel.uiState.collectAsStateWithLifecycle()
 
     val focusManager = LocalFocusManager.current
     
@@ -131,7 +130,7 @@ fun TodayScreen(
             }
         )
         
-        // Main content area for future schedule content
+        // Main content area for routine content
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -147,20 +146,17 @@ fun TodayScreen(
                     }
                 }
         ) {
-            // Schedule content
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Schedule content for\n${selectedDate.format(DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()))}\ncoming soon...",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center
-                )
-            }
+            // Routine content
+            TodayRoutineContent(
+                routineItems = todayState.routineItems,
+                currentUser = todayState.currentUser,
+                isLoading = todayState.isLoading,
+                getCourseName = todayViewModel::getCourseName,
+                onClassClick = { routineItem ->
+                    // TODO: Navigate to class details or course info
+                },
+                modifier = Modifier.fillMaxSize()
+            )
             
             // Action Button positioned at bottom right
             Box(
@@ -184,6 +180,15 @@ fun TodayScreen(
                         navController.navigate(Screen.FacultyInfo.route)
                     }
                 )
+            }
+        }
+        
+        // Error handling
+        todayState.error?.let { error ->
+            LaunchedEffect(error) {
+                // Show error in snackbar or handle as needed
+                // For now, just retry automatically
+                todayViewModel.retryLastAction()
             }
         }
     }

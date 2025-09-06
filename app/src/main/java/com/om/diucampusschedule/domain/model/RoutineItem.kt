@@ -79,15 +79,25 @@ data class RoutineItem(
                 val deptMatch = department.equals(user.department, ignoreCase = true)
                 val batchMatch = batch.trim().equals(user.batch.trim(), ignoreCase = true)
                 
-                // Enhanced section matching logic
+                // Enhanced section matching logic with proper lab section filtering
                 val userSection = user.section.trim().uppercase()
+                val userLabSection = user.labSection.trim().uppercase()
                 val itemSection = section.trim().uppercase()
                 
                 val sectionMatch = when {
-                    // Exact section match (e.g., user: "A", item: "A")
+                    // Exact section match (e.g., user: "J", item: "J")
                     itemSection == userSection -> true
                     
-                    // User has main section (e.g., "A") and item has lab sections (e.g., "A1", "A2")
+                    // Lab section specific matching
+                    userLabSection.isNotEmpty() -> {
+                        // If user has a specific lab section (e.g., "J1"), only show:
+                        // 1. Classes for the main section "J" 
+                        // 2. Classes specifically for their lab section "J1" (not J2, J3, etc.)
+                        itemSection == userSection || itemSection == userLabSection
+                    }
+                    
+                    // User has main section but no specific lab section
+                    // Show all classes for their section including lab sections
                     userSection.length == 1 && itemSection.startsWith(userSection) && 
                     itemSection.length > 1 && itemSection.substring(1).all { it.isDigit() } -> true
                     
@@ -99,7 +109,7 @@ data class RoutineItem(
                 android.util.Log.d("RoutineItem", "  Item dept: '$department' vs User dept: '${user.department}' -> $deptMatch")
                 android.util.Log.d("RoutineItem", "  Item batch: '$batch' vs User batch: '${user.batch}' -> $batchMatch")
                 android.util.Log.d("RoutineItem", "  Item section: '$section' vs User section: '${user.section}' -> $sectionMatch")
-                android.util.Log.d("RoutineItem", "  Section match logic: userSection='$userSection', itemSection='$itemSection'")
+                android.util.Log.d("RoutineItem", "  Section match logic: userSection='$userSection', userLabSection='$userLabSection', itemSection='$itemSection'")
                 android.util.Log.d("RoutineItem", "  FINAL MATCH: ${deptMatch && batchMatch && sectionMatch}")
                 
                 deptMatch && batchMatch && sectionMatch
