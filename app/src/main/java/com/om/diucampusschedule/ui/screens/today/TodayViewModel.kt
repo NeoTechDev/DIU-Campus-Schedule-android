@@ -8,6 +8,7 @@ import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineForDayUseCase
+import com.om.diucampusschedule.ui.screens.today.components.CourseUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -137,6 +138,9 @@ class TodayViewModel @Inject constructor(
         }
         
         _uiState.value = _uiState.value.copy(courseNames = currentNames)
+        
+        // Also update the CourseUtils cache for ClassRoutineCard compatibility
+        CourseUtils.setCourseNames(currentNames)
     }
     
     fun getCourseName(courseCode: String): String {

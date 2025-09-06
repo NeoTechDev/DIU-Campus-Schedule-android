@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.sp
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.viewmodel.ClassStatus
+import com.om.diucampusschedule.ui.screens.today.components.toClassRoutine
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -91,18 +93,35 @@ fun TodayRoutineContent(
             ) { scheduleItem ->
                 when (scheduleItem) {
                     is ScheduleItem.Class -> {
-                        ClassCard(
-                            routineItem = scheduleItem.routineItem,
+                        RoutineCard(
+                            routine = scheduleItem.routineItem.toClassRoutine(),
                             courseName = getCourseName(scheduleItem.routineItem.courseCode),
-                            status = getClassStatus(scheduleItem.routineItem),
-                            onClick = { onClassClick(scheduleItem.routineItem) }
+                            selectedDate = LocalDate.now(),
+                            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                            isToday = true
                         )
                     }
                     is ScheduleItem.Break -> {
+                        // Parse the break time strings back to LocalTime for the BreakTimeCard
+                        val formatter = DateTimeFormatter.ofPattern("hh:mm a")
+                        val startTime = try {
+                            LocalTime.parse(scheduleItem.startTime, formatter)
+                        } catch (e: Exception) {
+                            LocalTime.parse(scheduleItem.startTime, DateTimeFormatter.ofPattern("h:mm a"))
+                        }
+                        val endTime = try {
+                            LocalTime.parse(scheduleItem.endTime, formatter)
+                        } catch (e: Exception) {
+                            LocalTime.parse(scheduleItem.endTime, DateTimeFormatter.ofPattern("h:mm a"))
+                        }
+                        
                         BreakTimeCard(
-                            duration = scheduleItem.duration,
-                            startTime = scheduleItem.startTime,
-                            endTime = scheduleItem.endTime
+                            breakText = "Break Time",
+                            subText = "Take a break!",
+                            startTime = startTime,
+                            endTime = endTime,
+                            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                            isToday = true
                         )
                     }
                 }
