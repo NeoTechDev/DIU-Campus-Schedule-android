@@ -3,6 +3,7 @@ package com.om.diucampusschedule.ui.screens.today
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.om.diucampusschedule.core.error.AppError
+import com.om.diucampusschedule.core.reminder.ClassReminderScheduler
 import com.om.diucampusschedule.core.service.CourseNameService
 import com.om.diucampusschedule.data.repository.TaskRepository
 import com.om.diucampusschedule.data.repository.RoutineRepository
@@ -50,7 +51,8 @@ class TodayViewModel @Inject constructor(
     private val getUserRoutineForDayUseCase: GetUserRoutineForDayUseCase,
     private val courseNameService: CourseNameService,
     private val taskRepository: TaskRepository,
-    private val routineRepository: RoutineRepository
+    private val routineRepository: RoutineRepository,
+    private val classReminderScheduler: ClassReminderScheduler
 ) : ViewModel() {
     
     private val _selectedDate = MutableStateFlow(LocalDate.now())
@@ -71,6 +73,9 @@ class TodayViewModel @Inject constructor(
     init {
         observeUser()
         observeDateChanges()
+        
+        // Initialize class reminder scheduler
+        classReminderScheduler.initialize()
     }
     
     private fun observeUser() {
@@ -293,6 +298,9 @@ class TodayViewModel @Inject constructor(
     
     fun resetToToday() {
         _selectedDate.value = LocalDate.now()
+        
+        // Schedule today's reminders when user opens today screen
+        classReminderScheduler.scheduleTodayReminders()
     }
     
     fun clearError() {
@@ -308,6 +316,9 @@ class TodayViewModel @Inject constructor(
             
             viewModelScope.launch {
                 loadDataForDate(currentState.selectedDate)
+                
+                // Refresh reminders when retrying
+                classReminderScheduler.refreshReminders()
             }
         }
     }
@@ -382,6 +393,9 @@ class TodayViewModel @Inject constructor(
         // Reload data
         viewModelScope.launch {
             loadDataForDate(date)
+            
+            // Refresh reminders when data is refreshed
+            classReminderScheduler.refreshReminders()
         }
         android.util.Log.d("TodayViewModel", "Refreshed data for $date")
     }
@@ -418,5 +432,13 @@ class TodayViewModel @Inject constructor(
         } catch (e: Exception) {
             // Ignore preload failures
         }
+    }
+    
+    /**
+     * Clean up resources when ViewModel is destroyed
+     */
+    override fun onCleared() {
+        super.onCleared()
+        classReminderScheduler.cleanup()
     }
 }

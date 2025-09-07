@@ -2,12 +2,16 @@ package com.om.diucampusschedule
 
 import android.app.Application
 import android.content.Intent
+import com.om.diucampusschedule.core.reminder.ClassReminderScheduler
 import com.om.diucampusschedule.data.remote.NotificationPollingService
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
 class App : Application() {
-    // This is a new comment
+    
+    @Inject
+    lateinit var classReminderScheduler: ClassReminderScheduler
 
     override fun onCreate() {
         super.onCreate()
@@ -15,7 +19,12 @@ class App : Application() {
         // Start real-time notification service for admin updates
         startService(Intent(this, NotificationPollingService::class.java))
         
-        // TODO: Setup WorkManager and sync when the worker system is properly configured
-        // For now, keep the app simple to avoid crash
+        // Initialize class reminder scheduler
+        try {
+            classReminderScheduler.initialize()
+        } catch (e: Exception) {
+            // Log error but don't crash the app
+            android.util.Log.e("App", "Failed to initialize class reminder scheduler", e)
+        }
     }
 }
