@@ -119,3 +119,4 @@ val AccentGreen = Color(0xFF10B981) // Emerald green
 val AccentRed = Color(0xFFEF4444) // Bright red
 val AccentPurple = Color(0xFF8B5CF6) // Vibrant purple
 val AccentTeal = Color(0xFF0EA5E9) // Blue-leaning teal that matches primary color
+val NeutralLight = Color(0xFFD1D5DB)

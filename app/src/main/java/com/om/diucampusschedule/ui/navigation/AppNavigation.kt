@@ -1,7 +1,5 @@
 package com.om.diucampusschedule.ui.navigation
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -26,12 +24,14 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,6 +39,7 @@ import androidx.navigation.compose.rememberNavController
 import com.om.diucampusschedule.domain.model.AppState
 import com.om.diucampusschedule.ui.components.MainScaffold
 import com.om.diucampusschedule.ui.components.NavigationDrawer
+import com.om.diucampusschedule.ui.components.WelcomeDialog
 import com.om.diucampusschedule.ui.screens.auth.EmailVerificationScreen
 import com.om.diucampusschedule.ui.screens.auth.ForgotPasswordScreen
 import com.om.diucampusschedule.ui.screens.auth.RegistrationFormScreen
@@ -56,7 +57,8 @@ import com.om.diucampusschedule.ui.screens.tasks.TaskScreen
 import com.om.diucampusschedule.ui.screens.today.TodayScreen
 import com.om.diucampusschedule.ui.screens.welcome.WelcomeScreen
 import com.om.diucampusschedule.ui.viewmodel.AppInitializationViewModel
-import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
+import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
+import com.om.diucampusschedule.ui.viewmodel.WelcomeViewModel
 import kotlinx.coroutines.launch
 
 // Animation constants
@@ -189,41 +191,6 @@ private object NavigationAnimations {
             easing = LinearOutSlowInEasing
         )
     )
-}
-
-/**
- * Helper function to determine animation direction based on screen hierarchy
- */
-private fun getTabAnimations(
-    targetRoute: String,
-    initialRoute: String?
-): Pair<androidx.compose.animation.EnterTransition, androidx.compose.animation.ExitTransition> {
-    // Define tab order for proper directional animations
-    val tabOrder = listOf(
-        Screen.Today.route,
-        Screen.Routine.route,
-        Screen.EmptyRooms.route,
-        Screen.Tasks.route,
-        Screen.Notes.route
-    )
-    
-    val targetIndex = tabOrder.indexOf(targetRoute)
-    val initialIndex = initialRoute?.let { tabOrder.indexOf(it) } ?: -1
-    
-    return when {
-        // Moving to a tab to the right
-        targetIndex > initialIndex && initialIndex != -1 -> {
-            NavigationAnimations.slideInFromRightTab to NavigationAnimations.slideOutToLeftTab
-        }
-        // Moving to a tab to the left
-        targetIndex < initialIndex && initialIndex != -1 -> {
-            NavigationAnimations.slideInFromLeftTab to NavigationAnimations.slideOutToRightTab
-        }
-        // Default animations for non-tab screens or first load
-        else -> {
-            NavigationAnimations.slideInFromRight to NavigationAnimations.slideOutToLeft
-        }
-    }
 }
 
 /**
@@ -451,6 +418,14 @@ private fun MainAppNavigationHost(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     
+    // Welcome dialog state management
+    val welcomeViewModel: WelcomeViewModel = hiltViewModel()
+    val welcomeUiState by welcomeViewModel.uiState.collectAsStateWithLifecycle()
+    
+    // Get routine data for effectiveFrom
+    val routineViewModel: RoutineViewModel = hiltViewModel()
+    val routineUiState by routineViewModel.uiState.collectAsStateWithLifecycle()
+    
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
@@ -672,6 +647,16 @@ private fun MainAppNavigationHost(
                     DebugScreen(navController = navController)
                 }
             }
+        }
+        
+        // Show welcome dialog for first-time users
+        if (welcomeUiState.showWelcomeDialog) {
+            WelcomeDialog(
+                effectiveFrom = routineUiState.effectiveFrom ?: "", // Use dynamic data with fallback
+                onDismiss = {
+                    welcomeViewModel.dismissWelcomeDialog()
+                }
+            )
         }
     }
 }

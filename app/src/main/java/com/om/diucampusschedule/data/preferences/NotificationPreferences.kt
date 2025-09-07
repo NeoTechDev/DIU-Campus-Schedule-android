@@ -22,6 +22,7 @@ class NotificationPreferences @Inject constructor(
     companion object {
         private val CLASS_REMINDERS_ENABLED = booleanPreferencesKey("class_reminders_enabled")
         private val NOTIFICATION_PERMISSION_REQUESTED = booleanPreferencesKey("notification_permission_requested")
+        private val WELCOME_DIALOG_SHOWN = booleanPreferencesKey("welcome_dialog_shown")
     }
     
     /**
@@ -41,6 +42,14 @@ class NotificationPreferences @Inject constructor(
         }
     
     /**
+     * Flow that emits whether welcome dialog has been shown before
+     */
+    val hasWelcomeDialogBeenShown: Flow<Boolean> = context.notificationDataStore.data
+        .map { preferences ->
+            preferences[WELCOME_DIALOG_SHOWN] ?: false
+        }
+    
+    /**
      * Enable or disable class reminders
      */
     suspend fun setClassRemindersEnabled(enabled: Boolean) {
@@ -55,6 +64,15 @@ class NotificationPreferences @Inject constructor(
     suspend fun markNotificationPermissionRequested() {
         context.notificationDataStore.edit { preferences ->
             preferences[NOTIFICATION_PERMISSION_REQUESTED] = true
+        }
+    }
+    
+    /**
+     * Mark that welcome dialog has been shown
+     */
+    suspend fun markWelcomeDialogShown() {
+        context.notificationDataStore.edit { preferences ->
+            preferences[WELCOME_DIALOG_SHOWN] = true
         }
     }
 }
