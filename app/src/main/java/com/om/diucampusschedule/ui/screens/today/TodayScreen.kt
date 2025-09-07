@@ -296,6 +296,9 @@ fun TodayScreen(
                                 taskToEdit = task
                                 showTaskBottomSheet = true
                             },
+                            onTeacherClick = { teacherInitial ->
+                                navController.navigate(Screen.FacultyInfo.createRoute(teacherInitial))
+                            },
                             isToday = animatedDate == LocalDate.now(),
                             modifier = Modifier.fillMaxSize(),
                             noContentImage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) painterResource(id = R.drawable.muslim) else painterResource(id = R.drawable.sleep),

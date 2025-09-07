@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -112,7 +114,8 @@ fun RoutineCard(
     courseName: String? = null, // Accept course name from external source
     selectedDate: LocalDate = LocalDate.now(),
     formatter12HourUS: DateTimeFormatter? = null,
-    isToday: Boolean = false
+    isToday: Boolean = false,
+    onTeacherClick: ((String) -> Unit)? = null // Add callback for teacher initial click
 ) {
     val displayedCourseName = courseName ?: CourseUtils.getCourseName(routine.courseCode) ?: routine.courseCode
 
@@ -360,11 +363,14 @@ fun RoutineCard(
                                         visible = visible,
                                         enter = fadeIn(animationSpec = tween(300, delayMillis = 100))
                                     ) {
-                                        InfoChip(
+                                        ClickableInfoChip(
                                             icon = R.drawable.lesson_class_24,
                                             text = routine.teacherInitial ?: "TBA",
                                             backgroundColor = Color.White.copy(alpha = 0.6f),
-                                            iconColor = primaryColor
+                                            iconColor = primaryColor,
+                                            onClick = routine.teacherInitial?.let { initial ->
+                                                { onTeacherClick?.invoke(initial) }
+                                            }
                                         )
                                     }
 
@@ -502,6 +508,50 @@ private fun InfoChip(
     }
 }
 
+@Composable
+private fun ClickableInfoChip(
+    icon: Int,
+    text: String,
+    backgroundColor: Color,
+    iconColor: Color,
+    onClick: (() -> Unit)? = null
+) {
+    Box(
+        modifier = Modifier
+            .background(backgroundColor, RoundedCornerShape(10.dp))
+            .let { modifier ->
+                if (onClick != null) {
+                    modifier.clickable { onClick() }
+                } else {
+                    modifier
+                }
+            }
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(12.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    color = Color(0xFF34495E),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = customFontFamily(),
+                    textDecoration = if (onClick != null) TextDecoration.Underline else null
+                )
+            )
+        }
+    }
+}
+
 // Function to check if a class is currently running
 private fun isClassRunning(startTime: LocalTime?, endTime: LocalTime?): Boolean {
     if (startTime == null || endTime == null) return false
@@ -567,7 +617,8 @@ fun RoutineCardPreview() {
             routine = sampleRoutineItem.toClassRoutine(),
             courseName = "Software Engineering",
             selectedDate = LocalDate.now(),
-            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a")
+            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+            onTeacherClick = { /* Preview - no action */ }
         )
 
         RoutineCard(
@@ -578,7 +629,8 @@ fun RoutineCardPreview() {
             ).toClassRoutine(),
             courseName = "Mathematics",
             selectedDate = LocalDate.now(),
-            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a")
+            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+            onTeacherClick = { /* Preview - no action */ }
         )
     }
 }

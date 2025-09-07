@@ -639,13 +639,17 @@ private fun MainAppNavigationHost(
                 }
                 
                 composable(
-                    route = Screen.FacultyInfo.route,
+                    route = "${Screen.FacultyInfo.route}?searchQuery={searchQuery}",
                     enterTransition = { NavigationAnimations.slideInFromRight },
                     exitTransition = { NavigationAnimations.slideOutToLeft },
                     popEnterTransition = { NavigationAnimations.slideInFromLeft },
                     popExitTransition = { NavigationAnimations.slideOutToRight }
-                ) {
-                    FacultyInfoScreen(onBack = navController)
+                ) { backStackEntry ->
+                    val searchQuery = backStackEntry.arguments?.getString("searchQuery")
+                    FacultyInfoScreen(
+                        onBack = navController,
+                        initialSearchQuery = searchQuery
+                    )
                 }
 
                 composable(

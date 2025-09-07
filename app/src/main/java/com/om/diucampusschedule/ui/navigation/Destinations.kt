@@ -17,7 +17,15 @@ sealed class Screen(val route: String) {
     object Notes : Screen("notes")
     object NoteEditor : Screen("note_editor")
     object EmptyRooms : Screen("empty_rooms")
-    object FacultyInfo : Screen("faculty_info")
+    object FacultyInfo : Screen("faculty_info") {
+        fun createRoute(searchQuery: String? = null): String {
+            return if (searchQuery.isNullOrBlank()) {
+                route
+            } else {
+                "$route?searchQuery=$searchQuery"
+            }
+        }
+    }
     object Profile : Screen("profile")
     object Community : Screen("community")
     object Debug : Screen("debug")

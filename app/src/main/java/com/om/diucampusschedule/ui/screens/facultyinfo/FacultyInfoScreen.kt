@@ -88,9 +88,12 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-fun FacultyInfoScreen(onBack: NavHostController) {
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearchActive by remember { mutableStateOf(false) }
+fun FacultyInfoScreen(
+    onBack: NavHostController,
+    initialSearchQuery: String? = null
+) {
+    var searchQuery by remember { mutableStateOf(initialSearchQuery ?: "") }
+    var isSearchActive by remember { mutableStateOf(!initialSearchQuery.isNullOrBlank()) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current

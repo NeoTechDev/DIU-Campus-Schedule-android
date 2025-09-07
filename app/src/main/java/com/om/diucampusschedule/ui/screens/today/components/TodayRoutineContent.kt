@@ -55,6 +55,7 @@ fun TodayRoutineContent(
     onDeleteTask: (Task) -> Unit = {},
     onEditTask: (Task) -> Unit = {},
     onShareTask: (Task) -> Unit = {},
+    onTeacherClick: (String) -> Unit = {}, // Add teacher click callback
     isToday: Boolean,
     modifier: Modifier = Modifier,
     noContentImage: Painter,
@@ -115,7 +116,8 @@ fun TodayRoutineContent(
                                 courseName = getCourseName(scheduleItem.routineItem.courseCode),
                                 selectedDate = LocalDate.now(),
                                 formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
-                                isToday = isToday
+                                isToday = isToday,
+                                onTeacherClick = onTeacherClick
                             )
                         }
                         is ScheduleItem.Break -> {
