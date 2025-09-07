@@ -86,16 +86,19 @@ import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.components.AddTaskBottomSheet
 import com.om.diucampusschedule.ui.navigation.Screen
+import com.om.diucampusschedule.ui.screens.today.components.CalendarViewComponent
 import com.om.diucampusschedule.ui.screens.today.components.FindCourseBottomSheetContent
 import com.om.diucampusschedule.ui.screens.today.components.MiniCalendar
 import com.om.diucampusschedule.ui.screens.today.components.TodayActionButton
 import com.om.diucampusschedule.ui.screens.today.components.TodayRoutineContent
+import com.om.diucampusschedule.ui.screens.today.components.calculateDailyEventCounts
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 import com.om.diucampusschedule.ui.viewmodel.ModernTaskViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -132,6 +135,11 @@ fun TodayScreen(
     // State for Find Course bottom sheet
     var showFindCourseBottomSheet by remember { mutableStateOf(false) }
     val findCourseSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
+    // State for Full Calendar bottom sheet
+    var showFullCalendarBottomSheet by remember { mutableStateOf(false) }
+    val fullCalendarSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var currentCalendarMonth by remember { mutableStateOf(YearMonth.from(selectedDate)) }
     
     // State for Add/Edit Task bottom sheet
     var showTaskBottomSheet by remember { mutableStateOf(false) }
@@ -185,6 +193,10 @@ fun TodayScreen(
             },
             onNotificationClick = {
                 // TODO: Implement notification functionality
+            },
+            onCalendarClick = {
+                currentCalendarMonth = YearMonth.from(selectedDate)
+                showFullCalendarBottomSheet = true
             }
         )
         
@@ -380,6 +392,68 @@ fun TodayScreen(
             }
         )
     }
+    
+    // Full Calendar Bottom Sheet
+    if (showFullCalendarBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showFullCalendarBottomSheet = false },
+            sheetState = fullCalendarSheetState,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(
+                            Color.Gray.copy(alpha = 0.3f),
+                            RoundedCornerShape(2.dp)
+                        )
+                )
+            }
+        ) {
+            CalendarViewComponent(
+                onDismiss = { showFullCalendarBottomSheet = false },
+                onDateSelected = { selectedDate ->
+                    todayViewModel.selectDate(selectedDate)
+                    showFullCalendarBottomSheet = false
+                },
+                currentMonth = currentCalendarMonth,
+                onMonthChanged = { newMonth ->
+                    currentCalendarMonth = newMonth
+                },
+                dailyEventCounts = calculateDailyEventCountsForCalendar(
+                    todayViewModel = todayViewModel,
+                    yearMonth = currentCalendarMonth
+                )
+            )
+        }
+    }
+}
+
+/**
+ * Calculate daily event counts for calendar using ViewModel methods
+ */
+@Composable
+private fun calculateDailyEventCountsForCalendar(
+    todayViewModel: TodayViewModel,
+    yearMonth: YearMonth
+): Map<LocalDate, Pair<Int, Int>> {
+    var dailyEventCounts by remember(yearMonth) { mutableStateOf<Map<LocalDate, Pair<Int, Int>>>(emptyMap()) }
+    
+    LaunchedEffect(yearMonth) {
+        val allRoutineItems = todayViewModel.getAllWeekRoutineItems()
+        val allTasks = todayViewModel.getAllTasksForMonth(yearMonth)
+        
+        dailyEventCounts = calculateDailyEventCounts(
+            routineItems = allRoutineItems,
+            tasks = allTasks,
+            yearMonth = yearMonth
+        )
+    }
+    
+    return dailyEventCounts
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -389,7 +463,8 @@ private fun CustomTopAppBar(
     selectedDate: LocalDate,
     todayViewModel: TodayViewModel,
     onProfileClick: () -> Unit,
-    onNotificationClick: () -> Unit
+    onNotificationClick: () -> Unit,
+    onCalendarClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -469,7 +544,7 @@ private fun CustomTopAppBar(
                     }
                 }
                 
-                // Right side: Notification icon
+                // Right side: Notification + Menu icons
                 IconButton(
                     onClick = onNotificationClick
                 ) {
@@ -498,7 +573,7 @@ private fun CustomTopAppBar(
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = {
-                        // TODO: Open full calendar bottom sheet
+                        onCalendarClick()
                     }
                 ),
             verticalAlignment = Alignment.CenterVertically,

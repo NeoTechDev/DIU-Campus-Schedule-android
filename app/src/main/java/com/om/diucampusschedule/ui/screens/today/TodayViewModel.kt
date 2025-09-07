@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
@@ -302,6 +303,53 @@ class TodayViewModel @Inject constructor(
             viewModelScope.launch {
                 loadDataForDate(currentState.selectedDate)
             }
+        }
+    }
+
+    // Method to get all routine items for all days of the week for calendar
+    suspend fun getAllWeekRoutineItems(): List<RoutineItem> {
+        val user = currentUser ?: return emptyList()
+        val allRoutineItems = mutableListOf<RoutineItem>()
+        
+        // Get routine for each day of the week
+        val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+        
+        for (dayName in daysOfWeek) {
+            try {
+                getUserRoutineForDayUseCase(user, dayName).fold(
+                    onSuccess = { routineItems ->
+                        allRoutineItems.addAll(routineItems)
+                    },
+                    onFailure = { 
+                        android.util.Log.w("TodayViewModel", "Failed to load routine for $dayName")
+                    }
+                )
+            } catch (e: Exception) {
+                android.util.Log.w("TodayViewModel", "Error loading routine for $dayName", e)
+            }
+        }
+        
+        return allRoutineItems.distinctBy { "${it.day}-${it.time}-${it.courseCode}-${it.room}" }
+    }
+    
+    // Method to get all tasks for a specific month for calendar
+    suspend fun getAllTasksForMonth(yearMonth: YearMonth): List<Task> {
+        return try {
+            // Get all tasks and filter for the specific month
+            val allTasks = taskRepository.getAllTasks().first()
+            val dateFormatter = DateTimeFormatter.ofPattern("MM-dd-yyyy", Locale.US)
+            
+            allTasks.filter { task ->
+                try {
+                    val taskDate = LocalDate.parse(task.date, dateFormatter)
+                    YearMonth.from(taskDate) == yearMonth
+                } catch (e: Exception) {
+                    false
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("TodayViewModel", "Error loading tasks for month $yearMonth", e)
+            emptyList()
         }
     }
     
