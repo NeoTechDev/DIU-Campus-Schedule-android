@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.coroutineScope
 import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
@@ -96,6 +97,7 @@ import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 import com.om.diucampusschedule.ui.viewmodel.ModernTaskViewModel
+import kotlinx.coroutines.async
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -441,16 +443,28 @@ private fun calculateDailyEventCountsForCalendar(
     yearMonth: YearMonth
 ): Map<LocalDate, Pair<Int, Int>> {
     var dailyEventCounts by remember(yearMonth) { mutableStateOf<Map<LocalDate, Pair<Int, Int>>>(emptyMap()) }
+    var isLoading by remember(yearMonth) { mutableStateOf(false) }
     
     LaunchedEffect(yearMonth) {
-        val allRoutineItems = todayViewModel.getAllWeekRoutineItems()
-        val allTasks = todayViewModel.getAllTasksForMonth(yearMonth)
-        
-        dailyEventCounts = calculateDailyEventCounts(
-            routineItems = allRoutineItems,
-            tasks = allTasks,
-            yearMonth = yearMonth
-        )
+        isLoading = true
+        try {
+            // Use coroutineScope for concurrent loading
+            coroutineScope {
+                val routineDeferred = async { todayViewModel.getAllWeekRoutineItems() }
+                val tasksDeferred = async { todayViewModel.getAllTasksForMonth(yearMonth) }
+                
+                val allRoutineItems = routineDeferred.await()
+                val allTasks = tasksDeferred.await()
+                
+                dailyEventCounts = calculateDailyEventCounts(
+                    routineItems = allRoutineItems,
+                    tasks = allTasks,
+                    yearMonth = yearMonth
+                )
+            }
+        } finally {
+            isLoading = false
+        }
     }
     
     return dailyEventCounts

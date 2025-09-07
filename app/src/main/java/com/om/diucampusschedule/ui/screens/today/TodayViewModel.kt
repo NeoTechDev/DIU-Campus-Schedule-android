@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.om.diucampusschedule.core.error.AppError
 import com.om.diucampusschedule.core.service.CourseNameService
 import com.om.diucampusschedule.data.repository.TaskRepository
+import com.om.diucampusschedule.data.repository.RoutineRepository
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
@@ -48,7 +49,8 @@ class TodayViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getUserRoutineForDayUseCase: GetUserRoutineForDayUseCase,
     private val courseNameService: CourseNameService,
-    private val taskRepository: TaskRepository
+    private val taskRepository: TaskRepository,
+    private val routineRepository: RoutineRepository
 ) : ViewModel() {
     
     private val _selectedDate = MutableStateFlow(LocalDate.now())
@@ -57,9 +59,13 @@ class TodayViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TodayUiState())
     val uiState: StateFlow<TodayUiState> = _uiState.asStateFlow()
     
+    // Expose routine loading state for calendar
+    val isRoutineLoading = routineRepository.isLoading
+    
     // Professional caching solution
     private val dayDataCache = mutableMapOf<String, CachedDayData>()
     private val cacheExpirationTime = 5 * 60 * 1000L // 5 minutes
+    
     private var currentUser: User? = null
     
     init {
@@ -306,30 +312,34 @@ class TodayViewModel @Inject constructor(
         }
     }
 
-    // Method to get all routine items for all days of the week for calendar
+    // Professional method to get all routine items for all days of the week for calendar
     suspend fun getAllWeekRoutineItems(): List<RoutineItem> {
         val user = currentUser ?: return emptyList()
-        val allRoutineItems = mutableListOf<RoutineItem>()
         
-        // Get routine for each day of the week
-        val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
-        
-        for (dayName in daysOfWeek) {
-            try {
-                getUserRoutineForDayUseCase(user, dayName).fold(
-                    onSuccess = { routineItems ->
-                        allRoutineItems.addAll(routineItems)
-                    },
-                    onFailure = { 
-                        android.util.Log.w("TodayViewModel", "Failed to load routine for $dayName")
-                    }
-                )
-            } catch (e: Exception) {
-                android.util.Log.w("TodayViewModel", "Error loading routine for $dayName", e)
-            }
+        // Try to get cached data first for immediate response
+        val cachedData = routineRepository.getCachedWeekRoutineItems(user)
+        if (cachedData != null) {
+            return cachedData
         }
         
-        return allRoutineItems.distinctBy { "${it.day}-${it.time}-${it.courseCode}-${it.room}" }
+        // If no cache, fetch from repository (which handles its own caching)
+        return try {
+            routineRepository.getWeekRoutineItems(user).first()
+        } catch (e: Exception) {
+            android.util.Log.e("TodayViewModel", "Error loading week routine items", e)
+            emptyList()
+        }
+    }
+    
+    // Method to refresh routine data
+    suspend fun refreshWeekRoutineItems(): List<RoutineItem> {
+        val user = currentUser ?: return emptyList()
+        return try {
+            routineRepository.refreshWeekRoutineItems(user)
+        } catch (e: Exception) {
+            android.util.Log.e("TodayViewModel", "Error refreshing week routine items", e)
+            emptyList()
+        }
     }
     
     // Method to get all tasks for a specific month for calendar
@@ -356,6 +366,7 @@ class TodayViewModel @Inject constructor(
     // Method to clear cache when needed (e.g., when user logs out or data becomes stale)
     fun clearCache() {
         dayDataCache.clear()
+        routineRepository.invalidateCache()
         android.util.Log.d("TodayViewModel", "Cache cleared")
     }
     
