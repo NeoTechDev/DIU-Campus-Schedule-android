@@ -17,15 +17,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
-import kotlin.coroutines.resume
 
 data class TodayUiState(
     val isLoading: Boolean = false,
@@ -201,19 +200,14 @@ class TodayViewModel @Inject constructor(
     private suspend fun loadTasksForDateAsync(date: LocalDate): List<Task> {
         val dateString = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"))
         
-        return suspendCancellableCoroutine { continuation ->
-            viewModelScope.launch {
-                taskRepository.getTasksByDate(dateString).collect { allTasks ->
-                    // Filter to only show pending (incomplete) tasks
-                    val pendingTasks = allTasks.filter { !it.isCompleted }
-                    android.util.Log.d("TodayViewModel", "Loaded ${pendingTasks.size} pending tasks for $dateString (${allTasks.size} total)")
-                    
-                    if (continuation.isActive) {
-                        continuation.resume(pendingTasks)
-                    }
-                }
-            }
-        }
+        // Get the first emission from the Flow
+        val allTasks = taskRepository.getTasksByDate(dateString).first()
+        
+        // Filter to only show pending (incomplete) tasks
+        val pendingTasks = allTasks.filter { !it.isCompleted }
+        android.util.Log.d("TodayViewModel", "Loaded ${pendingTasks.size} pending tasks for $dateString (${allTasks.size} total)")
+        
+        return pendingTasks
     }
     
     private fun updateCache(user: User, date: LocalDate, routineItems: List<RoutineItem>? = null, tasks: List<Task>? = null) {
