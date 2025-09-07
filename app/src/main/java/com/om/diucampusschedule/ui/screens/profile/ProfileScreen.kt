@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CameraAlt
@@ -54,6 +55,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -98,9 +100,9 @@ import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.components.LabSectionChipDisplay
 import com.om.diucampusschedule.ui.components.LabSectionChipGroup
 import com.om.diucampusschedule.ui.components.NetworkStatusMessage
-import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.utils.ScreenConfig
+import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 import com.om.diucampusschedule.ui.viewmodel.ValidationViewModel
 import com.om.diucampusschedule.util.ImageUploadUtil
@@ -275,12 +277,34 @@ fun ProfileScreen(
                     .run { ScreenConfig.run { withoutTopAppBar() } }
                     .verticalScroll(rememberScrollState())
             ) {
+
                 // Network Status (only if not connected)
                 if (!isConnected) {
                     NetworkStatusMessage(
                         isConnected = isConnected,
                         modifier = Modifier.padding(12.dp)
                     )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 16.dp),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+
+                ){
+                    // Back button
+                    IconButton(
+                        onClick = { navController.popBackStack() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(topbarIconSize)
+                        )
+                    }
                 }
 
                 // Profile Header with modern design

@@ -74,8 +74,7 @@ private fun isMainAppScreen(route: String?): Boolean {
         Screen.Routine.route,
         Screen.EmptyRooms.route,
         Screen.Tasks.route,
-        Screen.Notes.route,
-        Screen.Profile.route -> true
+        Screen.Notes.route -> true
         else -> false
     }
 }
