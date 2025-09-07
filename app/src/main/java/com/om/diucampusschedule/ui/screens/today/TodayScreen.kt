@@ -43,8 +43,11 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,7 +66,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
@@ -111,11 +113,18 @@ fun TodayScreen(
     val todayState by todayViewModel.uiState.collectAsStateWithLifecycle()
     val taskGroups by taskViewModel.taskGroups.collectAsState(initial = emptyList())
 
-    val isToday = todayState.selectedDate == LocalDate.now()
-    val noScheduleMessage = if(isToday) "Nothing scheduled today!" else "Nothing scheduled that day"
-    val noScheduleSubMessage = if(isToday) "No classes or tasks scheduled for today. Enjoy your free time!" else "No classes or tasks will be scheduled for that day. All yours to chill and enjoy!"
-
     val focusManager = LocalFocusManager.current
+    
+    // Pull-to-refresh state (Material 3) - using a simple isRefreshing boolean
+    var isRefreshing by remember { mutableStateOf(false) }
+    val pullToRefreshState = rememberPullToRefreshState()
+    
+    // Sync refresh state with ViewModel loading state
+    LaunchedEffect(todayState.isLoading) {
+        if (!todayState.isLoading) {
+            isRefreshing = false
+        }
+    }
     
     // State for action button
     var isActionButtonExpanded by remember { mutableStateOf(false) }
@@ -130,7 +139,6 @@ fun TodayScreen(
     
     // Swipe gesture states
     var horizontalOffset by remember { mutableStateOf(0f) }
-    val density = LocalDensity.current
     val animatedOffset by animateFloatAsState(
         targetValue = horizontalOffset,
         animationSpec = spring(dampingRatio = 0.95f, stiffness = 120f), // Smoother spring
@@ -145,6 +153,20 @@ fun TodayScreen(
     // Reset to today's date when screen is first composed or revisited
     LaunchedEffect(Unit) {
         todayViewModel.resetToToday()
+        // Preload nearby dates for smoother navigation
+        todayViewModel.preloadNearbyDates()
+    }
+    
+    // Preload nearby dates when the selected date changes
+    LaunchedEffect(selectedDate) {
+        todayViewModel.preloadNearbyDates()
+    }
+    
+    // Clear cache when the screen is disposed to free memory
+    DisposableEffect(Unit) {
+        onDispose {
+            todayViewModel.clearCache()
+        }
     }
     
     Column(
@@ -166,127 +188,141 @@ fun TodayScreen(
             }
         )
         
-        // Main content area for routine content with swipe gesture support
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(isActionButtonExpanded, selectedDate) {
-                    if (isActionButtonExpanded) {
-                        detectTapGestures(
-                            onTap = { 
-                                isActionButtonExpanded = false
-                                focusManager.clearFocus()
-                            }
-                        )
-                    } else {
-                        detectHorizontalDragGestures(
-                            onDragEnd = {
-                                val swipeThreshold = 80f // Lower threshold for more responsive swipe
-                                if (horizontalOffset > swipeThreshold) {
-                                    todayViewModel.selectDate(selectedDate.minusDays(1))
-                                } else if (horizontalOffset < -swipeThreshold) {
-                                    todayViewModel.selectDate(selectedDate.plusDays(1))
-                                }
-                                // Animate offset back to zero for smooth snap
-                                horizontalOffset = 0f
-                            },
-                            onDragCancel = {
-                                horizontalOffset = 0f
-                            }
-                        ) { change, dragAmount ->
-                            change.consume()
-                            horizontalOffset = (horizontalOffset + dragAmount * 0.7f).coerceIn(-350f, 350f)
-                        }
-                    }
-                }
+        // Main content area with pull-to-refresh and swipe gesture support
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                todayViewModel.refreshCurrentData()
+                // Reset refresh state after a delay (in real implementation, this would be set when data loading completes)
+                // You should set isRefreshing = false when todayState.isLoading changes to false
+            },
+            state = pullToRefreshState,
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Animated content container with offset and fade for swipe feedback
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .offset { IntOffset(animatedOffset.toInt(), 0) }
-                    .graphicsLayer { alpha = 1f - (kotlin.math.abs(animatedOffset) / 700f).coerceIn(0f, 0.25f) } // Subtle fade while swiping
-            ) {
-                AnimatedContent(
-                    targetState = selectedDate,
-                    transitionSpec = {
-                        val direction = if (targetState.isAfter(initialState)) {
-                            AnimatedContentTransitionScope.SlideDirection.Left
+                    .pointerInput(isActionButtonExpanded, selectedDate) {
+                        if (isActionButtonExpanded) {
+                            detectTapGestures(
+                                onTap = { 
+                                    isActionButtonExpanded = false
+                                    focusManager.clearFocus()
+                                }
+                            )
                         } else {
-                            AnimatedContentTransitionScope.SlideDirection.Right
+                            detectHorizontalDragGestures(
+                                onDragEnd = {
+                                    val swipeThreshold = 80f // Lower threshold for more responsive swipe
+                                    if (horizontalOffset > swipeThreshold) {
+                                        todayViewModel.selectDate(selectedDate.minusDays(1))
+                                    } else if (horizontalOffset < -swipeThreshold) {
+                                        todayViewModel.selectDate(selectedDate.plusDays(1))
+                                    }
+                                    // Animate offset back to zero for smooth snap
+                                    horizontalOffset = 0f
+                                },
+                                onDragCancel = {
+                                    horizontalOffset = 0f
+                                }
+                            ) { change, dragAmount ->
+                                change.consume()
+                                horizontalOffset = (horizontalOffset + dragAmount * 0.7f).coerceIn(-350f, 350f)
+                            }
                         }
-                        ContentTransform(
-                            targetContentEnter = slideIntoContainer(
-                                towards = direction,
-                                animationSpec = spring(dampingRatio = 0.95f, stiffness = 120f)
-                            ) + fadeIn(animationSpec = tween(350)),
-                            initialContentExit = slideOutOfContainer(
-                                towards = direction,
-                                animationSpec = spring(dampingRatio = 0.95f, stiffness = 120f)
-                            ) + fadeOut(animationSpec = tween(250))
-                        )
-                    },
-                    label = "dateContentAnimation"
-                ) { animatedDate ->
-                    val animatedTodayState = if (animatedDate == selectedDate) todayState else {
-                        todayState.copy(
-                            selectedDate = animatedDate,
-                            routineItems = emptyList(),
-                            tasks = emptyList(),
-                            isLoading = false
+                    }
+            ) {
+                // Animated content container with offset and fade for swipe feedback
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .offset { IntOffset(animatedOffset.toInt(), 0) }
+                        .graphicsLayer { alpha = 1f - (kotlin.math.abs(animatedOffset) / 700f).coerceIn(0f, 0.25f) } // Subtle fade while swiping
+                ) {
+                    AnimatedContent(
+                        targetState = selectedDate,
+                        transitionSpec = {
+                            val direction = if (targetState.isAfter(initialState)) {
+                                AnimatedContentTransitionScope.SlideDirection.Left
+                            } else {
+                                AnimatedContentTransitionScope.SlideDirection.Right
+                            }
+                            ContentTransform(
+                                targetContentEnter = slideIntoContainer(
+                                    towards = direction,
+                                    animationSpec = spring(dampingRatio = 0.95f, stiffness = 120f)
+                                ) + fadeIn(animationSpec = tween(350)),
+                                initialContentExit = slideOutOfContainer(
+                                    towards = direction,
+                                    animationSpec = spring(dampingRatio = 0.95f, stiffness = 120f)
+                                ) + fadeOut(animationSpec = tween(250))
+                            )
+                        },
+                        label = "dateContentAnimation"
+                    ) { animatedDate ->
+                        val animatedTodayState = if (animatedDate == selectedDate) todayState else {
+                            todayState.copy(
+                                selectedDate = animatedDate,
+                                routineItems = emptyList(),
+                                tasks = emptyList(),
+                                isLoading = false
+                            )
+                        }
+                        TodayRoutineContent(
+                            routineItems = animatedTodayState.routineItems,
+                            tasks = animatedTodayState.tasks,
+                            currentUser = animatedTodayState.currentUser,
+                            isLoading = animatedTodayState.isLoading,
+                            getCourseName = todayViewModel::getCourseName,
+                            onClassClick = { _ -> },
+                            onUpdateTask = todayViewModel::updateTask,
+                            onDeleteTask = todayViewModel::deleteTask,
+                            onEditTask = { task ->
+                                taskToEdit = task
+                                showTaskBottomSheet = true
+                            },
+                            isToday = animatedDate == LocalDate.now(),
+                            modifier = Modifier.fillMaxSize(),
+                            noContentImage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) painterResource(id = R.drawable.muslim) else painterResource(id = R.drawable.sleep),
+                            noScheduleMessages = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "It's Friday!" else if(animatedDate == LocalDate.now()) "Nothing scheduled today!" else "Nothing scheduled that day",
+                            noScheduleSubMessage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "Offer your Jumma prayer, may Allah grant barakah in your life." else if(animatedDate == LocalDate.now()) "No classes or tasks scheduled for today. Enjoy your free time!" else "No classes or tasks will be scheduled for that day. All yours to chill and enjoy!"
                         )
                     }
-                    TodayRoutineContent(
-                        routineItems = animatedTodayState.routineItems,
-                        tasks = animatedTodayState.tasks,
-                        currentUser = animatedTodayState.currentUser,
-                        isLoading = animatedTodayState.isLoading,
-                        getCourseName = todayViewModel::getCourseName,
-                        onClassClick = { _ -> },
-                        onUpdateTask = todayViewModel::updateTask,
-                        onDeleteTask = todayViewModel::deleteTask,
-                        onEditTask = { task ->
-                            taskToEdit = task
+                }
+                
+                // Action Button positioned at bottom right
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                ) {
+                    TodayActionButton(
+                        isExpanded = isActionButtonExpanded,
+                        onToggleExpand = { isActionButtonExpanded = !isActionButtonExpanded },
+                        onFindCourseClick = {
+                            isActionButtonExpanded = false
+                            showFindCourseBottomSheet = true
+                        },
+                        onAddTaskClick = {
+                            isActionButtonExpanded = false
+                            taskToEdit = null // Clear any existing task to edit
                             showTaskBottomSheet = true
                         },
-                        isToday = animatedDate == LocalDate.now(),
-                        modifier = Modifier.fillMaxSize(),
-                        noContentImage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) painterResource(id = R.drawable.muslim) else painterResource(id = R.drawable.sleep),
-                        noScheduleMessages = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "It's Friday!" else if(animatedDate == LocalDate.now()) "Nothing scheduled today!" else "Nothing scheduled that day",
-                        noScheduleSubMessage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "Offer your Jumma prayer, may Allah grant barakah in your life." else if(animatedDate == LocalDate.now()) "No classes or tasks scheduled for today. Enjoy your free time!" else "No classes or tasks will be scheduled for that day. All yours to chill and enjoy!"
+                        onFacultyInfoClick = {
+                            isActionButtonExpanded = false
+                            navController.navigate(Screen.FacultyInfo.route)
+                        }
                     )
                 }
-            }
-            
-            // Action Button positioned at bottom right
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-            ) {
-                TodayActionButton(
-                    isExpanded = isActionButtonExpanded,
-                    onToggleExpand = { isActionButtonExpanded = !isActionButtonExpanded },
-                    onFindCourseClick = {
-                        isActionButtonExpanded = false
-                        showFindCourseBottomSheet = true
-                    },
-                    onAddTaskClick = {
-                        isActionButtonExpanded = false
-                        taskToEdit = null // Clear any existing task to edit
-                        showTaskBottomSheet = true
-                    },
-                    onFacultyInfoClick = {
-                        isActionButtonExpanded = false
-                        navController.navigate(Screen.FacultyInfo.route)
-                    }
-                )
             }
         }
         
         // Error handling
         todayState.error?.let { error ->
             LaunchedEffect(error) {
+                // Clear cache on error to ensure fresh data on retry
+                todayViewModel.clearCache()
                 // Show error in snackbar or handle as needed
                 // For now, just retry automatically
                 todayViewModel.retryLastAction()
@@ -433,7 +469,7 @@ private fun CustomTopAppBar(
                     }
                 }
                 
-                // Right side: Notification + Menu icons
+                // Right side: Notification icon
                 IconButton(
                     onClick = onNotificationClick
                 ) {

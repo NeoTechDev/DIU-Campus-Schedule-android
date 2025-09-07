@@ -4,26 +4,28 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.om.diucampusschedule.core.error.AppError
 import com.om.diucampusschedule.core.service.CourseNameService
+import com.om.diucampusschedule.data.repository.TaskRepository
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineForDayUseCase
-import com.om.diucampusschedule.data.repository.TaskRepository
 import com.om.diucampusschedule.ui.screens.today.components.CourseUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 data class TodayUiState(
     val isLoading: Boolean = false,
@@ -33,6 +35,12 @@ data class TodayUiState(
     val error: AppError? = null,
     val selectedDate: LocalDate = LocalDate.now(),
     val courseNames: Map<String, String> = emptyMap() // Cache for course names
+)
+
+data class CachedDayData(
+    val routineItems: List<RoutineItem>,
+    val tasks: List<Task>,
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 @HiltViewModel
@@ -49,97 +57,189 @@ class TodayViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TodayUiState())
     val uiState: StateFlow<TodayUiState> = _uiState.asStateFlow()
     
+    // Professional caching solution
+    private val dayDataCache = mutableMapOf<String, CachedDayData>()
+    private val cacheExpirationTime = 5 * 60 * 1000L // 5 minutes
+    private var currentUser: User? = null
+    
     init {
-        observeUserAndRoutineData()
+        observeUser()
+        observeDateChanges()
     }
     
-    private fun observeUserAndRoutineData() {
-        combine(
-            getCurrentUserUseCase.observeCurrentUser(),
-            _selectedDate
-        ) { user, date ->
-            Pair(user, date)
-        }.onEach { (user, date) ->
-            if (user != null) {
+    private fun observeUser() {
+        getCurrentUserUseCase.observeCurrentUser()
+            .onEach { user ->
+                currentUser = user
+                if (user != null) {
+                    _uiState.value = _uiState.value.copy(currentUser = user)
+                    // Load data for current selected date
+                    loadDataForDate(_selectedDate.value)
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        currentUser = null,
+                        routineItems = emptyList(),
+                        tasks = emptyList(),
+                        isLoading = false
+                    )
+                    dayDataCache.clear() // Clear cache when user changes
+                }
+            }
+            .catch { throwable ->
+                val error = AppError.fromThrowable(throwable)
+                _uiState.value = _uiState.value.copy(error = error, isLoading = false)
+            }
+            .launchIn(viewModelScope)
+    }
+    
+    private fun observeDateChanges() {
+        _selectedDate
+            .onEach { date ->
+                _uiState.value = _uiState.value.copy(selectedDate = date)
+                loadDataForDate(date)
+            }
+            .launchIn(viewModelScope)
+    }
+    
+    private fun loadDataForDate(date: LocalDate) {
+        val user = currentUser ?: return
+        val cacheKey = getCacheKey(user, date)
+        
+        // Check cache first
+        val cachedData = dayDataCache[cacheKey]
+        if (cachedData != null && !isCacheExpired(cachedData)) {
+            // Use cached data - but still need to ensure course names are loaded
+            viewModelScope.launch {
+                val updatedCourseNames = loadCourseNamesSync(cachedData.routineItems)
                 _uiState.value = _uiState.value.copy(
-                    currentUser = user,
-                    selectedDate = date,
-                    isLoading = true,
+                    routineItems = cachedData.routineItems,
+                    tasks = cachedData.tasks,
+                    courseNames = updatedCourseNames,
+                    isLoading = false,
                     error = null
                 )
-                loadRoutineForDay(user, date)
-                loadTasksForDay(date)
-            } else {
+                // Also update the CourseUtils cache for ClassRoutineCard compatibility
+                CourseUtils.setCourseNames(updatedCourseNames)
+            }
+            android.util.Log.d("TodayViewModel", "Using cached data for $date")
+            return
+        }
+        
+        // Load fresh data - coordinate both routine and tasks loading
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        
+        viewModelScope.launch {
+            try {
+                // Load both routine and tasks concurrently and wait for both to complete
+                val routineDeferred = async { loadRoutineForDateAsync(user, date) }
+                val tasksDeferred = async { loadTasksForDateAsync(date) }
+                
+                val routineItems = routineDeferred.await()
+                val tasks = tasksDeferred.await()
+                
+                // Load course names for the routine items and get the updated course names map
+                val updatedCourseNames = loadCourseNamesSync(routineItems)
+                
+                // Update UI state with ALL data at once (routine, tasks, course names)
                 _uiState.value = _uiState.value.copy(
-                    currentUser = null,
-                    routineItems = emptyList(),
-                    tasks = emptyList(),
+                    routineItems = routineItems,
+                    tasks = tasks,
+                    courseNames = updatedCourseNames,
                     isLoading = false,
-                    selectedDate = date
+                    error = null
+                )
+                
+                // Also update the CourseUtils cache for ClassRoutineCard compatibility
+                CourseUtils.setCourseNames(updatedCourseNames)
+                
+                // Cache the complete data
+                val cacheData = CachedDayData(routineItems, tasks)
+                dayDataCache[cacheKey] = cacheData
+                android.util.Log.d("TodayViewModel", "Loaded and cached complete data for $date with ${updatedCourseNames.size} course names")
+                
+            } catch (e: Exception) {
+                android.util.Log.e("TodayViewModel", "Error loading data for $date", e)
+                val error = AppError.fromThrowable(e)
+                _uiState.value = _uiState.value.copy(
+                    error = error,
+                    isLoading = false
                 )
             }
-        }.catch { throwable ->
-            val error = AppError.fromThrowable(throwable)
-            _uiState.value = _uiState.value.copy(
-                error = error,
-                isLoading = false
-            )
-        }.launchIn(viewModelScope)
-    }
-    
-    private fun loadRoutineForDay(user: User, date: LocalDate) {
-        val dayName = date.format(DateTimeFormatter.ofPattern("EEEE", Locale.ENGLISH))
-        
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
-            android.util.Log.d("TodayViewModel", "Loading routine for user: ${user.name}")
-            android.util.Log.d("TodayViewModel", "User details - Batch: '${user.batch}', Section: '${user.section}', LabSection: '${user.labSection}'")
-            android.util.Log.d("TodayViewModel", "Filtering for day: $dayName")
-            
-            getUserRoutineForDayUseCase(user, dayName).fold(
-                onSuccess = { routineItems ->
-                    android.util.Log.d("TodayViewModel", "Received ${routineItems.size} routine items for $dayName")
-                    routineItems.forEach { item ->
-                        android.util.Log.d("TodayViewModel", "  Item: ${item.courseCode} | Section: ${item.section} | Time: ${item.time}")
-                    }
-                    
-                    // Load course names for all routine items
-                    loadCourseNames(routineItems)
-                    
-                    _uiState.value = _uiState.value.copy(
-                        routineItems = routineItems.sortedBy { it.startTime },
-                        isLoading = false,
-                        error = null
-                    )
-                },
-                onFailure = { throwable ->
-                    android.util.Log.e("TodayViewModel", "Error loading routine", throwable)
-                    val error = AppError.fromThrowable(throwable)
-                    _uiState.value = _uiState.value.copy(
-                        error = error,
-                        isLoading = false,
-                        routineItems = emptyList()
-                    )
-                }
-            )
         }
     }
     
-    private fun loadTasksForDay(date: LocalDate) {
+    private fun getCacheKey(user: User, date: LocalDate): String {
+        return "${user.id}_${date.format(DateTimeFormatter.ISO_LOCAL_DATE)}"
+    }
+    
+    private fun isCacheExpired(cachedData: CachedDayData): Boolean {
+        return System.currentTimeMillis() - cachedData.timestamp > cacheExpirationTime
+    }
+
+    // New async versions for coordinated loading
+    private suspend fun loadRoutineForDateAsync(user: User, date: LocalDate): List<RoutineItem> {
+        val dayName = date.format(DateTimeFormatter.ofPattern("EEEE", Locale.ENGLISH))
+        
+        android.util.Log.d("TodayViewModel", "Loading routine for user: ${user.name}")
+        android.util.Log.d("TodayViewModel", "User details - Batch: '${user.batch}', Section: '${user.section}', LabSection: '${user.labSection}'")
+        android.util.Log.d("TodayViewModel", "Filtering for day: $dayName")
+        
+        return getUserRoutineForDayUseCase(user, dayName).fold(
+            onSuccess = { routineItems ->
+                android.util.Log.d("TodayViewModel", "Received ${routineItems.size} routine items for $dayName")
+                
+                val sortedRoutineItems = routineItems.sortedBy { it.startTime }
+                sortedRoutineItems
+            },
+            onFailure = { throwable ->
+                android.util.Log.e("TodayViewModel", "Error loading routine", throwable)
+                throw throwable
+            }
+        )
+    }
+    
+    private suspend fun loadTasksForDateAsync(date: LocalDate): List<Task> {
         val dateString = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"))
         
-        viewModelScope.launch {
-            taskRepository.getTasksByDate(dateString).collect { allTasks ->
-                // Filter to only show pending (incomplete) tasks
-                val pendingTasks = allTasks.filter { !it.isCompleted }
-                android.util.Log.d("TodayViewModel", "Loaded ${pendingTasks.size} pending tasks for $dateString (${allTasks.size} total)")
-                _uiState.value = _uiState.value.copy(tasks = pendingTasks)
+        return suspendCancellableCoroutine { continuation ->
+            viewModelScope.launch {
+                taskRepository.getTasksByDate(dateString).collect { allTasks ->
+                    // Filter to only show pending (incomplete) tasks
+                    val pendingTasks = allTasks.filter { !it.isCompleted }
+                    android.util.Log.d("TodayViewModel", "Loaded ${pendingTasks.size} pending tasks for $dateString (${allTasks.size} total)")
+                    
+                    if (continuation.isActive) {
+                        continuation.resume(pendingTasks)
+                    }
+                }
             }
         }
     }
     
-    private suspend fun loadCourseNames(routineItems: List<RoutineItem>) {
+    private fun updateCache(user: User, date: LocalDate, routineItems: List<RoutineItem>? = null, tasks: List<Task>? = null) {
+        val cacheKey = getCacheKey(user, date)
+        val existingCache = dayDataCache[cacheKey]
+        
+        val updatedCache = if (existingCache != null) {
+            // Update existing cache with new data
+            existingCache.copy(
+                routineItems = routineItems ?: existingCache.routineItems,
+                tasks = tasks ?: existingCache.tasks,
+                timestamp = System.currentTimeMillis()
+            )
+        } else {
+            // Create new cache entry
+            CachedDayData(
+                routineItems = routineItems ?: emptyList(),
+                tasks = tasks ?: emptyList()
+            )
+        }
+        
+        dayDataCache[cacheKey] = updatedCache
+        android.util.Log.d("TodayViewModel", "Updated cache for $date")
+    }
+
+    private suspend fun loadCourseNamesSync(routineItems: List<RoutineItem>): Map<String, String> {
         val currentNames = _uiState.value.courseNames.toMutableMap()
         
         routineItems.forEach { item ->
@@ -156,10 +256,7 @@ class TodayViewModel @Inject constructor(
             }
         }
         
-        _uiState.value = _uiState.value.copy(courseNames = currentNames)
-        
-        // Also update the CourseUtils cache for ClassRoutineCard compatibility
-        CourseUtils.setCourseNames(currentNames)
+        return currentNames
     }
     
     fun getCourseName(courseCode: String): String {
@@ -204,9 +301,69 @@ class TodayViewModel @Inject constructor(
     fun retryLastAction() {
         val currentState = _uiState.value
         if (currentState.currentUser != null) {
+            // Clear cache for current date to force refresh
+            val cacheKey = getCacheKey(currentState.currentUser, currentState.selectedDate)
+            dayDataCache.remove(cacheKey)
+            
             viewModelScope.launch {
-                loadRoutineForDay(currentState.currentUser, currentState.selectedDate)
+                loadDataForDate(currentState.selectedDate)
             }
+        }
+    }
+    
+    // Method to clear cache when needed (e.g., when user logs out or data becomes stale)
+    fun clearCache() {
+        dayDataCache.clear()
+        android.util.Log.d("TodayViewModel", "Cache cleared")
+    }
+    
+    // Method to refresh current data (clears cache and reloads)
+    fun refreshCurrentData() {
+        val user = currentUser ?: return
+        val date = _selectedDate.value
+        
+        // Clear current date from cache
+        val cacheKey = getCacheKey(user, date)
+        dayDataCache.remove(cacheKey)
+        
+        // Reload data
+        viewModelScope.launch {
+            loadDataForDate(date)
+        }
+        android.util.Log.d("TodayViewModel", "Refreshed data for $date")
+    }
+    
+    // Method to preload data for nearby dates (optional performance optimization)
+    fun preloadNearbyDates() {
+        val currentDate = _selectedDate.value
+        val user = currentUser ?: return
+        
+        viewModelScope.launch {
+            // Preload previous and next day data in background
+            listOf(currentDate.minusDays(1), currentDate.plusDays(1)).forEach { date ->
+                val cacheKey = getCacheKey(user, date)
+                if (!dayDataCache.containsKey(cacheKey)) {
+                    android.util.Log.d("TodayViewModel", "Preloading data for $date")
+                    // Load without updating UI state
+                    preloadDataForDate(user, date)
+                }
+            }
+        }
+    }
+    
+    private suspend fun preloadDataForDate(user: User, date: LocalDate) {
+        val dayName = date.format(DateTimeFormatter.ofPattern("EEEE", Locale.ENGLISH))
+        
+        try {
+            getUserRoutineForDayUseCase(user, dayName).fold(
+                onSuccess = { routineItems ->
+                    val sortedRoutineItems = routineItems.sortedBy { it.startTime }
+                    updateCache(user, date, routineItems = sortedRoutineItems)
+                },
+                onFailure = { /* Ignore preload failures */ }
+            )
+        } catch (e: Exception) {
+            // Ignore preload failures
         }
     }
 }
