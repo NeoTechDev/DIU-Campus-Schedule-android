@@ -8,8 +8,15 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.om.diucampusschedule.MainActivity
 import com.om.diucampusschedule.R
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
+
+private val Context.notificationDataStore by preferencesDataStore(name = "notification_preferences")
 
 /**
  * Professional broadcast receiver for class reminder notifications.
@@ -37,9 +44,24 @@ class ClassReminderReceiver : BroadcastReceiver() {
         const val EXTRA_CLASS_ID = "class_id"
         const val EXTRA_TARGET_DATE = "target_date"
         const val EXTRA_REMINDER_MINUTES = "reminder_minutes"
+        
+        // Preference key
+        private val CLASS_REMINDERS_ENABLED = booleanPreferencesKey("class_reminders_enabled")
     }
     
     override fun onReceive(context: Context, intent: Intent) {
+        // Check if notifications are enabled using runBlocking for simplicity in BroadcastReceiver
+        val notificationsEnabled = runBlocking {
+            context.notificationDataStore.data
+                .map { preferences -> preferences[CLASS_REMINDERS_ENABLED] ?: true }
+                .first()
+        }
+        
+        if (!notificationsEnabled) {
+            // Notifications are disabled, don't show
+            return
+        }
+        
         // Extract class information
         val courseCode = intent.getStringExtra(EXTRA_COURSE_CODE) ?: return
         val courseName = intent.getStringExtra(EXTRA_COURSE_NAME) ?: courseCode
@@ -123,7 +145,7 @@ class ClassReminderReceiver : BroadcastReceiver() {
         // Build notification exactly like the image
         val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.app_notification_logo) // Calendar icon like in image
-            .setContentTitle("Class Reminder: $courseName") // Main title: "Class Reminder: Object Oriented Design"
+            .setContentTitle("upcoming Classes: $courseName") // Main title: "Class Reminder: Object Oriented Design"
             .setContentText("Time: $timeComponents") // Subtitle showing time
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)

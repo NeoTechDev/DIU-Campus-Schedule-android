@@ -173,6 +173,12 @@ fun NavigationDrawer(
                     SectionDivider()
                     SectionHeader(title = "Notifications")
                 }
+                // Class reminder toggle
+                item {
+                    NotificationToggleItem(
+                        onItemClick = { /* Toggle handled internally */ }
+                    )
+                }
                 items(getNotificationSectionItems { showBatteryOptimizationDialog.value = true }) { item ->
                     SupportItem(
                         item = item,

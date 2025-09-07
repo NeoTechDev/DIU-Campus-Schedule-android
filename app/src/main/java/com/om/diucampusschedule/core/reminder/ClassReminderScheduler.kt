@@ -205,6 +205,20 @@ class ClassReminderScheduler @Inject constructor(
     }
     
     /**
+     * Cancel all future reminders
+     */
+    fun cancelAllFutureReminders() {
+        schedulerScope.launch {
+            try {
+                logger.info(TAG, "Cancelling all future reminders")
+                reminderService.cancelAllFutureReminders()
+            } catch (e: Exception) {
+                logger.error(TAG, "Failed to cancel future reminders", e)
+            }
+        }
+    }
+    
+    /**
      * Clean up resources
      */
     fun cleanup() {

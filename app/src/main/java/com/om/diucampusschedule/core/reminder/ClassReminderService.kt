@@ -2,6 +2,7 @@ package com.om.diucampusschedule.core.reminder
 
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.core.service.CourseNameService
+import com.om.diucampusschedule.data.preferences.NotificationPreferences
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.repository.RoutineRepository
@@ -9,6 +10,7 @@ import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -25,6 +27,7 @@ class ClassReminderService @Inject constructor(
     private val routineRepository: RoutineRepository,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val courseNameService: CourseNameService,
+    private val notificationPreferences: NotificationPreferences,
     private val logger: AppLogger
 ) {
     
@@ -41,6 +44,13 @@ class ClassReminderService @Inject constructor(
     fun scheduleTodayReminders() {
         serviceScope.launch {
             try {
+                // Check if notifications are enabled
+                val notificationsEnabled = notificationPreferences.isClassRemindersEnabled.first()
+                if (!notificationsEnabled) {
+                    logger.info(TAG, "Class reminders are disabled, skipping scheduling")
+                    return@launch
+                }
+                
                 val userResult = getCurrentUserUseCase.invoke()
                 val user = userResult.getOrNull()
                 if (user == null) {
@@ -61,6 +71,13 @@ class ClassReminderService @Inject constructor(
     fun scheduleRemindersForDate(targetDate: LocalDate) {
         serviceScope.launch {
             try {
+                // Check if notifications are enabled
+                val notificationsEnabled = notificationPreferences.isClassRemindersEnabled.first()
+                if (!notificationsEnabled) {
+                    logger.info(TAG, "Class reminders are disabled, skipping scheduling for $targetDate")
+                    return@launch
+                }
+                
                 val userResult = getCurrentUserUseCase.invoke()
                 val user = userResult.getOrNull()
                 if (user == null) {
@@ -81,6 +98,13 @@ class ClassReminderService @Inject constructor(
     fun scheduleWeeklyReminders() {
         serviceScope.launch {
             try {
+                // Check if notifications are enabled
+                val notificationsEnabled = notificationPreferences.isClassRemindersEnabled.first()
+                if (!notificationsEnabled) {
+                    logger.info(TAG, "Class reminders are disabled, skipping weekly scheduling")
+                    return@launch
+                }
+                
                 val userResult = getCurrentUserUseCase.invoke()
                 val user = userResult.getOrNull()
                 if (user == null) {
