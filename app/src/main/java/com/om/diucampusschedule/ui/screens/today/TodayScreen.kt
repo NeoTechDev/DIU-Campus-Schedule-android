@@ -2,12 +2,19 @@ package com.om.diucampusschedule.ui.screens.today
 
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -19,6 +26,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,16 +58,19 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -69,8 +80,8 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.om.diucampusschedule.R
-import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.Task
+import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.components.AddTaskBottomSheet
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.screens.today.components.FindCourseBottomSheetContent
@@ -117,6 +128,15 @@ fun TodayScreen(
     var showTaskBottomSheet by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
     
+    // Swipe gesture states
+    var horizontalOffset by remember { mutableStateOf(0f) }
+    val density = LocalDensity.current
+    val animatedOffset by animateFloatAsState(
+        targetValue = horizontalOffset,
+        animationSpec = spring(dampingRatio = 0.95f, stiffness = 120f), // Smoother spring
+        label = "horizontalOffset"
+    )
+    
     // Handle back button press to close action button
     BackHandler(enabled = isActionButtonExpanded) {
         isActionButtonExpanded = false
@@ -146,44 +166,97 @@ fun TodayScreen(
             }
         )
         
-        // Main content area for routine content
+        // Main content area for routine content with swipe gesture support
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(isActionButtonExpanded) {
-                    // Professional approach: detect taps outside the action button when expanded
+                .pointerInput(isActionButtonExpanded, selectedDate) {
                     if (isActionButtonExpanded) {
                         detectTapGestures(
                             onTap = { 
                                 isActionButtonExpanded = false
-                                focusManager.clearFocus() // Clear focus for accessibility
+                                focusManager.clearFocus()
                             }
                         )
+                    } else {
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
+                                val swipeThreshold = 80f // Lower threshold for more responsive swipe
+                                if (horizontalOffset > swipeThreshold) {
+                                    todayViewModel.selectDate(selectedDate.minusDays(1))
+                                } else if (horizontalOffset < -swipeThreshold) {
+                                    todayViewModel.selectDate(selectedDate.plusDays(1))
+                                }
+                                // Animate offset back to zero for smooth snap
+                                horizontalOffset = 0f
+                            },
+                            onDragCancel = {
+                                horizontalOffset = 0f
+                            }
+                        ) { change, dragAmount ->
+                            change.consume()
+                            horizontalOffset = (horizontalOffset + dragAmount * 0.7f).coerceIn(-350f, 350f)
+                        }
                     }
                 }
         ) {
-            // Routine content
-            TodayRoutineContent(
-                routineItems = todayState.routineItems,
-                tasks = todayState.tasks,
-                currentUser = todayState.currentUser,
-                isLoading = todayState.isLoading,
-                getCourseName = todayViewModel::getCourseName,
-                onClassClick = { routineItem ->
-                    // TODO: Navigate to class details or course info
-                },
-                onUpdateTask = todayViewModel::updateTask,
-                onDeleteTask = todayViewModel::deleteTask,
-                onEditTask = { task ->
-                    taskToEdit = task
-                    showTaskBottomSheet = true
-                },
-                isToday = isToday,
-                modifier = Modifier.fillMaxSize(),
-                noContentImage = if(todayState.selectedDate.dayOfWeek == DayOfWeek.FRIDAY) painterResource(id = R.drawable.muslim) else painterResource(id = R.drawable.sleep),
-                noScheduleMessages = if(todayState.selectedDate.dayOfWeek == DayOfWeek.FRIDAY) "It's Friday!" else noScheduleMessage,
-                noScheduleSubMessage = if(todayState.selectedDate.dayOfWeek == DayOfWeek.FRIDAY) "Offer your Jumma prayer, may Allah grant barakah in your life." else noScheduleSubMessage
-            )
+            // Animated content container with offset and fade for swipe feedback
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .offset { IntOffset(animatedOffset.toInt(), 0) }
+                    .graphicsLayer { alpha = 1f - (kotlin.math.abs(animatedOffset) / 700f).coerceIn(0f, 0.25f) } // Subtle fade while swiping
+            ) {
+                AnimatedContent(
+                    targetState = selectedDate,
+                    transitionSpec = {
+                        val direction = if (targetState.isAfter(initialState)) {
+                            AnimatedContentTransitionScope.SlideDirection.Left
+                        } else {
+                            AnimatedContentTransitionScope.SlideDirection.Right
+                        }
+                        ContentTransform(
+                            targetContentEnter = slideIntoContainer(
+                                towards = direction,
+                                animationSpec = spring(dampingRatio = 0.95f, stiffness = 120f)
+                            ) + fadeIn(animationSpec = tween(350)),
+                            initialContentExit = slideOutOfContainer(
+                                towards = direction,
+                                animationSpec = spring(dampingRatio = 0.95f, stiffness = 120f)
+                            ) + fadeOut(animationSpec = tween(250))
+                        )
+                    },
+                    label = "dateContentAnimation"
+                ) { animatedDate ->
+                    val animatedTodayState = if (animatedDate == selectedDate) todayState else {
+                        todayState.copy(
+                            selectedDate = animatedDate,
+                            routineItems = emptyList(),
+                            tasks = emptyList(),
+                            isLoading = false
+                        )
+                    }
+                    TodayRoutineContent(
+                        routineItems = animatedTodayState.routineItems,
+                        tasks = animatedTodayState.tasks,
+                        currentUser = animatedTodayState.currentUser,
+                        isLoading = animatedTodayState.isLoading,
+                        getCourseName = todayViewModel::getCourseName,
+                        onClassClick = { _ -> },
+                        onUpdateTask = todayViewModel::updateTask,
+                        onDeleteTask = todayViewModel::deleteTask,
+                        onEditTask = { task ->
+                            taskToEdit = task
+                            showTaskBottomSheet = true
+                        },
+                        isToday = animatedDate == LocalDate.now(),
+                        modifier = Modifier.fillMaxSize(),
+                        noContentImage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) painterResource(id = R.drawable.muslim) else painterResource(id = R.drawable.sleep),
+                        noScheduleMessages = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "It's Friday!" else if(animatedDate == LocalDate.now()) "Nothing scheduled today!" else "Nothing scheduled that day",
+                        noScheduleSubMessage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "Offer your Jumma prayer, may Allah grant barakah in your life." else if(animatedDate == LocalDate.now()) "No classes or tasks scheduled for today. Enjoy your free time!" else "No classes or tasks will be scheduled for that day. All yours to chill and enjoy!"
+                    )
+                }
+            }
             
             // Action Button positioned at bottom right
             Box(
