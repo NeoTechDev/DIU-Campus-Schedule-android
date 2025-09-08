@@ -439,7 +439,7 @@ private fun RoutineWidgetItem(routine: RoutineItem, courseName: String) {
                 style = TextStyle(
                     fontWeight = FontWeight.Medium,
                     fontSize = 15.sp,
-                    color = androidx.glance.unit.ColorProvider(Color.Black)
+                    color = ColorProvider(day = Color.Black, night = Color.White)
                 ),
                 maxLines = 3
             )
@@ -448,7 +448,7 @@ private fun RoutineWidgetItem(routine: RoutineItem, courseName: String) {
                 text = timeText,
                 style = TextStyle(
                     fontSize = 12.sp,
-                    color = androidx.glance.unit.ColorProvider(Color.Gray)
+                    color = ColorProvider(day = Color.Gray, night = Color.White.copy(alpha = 0.7f))
                 )
             )
             Spacer(modifier = GlanceModifier.height(2.dp))
@@ -456,7 +456,7 @@ private fun RoutineWidgetItem(routine: RoutineItem, courseName: String) {
                 text = roomBatchSectionText,
                 style = TextStyle(
                     fontSize = 12.sp,
-                    color = androidx.glance.unit.ColorProvider(Color.Gray)
+                    color = ColorProvider(day = Color.Gray, night = Color.White.copy(alpha = 0.7f))
                 )
             )
         }
