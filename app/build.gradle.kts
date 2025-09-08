@@ -120,6 +120,10 @@ dependencies {
     // Rich Text Editor
     implementation("com.mohamedrejeb.richeditor:richeditor-compose:1.0.0-rc05-k2")
 
+    // Glance for App Widgets
+    implementation("androidx.glance:glance-appwidget:1.0.0")
+    implementation("androidx.glance:glance-material3:1.0.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

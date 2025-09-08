@@ -1,4 +1,15 @@
 <resources>
     <string name="app_name">DIU Campus Schedule</string>
     <string name="default_web_client_id">464044924384-1retnstn8i04ug556psm4qcn3a5pjtbf.apps.googleusercontent.com</string>
+    
+    <!-- Widget Strings -->
+    <string name="widget_description">View your daily class schedule on your home screen</string>
+    <string name="widget_loading">Loading Classes</string>
+    <string name="widget_loading_desc">Please wait...</string>
+    <string name="widget_no_classes">No classes today</string>
+    <string name="widget_no_user">Please sign in</string>
+    <string name="widget_error">Unable to load classes</string>
+    <string name="widget_refresh">Tap to refresh</string>
+    <string name="widget_current_class">Now</string>
+    <string name="widget_next_class">Next</string>
 </resources>

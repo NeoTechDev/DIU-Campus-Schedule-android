@@ -1,5 +1,6 @@
 package com.om.diucampusschedule.ui.screens.today
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.om.diucampusschedule.core.error.AppError
@@ -13,7 +14,9 @@ import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineForDayUseCase
 import com.om.diucampusschedule.ui.screens.today.components.CourseUtils
+import com.om.diucampusschedule.widget.WidgetManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,7 +55,9 @@ class TodayViewModel @Inject constructor(
     private val courseNameService: CourseNameService,
     private val taskRepository: TaskRepository,
     private val routineRepository: RoutineRepository,
-    private val classReminderScheduler: ClassReminderScheduler
+    private val classReminderScheduler: ClassReminderScheduler,
+    private val widgetManager: WidgetManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     
     private val _selectedDate = MutableStateFlow(LocalDate.now())
@@ -167,6 +172,11 @@ class TodayViewModel @Inject constructor(
                 val cacheData = CachedDayData(routineItems, tasks)
                 dayDataCache[cacheKey] = cacheData
                 android.util.Log.d("TodayViewModel", "Loaded and cached complete data for $date with ${updatedCourseNames.size} course names")
+                
+                // Update widgets when data changes for today
+                if (date == LocalDate.now()) {
+                    widgetManager.updateWidgets(context)
+                }
                 
             } catch (e: Exception) {
                 android.util.Log.e("TodayViewModel", "Error loading data for $date", e)
@@ -396,6 +406,11 @@ class TodayViewModel @Inject constructor(
             
             // Refresh reminders when data is refreshed
             classReminderScheduler.refreshReminders()
+            
+            // Update widgets on refresh
+            if (date == LocalDate.now()) {
+                widgetManager.updateWidgets(context)
+            }
         }
         android.util.Log.d("TodayViewModel", "Refreshed data for $date")
     }

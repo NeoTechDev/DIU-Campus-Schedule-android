@@ -71,6 +71,42 @@
         <receiver
             android:name=".receiver.TaskCompleteReceiver"
             android:exported="false" />
+
+        <!-- Widget Provider -->
+        <receiver
+            android:name=".widget.ClassScheduleWidgetProvider"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
+
+        <!-- Widget Update Receiver -->
+        <receiver
+            android:name=".widget.WidgetUpdateReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIME_TICK" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="com.om.diucampusschedule.WIDGET_UPDATE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Widget Configuration Activity -->
+        <activity
+            android:name=".widget.configuration.WidgetConfigurationActivity"
+            android:exported="true"
+            android:theme="@style/Theme.DIUCampusSchedule">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>
