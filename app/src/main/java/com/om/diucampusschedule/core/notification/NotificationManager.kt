@@ -87,7 +87,7 @@ class NotificationManager @Inject constructor(
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showRoutineUpdateNotification(
         title: String = "Routine Updated",
-        message: String = "Your class schedule has been updated",
+        message: String = "Your class routine has been updated",
         department: String? = null
     ) {
         try {

@@ -122,9 +122,9 @@ class RoutineSyncWorker @AssistedInject constructor(
         )
 
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification) // You'll need to add this icon
+            .setSmallIcon(R.drawable.app_notification_logo) // You'll need to add this icon
             .setContentTitle("Routine Updated")
-            .setContentText("Your class schedule has been updated. Tap to view changes.")
+            .setContentText("Your class routine has been updated. Tap to view changes.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

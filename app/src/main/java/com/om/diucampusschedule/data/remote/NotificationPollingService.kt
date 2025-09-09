@@ -75,14 +75,14 @@ class NotificationPollingService : Service() {
 
     private fun sendLocalNotification(updateType: String, message: String?) {
         val (title, body) = when (updateType) {
-            "routine_deleted" -> "Schedule Update" to (message ?: "Your schedule is being updated. New schedule will be available soon.")
+            "routine_deleted" -> "Routine Update" to (message ?: "Your class routine is being updated. New routine will be available soon.")
             "all_routines_deleted" -> "System Maintenance" to (message ?: "System maintenance in progress. New routines will be uploaded soon.")
             "maintenance_enabled" -> "System Maintenance" to (message ?: "System is under maintenance. Please check back later.")
             "semester_break" -> "Semester Break" to (message ?: "Semester break is in progress. New semester routine will be available soon.")
-            "routine_uploaded" -> "New Schedule Available" to "Your class schedule has been updated with new information."
-            "manual_trigger" -> "Schedule Refresh" to "Please refresh your app to see the latest schedule updates."
-            "maintenance_disabled" -> "Service Restored" to "The app is back to normal. Your schedules are now available."
-            else -> "Schedule Update" to (message ?: "Your schedule may have been updated.")
+            "routine_uploaded" -> "New Routine Available" to "Your class routine has been updated with new information."
+            "manual_trigger" -> "Schedule Refresh" to "Please refresh your app to see the latest routine updates."
+            "maintenance_disabled" -> "Service Restored" to "The app is back to normal. Your routine are now available."
+            else -> "Routine Update" to (message ?: "Your routine may have been updated.")
         }
 
         logger.info(TAG, "Sending notification: $title - $body")
