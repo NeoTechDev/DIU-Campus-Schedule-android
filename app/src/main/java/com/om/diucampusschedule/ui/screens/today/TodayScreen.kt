@@ -303,7 +303,12 @@ fun TodayScreen(
                             modifier = Modifier.fillMaxSize(),
                             noContentImage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) painterResource(id = R.drawable.muslim) else painterResource(id = R.drawable.sleep),
                             noScheduleMessages = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "It's Friday!" else if(animatedDate == LocalDate.now()) "Nothing scheduled today!" else "Nothing scheduled that day",
-                            noScheduleSubMessage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "Offer your Jumma prayer, may Allah grant barakah in your life." else if(animatedDate == LocalDate.now()) "No classes or tasks scheduled for today. Enjoy your free time!" else "No classes or tasks will be scheduled for that day. All yours to chill and enjoy!"
+                            noScheduleSubMessage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "Offer your Jumma prayer, may Allah grant barakah in your life." else if(animatedDate == LocalDate.now()) "No classes or tasks scheduled for today. Enjoy your free time!" else "No classes or tasks will be scheduled for that day. All yours to chill and enjoy!",
+                            // Maintenance mode parameters for class routines only
+                            isMaintenanceMode = animatedTodayState.isMaintenanceMode,
+                            maintenanceMessage = animatedTodayState.maintenanceMessage,
+                            isSemesterBreak = animatedTodayState.isSemesterBreak,
+                            updateType = animatedTodayState.updateType
                         )
                     }
                 }

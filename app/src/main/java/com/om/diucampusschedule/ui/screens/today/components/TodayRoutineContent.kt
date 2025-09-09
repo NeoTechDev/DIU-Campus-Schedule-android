@@ -13,7 +13,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,17 +64,31 @@ fun TodayRoutineContent(
     modifier: Modifier = Modifier,
     noContentImage: Painter,
     noScheduleMessages: String? = null,
-    noScheduleSubMessage: String? = null
+    noScheduleSubMessage: String? = null,
+    // Maintenance mode parameters for class routines only
+    isMaintenanceMode: Boolean = false,
+    maintenanceMessage: String? = null,
+    isSemesterBreak: Boolean = false,
+    updateType: String? = null
 ) {
     if (isLoading) {
         LoadingContent()
     } else if (routineItems.isEmpty() && tasks.isEmpty()) {
-        NoContentToday(
-            noContentImage = noContentImage,
-            message = noScheduleMessages,
-            subMessage = noScheduleSubMessage
-
-        )
+        // Check if we need to show maintenance message for class routines specifically
+        if (isMaintenanceMode) {
+            EmptyClassRoutineContent(
+                isMaintenanceMode = isMaintenanceMode,
+                maintenanceMessage = maintenanceMessage,
+                isSemesterBreak = isSemesterBreak,
+                updateType = updateType
+            )
+        } else {
+            NoContentToday(
+                noContentImage = noContentImage,
+                message = noScheduleMessages,
+                subMessage = noScheduleSubMessage
+            )
+        }
     } else {
         val scheduleItems = if (routineItems.isNotEmpty()) createScheduleWithBreaks(routineItems) else emptyList()
         val classRoutines = routineItems.map { it.toClassRoutine() }
@@ -81,67 +99,82 @@ fun TodayRoutineContent(
                 .padding(horizontal = 6.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            // Add ClassRoutineSectionHeader when routine items are not empty
-            if (routineItems.isNotEmpty()) {
+            // Add ClassRoutineSectionHeader when routine items are not empty OR in maintenance mode
+            if (routineItems.isNotEmpty() || isMaintenanceMode) {
                 item {
-                    ClassRoutineSectionHeader(
-                        count = routineItems.size,
-                        title = "Your Classes",
-                        countColor = Color(0xFF6200EE),
-                        filteredRoutines = classRoutines,
-                        formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
-                        selectedDate = if (isToday) LocalDate.now() else null
-                    )
-                }
-                
-                item {
-                    Spacer(modifier = Modifier.height(1.dp))
-                }
-                
-                items(
-                    items = scheduleItems,
-                    key = { item ->
-                        when (item) {
-                            is ScheduleItem.Class -> item.routineItem.id.ifEmpty { 
-                                "${item.routineItem.courseCode}_${item.routineItem.time}_${item.routineItem.room}" 
-                            }
-                            is ScheduleItem.Break -> "break_${item.startTime}_${item.endTime}"
-                        }
+                    if (isMaintenanceMode) {
+                        // Show maintenance message for class routine section only
+                        EmptyClassRoutineContent(
+                            isMaintenanceMode = isMaintenanceMode,
+                            maintenanceMessage = maintenanceMessage,
+                            isSemesterBreak = isSemesterBreak,
+                            updateType = updateType
+                        )
+                    } else {
+                        ClassRoutineSectionHeader(
+                            count = routineItems.size,
+                            title = "Your Classes",
+                            countColor = Color(0xFF6200EE),
+                            filteredRoutines = classRoutines,
+                            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                            selectedDate = if (isToday) LocalDate.now() else null
+                        )
+                        
+                        Spacer(modifier = Modifier.height(1.dp))
                     }
-                ) { scheduleItem ->
-                    when (scheduleItem) {
-                        is ScheduleItem.Class -> {
-                            RoutineCard(
-                                routine = scheduleItem.routineItem.toClassRoutine(),
-                                courseName = getCourseName(scheduleItem.routineItem.courseCode),
-                                selectedDate = LocalDate.now(),
-                                formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
-                                isToday = isToday,
-                                onTeacherClick = onTeacherClick
-                            )
+                }
+                
+                // Only show routine items if not in maintenance mode
+                if (!isMaintenanceMode) {
+                    item {
+                        Spacer(modifier = Modifier.height(1.dp))
+                    }
+                    
+                    items(
+                        items = scheduleItems,
+                        key = { item ->
+                            when (item) {
+                                is ScheduleItem.Class -> item.routineItem.id.ifEmpty { 
+                                    "${item.routineItem.courseCode}_${item.routineItem.time}_${item.routineItem.room}" 
+                                }
+                                is ScheduleItem.Break -> "break_${item.startTime}_${item.endTime}"
+                            }
                         }
-                        is ScheduleItem.Break -> {
-                            // Parse the break time strings back to LocalTime for the BreakTimeCard
-                            val formatter = DateTimeFormatter.ofPattern("hh:mm a")
-                            val startTime = try {
-                                LocalTime.parse(scheduleItem.startTime, formatter)
-                            } catch (e: Exception) {
-                                LocalTime.parse(scheduleItem.startTime, DateTimeFormatter.ofPattern("h:mm a"))
+                    ) { scheduleItem ->
+                        when (scheduleItem) {
+                            is ScheduleItem.Class -> {
+                                RoutineCard(
+                                    routine = scheduleItem.routineItem.toClassRoutine(),
+                                    courseName = getCourseName(scheduleItem.routineItem.courseCode),
+                                    selectedDate = LocalDate.now(),
+                                    formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                                    isToday = isToday,
+                                    onTeacherClick = onTeacherClick
+                                )
                             }
-                            val endTime = try {
-                                LocalTime.parse(scheduleItem.endTime, formatter)
-                            } catch (e: Exception) {
-                                LocalTime.parse(scheduleItem.endTime, DateTimeFormatter.ofPattern("h:mm a"))
+                            is ScheduleItem.Break -> {
+                                // Parse the break time strings back to LocalTime for the BreakTimeCard
+                                val formatter = DateTimeFormatter.ofPattern("hh:mm a")
+                                val startTime = try {
+                                    LocalTime.parse(scheduleItem.startTime, formatter)
+                                } catch (e: Exception) {
+                                    LocalTime.parse(scheduleItem.startTime, DateTimeFormatter.ofPattern("h:mm a"))
+                                }
+                                val endTime = try {
+                                    LocalTime.parse(scheduleItem.endTime, formatter)
+                                } catch (e: Exception) {
+                                    LocalTime.parse(scheduleItem.endTime, DateTimeFormatter.ofPattern("h:mm a"))
+                                }
+                                
+                                BreakTimeCard(
+                                    breakText = if(currentUser?.role == UserRole.STUDENT) "Break Time" else "Counselling Hour",
+                                    subText = if(currentUser?.role == UserRole.STUDENT) "Time to recharge and\nget ready!" else "Time for student\nconsultations and guidance",
+                                    startTime = startTime,
+                                    endTime = endTime,
+                                    formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                                    isToday = isToday
+                                )
                             }
-                            
-                            BreakTimeCard(
-                                breakText = if(currentUser?.role == UserRole.STUDENT) "Break Time" else "Counselling Hour",
-                                subText = if(currentUser?.role == UserRole.STUDENT) "Time to recharge and\nget ready!" else "Time for student\nconsultations and guidance",
-                                startTime = startTime,
-                                endTime = endTime,
-                                formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
-                                isToday = isToday
-                            )
                         }
                     }
                 }
@@ -386,3 +419,93 @@ private fun mergeConsecutiveClasses(routineItems: List<RoutineItem>): List<Routi
     
     return mergedList
 }
+
+/**
+ * Empty content specifically for class routine maintenance messages
+ * This shows only for class routines, not tasks
+ */
+@Composable
+private fun EmptyClassRoutineContent(
+    isMaintenanceMode: Boolean = false,
+    maintenanceMessage: String? = null,
+    isSemesterBreak: Boolean = false,
+    updateType: String? = null
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Different icons and messages based on the state - use updateType for accurate detection
+            val (icon, iconColor, title, message) = when {
+                updateType == "semester_break" -> {
+                    Quadruple(
+                        Icons.Default.EventBusy,
+                        MaterialTheme.colorScheme.primary,
+                        "Semester Break",
+                        maintenanceMessage ?: "Semester break is in progress. New semester routine will be available soon."
+                    )
+                }
+                updateType == "maintenance_enabled" || (isMaintenanceMode && !isSemesterBreak) -> {
+                    Quadruple(
+                        Icons.Default.Refresh,
+                        MaterialTheme.colorScheme.tertiary,
+                        "System Maintenance",
+                        maintenanceMessage ?: "System is under maintenance. New routine will be available soon."
+                    )
+                }
+                isMaintenanceMode && isSemesterBreak -> {
+                    Quadruple(
+                        Icons.Default.EventBusy,
+                        MaterialTheme.colorScheme.primary,
+                        "Semester Break", 
+                        maintenanceMessage ?: "Semester break is in progress. New semester routine will be available soon."
+                    )
+                }
+                else -> {
+                    Quadruple(
+                        Icons.Default.EventBusy,
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        "No Classes Scheduled",
+                        "Your class routine will appear here once it's available."
+                    )
+                }
+            }
+
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = iconColor
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                textAlign = TextAlign.Center,
+                color = if (isMaintenanceMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+// Helper data class for multiple return values
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)

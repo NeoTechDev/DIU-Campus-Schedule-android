@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.om.diucampusschedule.core.error.AppError
+import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.core.reminder.ClassReminderScheduler
 import com.om.diucampusschedule.core.service.CourseNameService
 import com.om.diucampusschedule.data.repository.TaskRepository
@@ -12,6 +13,7 @@ import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
+import com.om.diucampusschedule.domain.usecase.routine.GetMaintenanceInfoUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineForDayUseCase
 import com.om.diucampusschedule.ui.screens.today.components.CourseUtils
 import com.om.diucampusschedule.widget.WidgetManager
@@ -39,7 +41,12 @@ data class TodayUiState(
     val currentUser: User? = null,
     val error: AppError? = null,
     val selectedDate: LocalDate = LocalDate.now(),
-    val courseNames: Map<String, String> = emptyMap() // Cache for course names
+    val courseNames: Map<String, String> = emptyMap(), // Cache for course names
+    // Maintenance related fields for class routines
+    val isMaintenanceMode: Boolean = false, // Whether the system is in maintenance mode
+    val maintenanceMessage: String? = null, // Message to show during maintenance
+    val isSemesterBreak: Boolean = false, // Whether it's semester break
+    val updateType: String? = null // Type of maintenance update (maintenance_enabled, semester_break, etc.)
 )
 
 data class CachedDayData(
@@ -52,11 +59,13 @@ data class CachedDayData(
 class TodayViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getUserRoutineForDayUseCase: GetUserRoutineForDayUseCase,
+    private val getMaintenanceInfoUseCase: GetMaintenanceInfoUseCase,
     private val courseNameService: CourseNameService,
     private val taskRepository: TaskRepository,
     private val routineRepository: RoutineRepository,
     private val classReminderScheduler: ClassReminderScheduler,
     private val widgetManager: WidgetManager,
+    private val logger: AppLogger,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
@@ -75,12 +84,22 @@ class TodayViewModel @Inject constructor(
     
     private var currentUser: User? = null
     
+    companion object {
+        private const val TAG = "TodayViewModel"
+    }
+    
     init {
         observeUser()
         observeDateChanges()
         
         // Initialize class reminder scheduler
         classReminderScheduler.initialize()
+        
+        // Check maintenance mode immediately on initialization
+        viewModelScope.launch {
+            logger.debug(TAG, "Initial maintenance mode check on ViewModel init")
+            checkMaintenanceMode()
+        }
     }
     
     private fun observeUser() {
@@ -146,6 +165,9 @@ class TodayViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
+                // Check maintenance mode first - this affects class routine display only
+                checkMaintenanceMode()
+                
                 // Load both routine and tasks concurrently and wait for both to complete
                 val routineDeferred = async { loadRoutineForDateAsync(user, date) }
                 val tasksDeferred = async { loadTasksForDateAsync(date) }
@@ -446,6 +468,38 @@ class TodayViewModel @Inject constructor(
             )
         } catch (e: Exception) {
             // Ignore preload failures
+        }
+    }
+    
+    /**
+     * Check maintenance mode status from Firebase and update UI state accordingly
+     * This is specifically for class routine content, not tasks
+     */
+    private suspend fun checkMaintenanceMode() {
+        try {
+            logger.debug(TAG, "Checking maintenance mode status from Firebase for class routines")
+            
+            getMaintenanceInfoUseCase().fold(
+                onSuccess = { maintenanceInfo ->
+                    logger.info(TAG, "Maintenance info for Today screen: isMaintenanceMode=${maintenanceInfo.isMaintenanceMode}, message=${maintenanceInfo.maintenanceMessage}, isSemesterBreak=${maintenanceInfo.isSemesterBreak}")
+                    
+                    // Update maintenance state for class routine content only
+                    _uiState.value = _uiState.value.copy(
+                        isMaintenanceMode = maintenanceInfo.isMaintenanceMode,
+                        maintenanceMessage = maintenanceInfo.maintenanceMessage,
+                        isSemesterBreak = maintenanceInfo.isSemesterBreak,
+                        updateType = maintenanceInfo.updateType
+                    )
+                    
+                    logger.info(TAG, "Updated Today screen maintenance state - isMaintenanceMode: ${maintenanceInfo.isMaintenanceMode}, isSemesterBreak: ${maintenanceInfo.isSemesterBreak}")
+                },
+                onFailure = { error ->
+                    logger.warning(TAG, "Failed to fetch maintenance info from Firebase for Today screen", error)
+                    // Don't update maintenance state on failure to avoid false positives
+                }
+            )
+        } catch (e: Exception) {
+            logger.error(TAG, "Error checking maintenance mode for Today screen", e)
         }
     }
     
