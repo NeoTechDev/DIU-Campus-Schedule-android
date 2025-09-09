@@ -776,10 +776,10 @@ private fun CleanRoutineTopAppBar(
             // Routine Generate Button
             IconButton(onClick = onDownloadClick) {
                 Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.share_square_24),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.share_solid_full),
                     contentDescription = "Generate",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(topbarIconSize)
+                    modifier = Modifier.size(28.dp)
                 )
             }
             // Only refresh button for clean design

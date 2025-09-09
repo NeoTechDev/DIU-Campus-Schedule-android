@@ -41,8 +41,8 @@ sealed class BottomNavItem(
     object Today : BottomNavItem(
         route = Screen.Today.route,
         title = "Dashboard",
-        selectedIcon = R.drawable.dashboard_filled,
-        unselectedIcon = R.drawable.dashboard_outlined
+        selectedIcon = R.drawable.home_filled,
+        unselectedIcon = R.drawable.home_outlined
     )
     
     object Routine : BottomNavItem(
@@ -55,8 +55,8 @@ sealed class BottomNavItem(
     object Empty : BottomNavItem(
         route = Screen.EmptyRooms.route,
         title = "Rooms",
-        selectedIcon = R.drawable.location_filled,
-        unselectedIcon = R.drawable.location_outlined
+        selectedIcon = R.drawable.door_filled,
+        unselectedIcon = R.drawable.door_outlined
     )
     
     object Tasks : BottomNavItem(

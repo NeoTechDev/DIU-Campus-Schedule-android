@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -211,7 +212,7 @@ private fun EnhancedBottomNavItemContainer(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
         ) {
             EnhancedBottomNavIcon(
                 item = item,
@@ -241,7 +242,7 @@ private fun EnhancedBottomNavItemContainer(
                     Text(
                         text = item.title,
                         color = selectedPrimaryColor,
-                        fontSize = 12.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1
                     )
@@ -280,11 +281,7 @@ private fun EnhancedBottomNavIcon(
 
     // Icon size with bounce effect
     val animatedIconSize by animateDpAsState(
-        targetValue = if (item.route == Screen.Today.route) {
-            if (isSelected) 34.dp else 30.dp
-        } else {
-            if (isSelected) 28.dp else 24.dp
-        },
+        targetValue = 24.dp,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
@@ -294,7 +291,7 @@ private fun EnhancedBottomNavIcon(
 
 
     Icon(
-        imageVector = ImageVector.vectorResource(
+        painter = painterResource(
             id = if (isSelected) item.selectedIcon else item.unselectedIcon
         ),
         contentDescription = item.title,
