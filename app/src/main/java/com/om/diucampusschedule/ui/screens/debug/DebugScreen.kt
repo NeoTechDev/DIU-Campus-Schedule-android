@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.om.diucampusschedule.util.DeveloperRoutineUpload
+import com.om.diucampusschedule.util.InAppMessageSetupUtil
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,6 +84,118 @@ fun DebugScreen(navController: NavController) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
+            }
+        }
+        
+        // In-App Messages Section
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Email,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "📱 In-App Messages",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Manage in-app messages for testing the messaging system.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Create Sample Messages Button
+                Button(
+                    onClick = {
+                        scope.launch {
+                            isLoading = true
+                            showResult = false
+                            
+                            try {
+                                InAppMessageSetupUtil.createSampleMessages()
+                                resultMessage = "✅ Sample in-app messages created successfully!"
+                            } catch (e: Exception) {
+                                resultMessage = "❌ Error creating messages: ${e.message}"
+                            }
+                            
+                            isLoading = false
+                            showResult = true
+                        }
+                    },
+                    enabled = !isLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Creating...")
+                    } else {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Create Sample Messages")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Delete Sample Messages Button
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            isLoading = true
+                            showResult = false
+                            
+                            try {
+                                InAppMessageSetupUtil.deleteSampleMessages()
+                                resultMessage = "✅ Sample in-app messages deleted successfully!"
+                            } catch (e: Exception) {
+                                resultMessage = "❌ Error deleting messages: ${e.message}"
+                            }
+                            
+                            isLoading = false
+                            showResult = true
+                        }
+                    },
+                    enabled = !isLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Deleting...")
+                    } else {
+                        Icon(Icons.Default.Delete, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Delete Sample Messages")
+                    }
+                }
             }
         }
         

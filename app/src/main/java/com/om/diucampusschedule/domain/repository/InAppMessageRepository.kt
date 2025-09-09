@@ -4,13 +4,21 @@ package com.om.diucampusschedule.domain.repository
 import android.content.Context
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import com.om.diucampusschedule.data.preferences.InAppMessagePreferences
 import com.om.diucampusschedule.domain.model.InAppMessage
 import com.om.diucampusschedule.domain.model.MessageButton
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object InAppMessageRepository {
+@Singleton
+class InAppMessageRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val inAppMessagePreferences: InAppMessagePreferences
+) {
     private val firestore = FirebaseFirestore.getInstance()
-    private const val COLLECTION_NAME = "inAppMessages"
+    private val COLLECTION_NAME = "inAppMessages"
 
     suspend fun getActiveMessages(): List<InAppMessage> {
         return try {
@@ -69,10 +77,10 @@ object InAppMessageRepository {
     }
 
     // Get messages filtered for a specific user based on their install time
-    suspend fun getMessagesForUser(context: Context, targetScreen: String = ""): List<InAppMessage> {
+    suspend fun getMessagesForUser(targetScreen: String = ""): List<InAppMessage> {
         return try {
             val allMessages = getActiveMessages()
-            val userInstallTime = getUserInstallTime(context)
+            val userInstallTime = inAppMessagePreferences.getUserInstallTime()
             val currentTime = System.currentTimeMillis()
 
             allMessages.filter { message ->
@@ -103,24 +111,38 @@ object InAppMessageRepository {
         }
     }
 
-    private fun getUserInstallTime(context: Context): Long {
-        val prefs = context.getSharedPreferences("in_app_message_prefs", Context.MODE_PRIVATE)
-        var installTime = prefs.getLong("user_install_time", 0L)
-
-        if (installTime == 0L) {
-            // First time - record install time
-            installTime = System.currentTimeMillis()
-            prefs.edit().putLong("user_install_time", installTime).apply()
-//            Log.d("InAppMessageRepo", "Recorded user install time: $installTime")
-        }
-
-        return installTime
+    /**
+     * Check if a message has been dismissed by the user
+     */
+    suspend fun isMessageDismissed(messageId: String): Boolean {
+        return inAppMessagePreferences.isMessageDismissed(messageId)
     }
 
-    // Helper method to reset user install time (for testing)
-    fun resetUserInstallTime(context: Context) {
-        val prefs = context.getSharedPreferences("in_app_message_prefs", Context.MODE_PRIVATE)
-        prefs.edit().remove("user_install_time").apply()
-//        Log.d("InAppMessageRepo", "Reset user install time")
+    /**
+     * Mark a message as dismissed
+     */
+    suspend fun dismissMessage(messageId: String) {
+        inAppMessagePreferences.dismissMessage(messageId)
+    }
+
+    /**
+     * Get all dismissed message IDs
+     */
+    suspend fun getDismissedMessageIds(): Set<String> {
+        return inAppMessagePreferences.getDismissedMessageIds()
+    }
+
+    /**
+     * Reset user install time (for testing)
+     */
+    suspend fun resetUserInstallTime() {
+        inAppMessagePreferences.resetUserInstallTime()
+    }
+
+    /**
+     * Reset all dismissed messages (for testing)
+     */
+    suspend fun resetDismissedMessages() {
+        inAppMessagePreferences.resetDismissedMessages()
     }
 }

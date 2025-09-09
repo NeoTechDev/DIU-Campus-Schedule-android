@@ -1,7 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to all documents for now (since we're using simple auth)
+    // InApp Messages - read-only for all users
+    match /inAppMessages/{messageId} {
+      allow read: if true;
+      allow write: if false; // Only admins should write messages (through Firebase Console)
+    }
+    
+    // Allow read/write access to all other documents for now (since we're using simple auth)
     // In production, you should implement proper authentication
     match /{document=**} {
       allow read, write: if true;

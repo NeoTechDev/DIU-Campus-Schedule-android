@@ -10,6 +10,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.om.diucampusschedule.ui.firebase.InAppMessageHandler
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 
@@ -57,7 +58,17 @@ fun MainScaffold(
             },
             contentWindowInsets = WindowInsets(0) // Remove all default window insets
         ) { paddingValues ->
-            content(paddingValues)
+            Box {
+                content(paddingValues)
+                
+                // Add InAppMessageHandler for main app screens
+                if (isMainAppScreen(currentRoute)) {
+                    InAppMessageHandler(
+                        navController = navController,
+                        targetScreen = currentRoute ?: ""
+                    )
+                }
+            }
         }
     } else {
         // For auth screens and other full-screen content
