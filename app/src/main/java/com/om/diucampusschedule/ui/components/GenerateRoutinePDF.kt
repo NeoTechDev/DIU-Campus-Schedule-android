@@ -24,6 +24,7 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.common.BitMatrix
 import com.google.zxing.qrcode.QRCodeWriter
 import com.om.diucampusschedule.domain.model.RoutineItem
+import com.om.diucampusschedule.ui.viewmodel.RoutineFilter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,6 +45,8 @@ suspend fun generateRoutinePdf(
     room: String,
     startTimes: List<String>,
     effectiveFrom: String?,
+    defaultFilterText: String?,
+    currentFilter: RoutineFilter?,
     snackbarHostState: SnackbarHostState,
     onPdfSaved: (Uri, String) -> Unit
 ) {
@@ -138,13 +141,9 @@ suspend fun generateRoutinePdf(
             titlePaint
         )
 
-        val filterInfo = when {
-            role == "Student" && batch.isNotEmpty() && section.isNotEmpty() -> "Batch: ${batch.uppercase()}, Sec: ${section.uppercase()}, Effective From: ${effectiveFrom ?: "N/A"}"
-            role == "Teacher" && teacherInitial.isNotEmpty() -> "Teacher: ${teacherInitial.uppercase()}, Effective From: ${effectiveFrom ?: "N/A"}"
-            role == "Student" && batch.isNotEmpty() -> "Batch: ${batch.uppercase()}, Effective From: ${effectiveFrom ?: "N/A"}"
-            role == "Room" && room.isNotEmpty() -> "Room: ${room.uppercase()}, Effective From: ${effectiveFrom ?: "N/A"}"
-            else -> "All Routines, Effective From: ${effectiveFrom ?: "N/A"}"
-        }
+        val defaultUser = defaultFilterText?.uppercase()
+        val filterInfo = "${currentFilter?.getDisplayText()?.uppercase() ?: defaultUser}, Effective From: ${effectiveFrom ?: "N/A"}"
+
         canvas.drawText(
             "Filter: $filterInfo",
             pageInfo.pageWidth / 2f,

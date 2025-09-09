@@ -386,6 +386,8 @@ fun RoutineScreen(
                 room = "",
                 startTimes = startTimes,
                 effectiveFrom = uiState.effectiveFrom,
+                defaultFilterText = viewModel.getDefaultFilterText(),
+                currentFilter = uiState.currentFilter,
                 snackbarHostState = snackbarHostState,
                 onPdfSaved = { uri, fileName ->
                     generatedFileUri = uri
@@ -432,6 +434,8 @@ fun RoutineScreen(
                 room = "",
                 startTimes = startTimes,
                 effectiveFrom = uiState.effectiveFrom,
+                defaultFilterText = viewModel.getDefaultFilterText(),
+                currentFilter = uiState.currentFilter,
                 snackbarHostState = snackbarHostState,
                 onImageSaved = { uri, fileName ->
                     generatedFileUri = uri
@@ -439,7 +443,8 @@ fun RoutineScreen(
                     showProgressDialog = false
                     showSuccessDialog = true
                     isImageGenerating = false
-                }
+                },
+                currentUser = currentUser
             )
         }
     }
@@ -1418,7 +1423,7 @@ private fun slideInHorizontally(
  * - When filtering by student (teacher viewing student's routine): show "Break" 
  * - When no filter is applied: use logged-in user's role (current behavior)
  */
-private fun getBreakCounsellingText(
+fun getBreakCounsellingText(
     currentUser: User?,
     currentFilter: RoutineFilter?
 ): String {

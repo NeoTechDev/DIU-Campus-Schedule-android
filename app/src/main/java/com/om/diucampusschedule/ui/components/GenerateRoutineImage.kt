@@ -22,6 +22,8 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.common.BitMatrix
 import com.google.zxing.qrcode.QRCodeWriter
 import com.om.diucampusschedule.domain.model.RoutineItem
+import com.om.diucampusschedule.ui.screens.routine.getBreakCounsellingText
+import com.om.diucampusschedule.ui.viewmodel.RoutineFilter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -43,8 +45,11 @@ suspend fun generateRoutineImage(
     room: String,
     startTimes: List<String>,
     effectiveFrom: String?,
+    defaultFilterText: String?,
+    currentFilter: RoutineFilter?,
     snackbarHostState: SnackbarHostState,
-    onImageSaved: (Uri, String) -> Unit
+    onImageSaved: (Uri, String) -> Unit,
+    currentUser: com.om.diucampusschedule.domain.model.User?,
 ) {
     withContext(Dispatchers.IO) {
         try {
@@ -116,20 +121,11 @@ suspend fun generateRoutineImage(
             )
 
             // Filter information
-            val filterInfo = when {
-                role == "Student" && batch.isNotEmpty() && section.isNotEmpty() ->
-                    "Batch: ${batch.uppercase()}, Sec: ${section.uppercase()}, Effective From: ${effectiveFrom ?: "N/A"}"
-                role == "Teacher" && teacherInitial.isNotEmpty() ->
-                    "Teacher: ${teacherInitial.uppercase()}, Effective From: ${effectiveFrom ?: "N/A"}"
-                role == "Student" && batch.isNotEmpty() ->
-                    "Batch: ${batch.uppercase()}, Effective From: ${effectiveFrom ?: "N/A"}"
-                role == "Room" && room.isNotEmpty() ->
-                    "Room: ${room.uppercase()}, Effective From: ${effectiveFrom ?: "N/A"}"
-                else -> "All Routines, Effective From: ${effectiveFrom ?: "N/A"}"
-            }
+            val defaultUser = defaultFilterText?.uppercase()
+            val filterInfo = "${currentFilter?.getDisplayText()?.uppercase() ?: defaultUser}, Effective From: ${effectiveFrom ?: "N/A"}"
 
             canvas.drawText(
-                filterInfo,
+                "Filter: $filterInfo",
                 imageWidth / 2f,
                 yPosition + 40f,
                 headerPaint
@@ -281,7 +277,7 @@ suspend fun generateRoutineImage(
                                     currentTimeSlot.isAfter(firstClass.startTime) &&
                                     currentTimeSlot.isBefore(lastClass.endTime)) {
                                     canvas.drawText(
-                                        if (role == "Teacher") "Counselling" else "Break",
+                                        getBreakCounsellingText(currentUser, currentFilter),
                                         currentX + timeColumnWidth / 2f - 30f,
                                         currentY + cellHeight / 2f + 8f,
                                         textPaint
@@ -320,20 +316,8 @@ suspend fun generateRoutineImage(
                 )
             }
 
-            val filterSaveInfo = when {
-                role == "Student" && batch.isNotEmpty() && section.isNotEmpty() ->
-                    "${batch.uppercase()}_${section.uppercase()}"
-                role == "Teacher" && teacherInitial.isNotEmpty() ->
-                    teacherInitial.uppercase()
-                role == "Student" && batch.isNotEmpty() ->
-                    batch.uppercase()
-                role == "Room" && room.isNotEmpty() ->
-                    room.uppercase()
-                else -> null
-            }
-
             // Save the image
-            val fileName = "DIU_CS_Routine_${filterSaveInfo}_${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))}.jpg"
+            val fileName = "DIU_CS_Routine_${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))}.jpg"
             val values = ContentValues().apply {
                 put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
                 put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
