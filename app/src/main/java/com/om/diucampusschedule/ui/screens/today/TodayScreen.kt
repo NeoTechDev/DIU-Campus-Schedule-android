@@ -179,6 +179,8 @@ fun TodayScreen(
         }
     }
     
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -194,7 +196,12 @@ fun TodayScreen(
                 onOpenDrawer() // Open drawer instead of navigating to profile
             },
             onNotificationClick = {
-                // TODO: Implement notification functionality
+                // Show a simple Toast message when notification icon is clicked
+                android.widget.Toast.makeText(
+                    context,
+                    "This feature is in development.",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
             },
             onCalendarClick = {
                 currentCalendarMonth = YearMonth.from(selectedDate)
