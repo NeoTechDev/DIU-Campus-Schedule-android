@@ -65,9 +65,24 @@ class AuthRepositoryImpl @Inject constructor(
             val result = remoteDataSource.signUp(request)
             if (result.isSuccess) {
                 val userDto = result.getOrThrow()
+                val user = userDto.toDomainModel()
+                
                 // Cache user locally
                 localDataSource.saveUser(userDto)
-                Result.success(userDto.toDomainModel())
+                
+                // Update FCM token in background for push notifications
+                CoroutineScope(Dispatchers.IO).launch {
+                    updateFCMTokenUseCase(user).fold(
+                        onSuccess = { token ->
+                            android.util.Log.d("AuthRepository", "FCM token updated on sign up: ${token.take(20)}...")
+                        },
+                        onFailure = { error ->
+                            android.util.Log.w("AuthRepository", "Failed to update FCM token on sign up", error)
+                        }
+                    )
+                }
+                
+                Result.success(user)
             } else {
                 result.map { it.toDomainModel() }
             }

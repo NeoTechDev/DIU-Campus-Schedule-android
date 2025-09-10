@@ -8,6 +8,7 @@
     <!-- Firebase SDK -->
     <script defer src="/__/firebase/12.1.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/12.1.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/12.1.0/firebase-functions-compat.js"></script>
     <script defer src="/__/firebase/init.js?useEmulator=false"></script>
     
     <style>
@@ -162,10 +163,11 @@
             box-shadow: 0 8px 25px rgba(245, 101, 101, 0.4);
         }
         .status {
-            margin: 15px 0;
+            margin: 20px 0;
             padding: 15px;
             border-radius: 10px;
             display: none;
+            text-align: center;
         }
         .status.success {
             background: #c6f6d5;
@@ -176,6 +178,29 @@
             background: #fed7d7;
             color: #742a2a;
             border-left: 4px solid #f56565;
+        }
+        #systemStatus div {
+            padding: 3px 0;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .status-normal { color: #22543d; }
+        .status-maintenance { color: #d69e2e; }
+        .status-break { color: #3182ce; }
+        .status-cleared { color: #e53e3e; }
+        .status-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.7;
+        }
+        .status-close:hover {
+            opacity: 1;
         }
         .routine-list {
             max-height: 400px;
@@ -215,6 +240,338 @@
         .hidden {
             display: none !important;
         }
+        
+        /* Modern Message Input Styles */
+        .message-input-group {
+            margin-bottom: 25px;
+        }
+        
+        .modern-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1em;
+        }
+        
+        .label-icon {
+            font-size: 1.2em;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .modern-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: all 0.3s ease;
+            background: #ffffff;
+            color: #2d3748;
+        }
+        
+        .modern-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: #f8f9ff;
+        }
+        
+        .modern-textarea::placeholder {
+            color: #a0aec0;
+        }
+        
+        .char-counter {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            font-size: 11px;
+            color: #a0aec0;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+            backdrop-filter: blur(4px);
+        }
+        
+        /* Modal Popup Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8) translateY(50px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .modal-overlay.show .modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #a0aec0;
+            transition: all 0.3s ease;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close:hover {
+            background: #f7fafc;
+            color: #4a5568;
+            transform: rotate(90deg);
+        }
+        
+        .modal-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            font-family: inherit;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+        
+        .modal-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+            background: #ffffff;
+        }
+        
+        .modal-textarea::placeholder {
+            color: #a0aec0;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .modal-char-counter {
+            font-size: 14px;
+            color: #a0aec0;
+            font-weight: 500;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .modal-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            justify-content: center;
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .modal-btn.cancel {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .modal-btn.cancel:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+        
+        .modal-btn.confirm {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .modal-btn.confirm:hover {
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .modal-btn.confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 25px;
+        }
+        
+        .modern-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            min-height: 50px;
+        }
+        
+        .modern-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .modern-btn:active {
+            transform: translateY(0);
+        }
+        
+        .modern-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .modern-btn.primary:hover {
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .modern-btn.success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+        
+        .modern-btn.success:hover {
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
+        }
+        
+        .modern-btn.warning {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            color: white;
+        }
+        
+        .modern-btn.warning:hover {
+            box-shadow: 0 8px 25px rgba(237, 137, 54, 0.4);
+        }
+        
+        .modern-btn.secondary {
+            background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+            color: white;
+        }
+        
+        .modern-btn.secondary:hover {
+            box-shadow: 0 8px 25px rgba(113, 128, 150, 0.4);
+        }
+        
+        .btn-icon {
+            font-size: 1.1em;
+        }
+        
+        .btn-text {
+            font-weight: 600;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .button-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modern-btn {
+                min-height: 45px;
+                font-size: 13px;
+                padding: 12px 16px;
+            }
+            
+            .modern-textarea {
+                min-height: 70px;
+                padding: 12px;
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -246,6 +603,13 @@
             <div class="stat-card">
                 <h3>🎓 Semester</h3>
                 <div class="stat-value" style="font-size: 1.2em;" id="semester">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>🔧 System Status</h3>
+                <div class="stat-value" style="font-size: 1.0em;" id="systemStatus">
+                    <div id="maintenanceStatus">🟢 Normal Operation</div>
+                    <div id="semesterBreakStatus" style="margin-top: 5px;">📚 Academic Period</div>
+                </div>
             </div>
         </div>
 
@@ -283,21 +647,86 @@
         <!-- Maintenance Control -->
         <div class="card">
             <h2>🔧 Maintenance Control</h2>
-            <p>Manage maintenance mode for routine updates and semester transitions.</p>
-            <button class="btn" onclick="enableMaintenanceMode()">🔧 Enable Maintenance Mode</button>
-            <button class="btn" onclick="disableMaintenanceMode()">✅ Disable Maintenance Mode</button>
-            <button class="btn btn-danger" onclick="setSemesterBreak()">🏖️ Set Semester Break</button>
-            <button class="btn" onclick="clearMaintenanceData()" style="background: #6c757d;">🧹 Clear All Maintenance Data</button>
+            <p>Manage maintenance mode for routine updates and semester transitions. Push notifications will be sent to all users.</p>
+            
+            <!-- Action Buttons -->
+            <div class="button-grid">
+                <button class="modern-btn primary" onclick="openMaintenanceModal()">
+                    <span class="btn-icon">🔧</span>
+                    <span class="btn-text">Enable Maintenance</span>
+                </button>
+                <button class="modern-btn success" onclick="disableMaintenanceMode()">
+                    <span class="btn-icon">✅</span>
+                    <span class="btn-text">Disable Maintenance</span>
+                </button>
+                <button class="modern-btn warning" onclick="openSemesterBreakModal()">
+                    <span class="btn-icon">🏖️</span>
+                    <span class="btn-text">Set Semester Break</span>
+                </button>
+                <button class="modern-btn secondary" onclick="clearMaintenanceData()">
+                    <span class="btn-icon">🧹</span>
+                    <span class="btn-text">Clear All Data</span>
+                </button>
+            </div>
+            
             <div id="maintenanceStatus" class="status"></div>
+        </div>
+
+        <!-- Message Input Modal -->
+        <div id="messageModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <span id="modalIcon">🔧</span>
+                        <span id="modalTitle">Maintenance Message</span>
+                    </div>
+                    <button class="modal-close" onclick="closeMessageModal()">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <textarea 
+                        id="modalTextarea" 
+                        class="modal-textarea"
+                        placeholder="Enter your message here..."
+                        maxlength="500"
+                    ></textarea>
+                    
+                    <div class="modal-footer">
+                        <div class="modal-char-counter">
+                            <span id="modalCharCount">0</span>/500 characters
+                        </div>
+                        <div class="modal-buttons">
+                            <button class="modal-btn cancel" onclick="closeMessageModal()">
+                                <span>❌</span>
+                                Cancel
+                            </button>
+                            <button class="modal-btn confirm" id="modalConfirmBtn" onclick="confirmMessage()">
+                                <span>✅</span>
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Version Management -->
         <div class="card">
             <h2>🔄 Version Management</h2>
-            <p>Update the routine version to notify all app users about new data.</p>
-            <button class="btn" onclick="updateVersion()">📢 Trigger User Updates</button>
+            <p>Send push notifications to all app users about updates and changes.</p>
+            <button class="btn" onclick="triggerManualUpdate()">📢 Send Update Notifications</button>
             <button class="btn btn-danger" onclick="deleteAllRoutines()">🗑️ Delete All Routines</button>
             <div id="versionStatus" class="status"></div>
+        </div>
+
+        <!-- Debug Section -->
+        <div class="card">
+            <h2>🐛 Debug Information</h2>
+            <p>Check FCM token registration and notification system status.</p>
+            <button class="btn" onclick="checkFCMTokens()">🔍 Check FCM Tokens</button>
+            <button class="btn" onclick="getSystemStats()">📊 Get System Stats</button>
+            <button class="btn" onclick="testStatus()" style="background: red; color: white;">🧪 TEST STATUS</button>
+            <div id="debugStatus" class="status"></div>
         </div>
     </div>
 
@@ -341,7 +770,7 @@
             
             // Wait for Firebase to load
             const checkFirebase = setInterval(() => {
-                if (typeof firebase !== "undefined" && firebase.firestore) {
+                if (typeof firebase !== "undefined" && firebase.firestore && firebase.functions) {
                     console.log("Firebase loaded successfully");
                     db = firebase.firestore();
                     
@@ -350,7 +779,20 @@
                     db.collection('test').limit(1).get()
                         .then(() => {
                             console.log("Firebase connection successful");
-                            loadDashboardData();
+                            
+                            // Test Functions connection
+                            console.log("Testing Firebase Functions...");
+                            const testFunc = firebase.functions().httpsCallable('getSystemStats');
+                            testFunc().then(() => {
+                                console.log("Firebase Functions connection successful");
+                                loadDashboardData();
+                                loadSystemStatus(); // Load saved system status
+                            }).catch((error) => {
+                                console.error("Firebase Functions test failed:", error);
+                                // Still load dashboard even if functions test fails
+                                loadDashboardData();
+                                loadSystemStatus(); // Load saved system status
+                            });
                         })
                         .catch((error) => {
                             console.error("Firebase connection failed:", error);
@@ -359,7 +801,7 @@
                     
                     clearInterval(checkFirebase);
                 } else {
-                    console.log("Still waiting for Firebase...");
+                    console.log("Still waiting for Firebase... firestore:", !!firebase?.firestore, "functions:", !!firebase?.functions);
                 }
             }, 100);
         });
@@ -372,11 +814,115 @@
             }
         }
 
+        // Test function using the fixed showStatus
+        function testStatus() {
+            showStatus('debugStatus', '✅ Status system is now working perfectly! All dashboard functions will show feedback.', false);
+        }
+
+        // Function to update system status display
+        function updateSystemStatus(maintenanceMode = null, semesterBreak = null, dataCleared = null) {
+            const maintenanceEl = document.getElementById('maintenanceStatus');
+            const semesterEl = document.getElementById('semesterBreakStatus');
+            
+            // Update maintenance status
+            if (maintenanceMode !== null) {
+                if (maintenanceMode) {
+                    maintenanceEl.innerHTML = '🔴 Maintenance Mode';
+                    maintenanceEl.className = 'status-maintenance';
+                    localStorage.setItem('lastMaintenanceAction', 'enabled');
+                } else {
+                    maintenanceEl.innerHTML = '🟢 Normal Operation';
+                    maintenanceEl.className = 'status-normal';
+                    localStorage.setItem('lastMaintenanceAction', 'disabled');
+                }
+            }
+            
+            // Update semester break status
+            if (semesterBreak !== null) {
+                if (semesterBreak) {
+                    semesterEl.innerHTML = '🏖️ Semester Break';
+                    semesterEl.className = 'status-break';
+                    localStorage.setItem('lastSemesterAction', 'break_enabled');
+                } else {
+                    semesterEl.innerHTML = '📚 Academic Period';
+                    semesterEl.className = 'status-normal';
+                    localStorage.setItem('lastSemesterAction', 'break_disabled');
+                }
+            }
+            
+            // Update data cleared status
+            if (dataCleared === true) {
+                semesterEl.innerHTML = '🗑️ Data Cleared';
+                semesterEl.className = 'status-cleared';
+                localStorage.setItem('lastSemesterAction', 'data_cleared');
+            }
+        }
+
+        // Function to load saved status on page load
+        function loadSystemStatus() {
+            const lastMaintenance = localStorage.getItem('lastMaintenanceAction');
+            const lastSemester = localStorage.getItem('lastSemesterAction');
+            
+            if (lastMaintenance === 'enabled') {
+                updateSystemStatus(true, null, null);
+            } else if (lastMaintenance === 'disabled') {
+                updateSystemStatus(false, null, null);
+            }
+            
+            if (lastSemester === 'break_enabled') {
+                updateSystemStatus(null, true, null);
+            } else if (lastSemester === 'break_disabled') {
+                updateSystemStatus(null, false, null);
+            } else if (lastSemester === 'data_cleared') {
+                updateSystemStatus(null, null, true);
+            }
+        }
+
         function showStatus(elementId, message, isError = false) {
-            const statusEl = document.getElementById(elementId);
-            statusEl.className = `status ${isError ? "error" : "success"}`;
-            statusEl.innerHTML = message;
-            statusEl.style.display = "block";
+            // Remove any existing status message
+            const existingStatus = document.getElementById('DYNAMIC_STATUS_MESSAGE');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+            
+            // Create a new status element (same approach as working test)
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'DYNAMIC_STATUS_MESSAGE';
+            statusDiv.innerHTML = message;
+            
+            // Use working CSS approach
+            const bgColor = isError ? '#fed7d7' : '#c6f6d5';
+            const textColor = isError ? '#742a2a' : '#22543d';
+            const borderColor = isError ? '#f56565' : '#48bb78';
+            
+            statusDiv.style.cssText = `
+                position: fixed !important;
+                top: 20px !important;
+                right: 20px !important;
+                background: ${bgColor} !important;
+                color: ${textColor} !important;
+                padding: 15px 20px !important;
+                border-left: 4px solid ${borderColor} !important;
+                border-radius: 8px !important;
+                font-size: 14px !important;
+                z-index: 999999 !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                max-width: 400px !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+            `;
+            
+            // Add to body (guaranteed to be visible)
+            document.body.appendChild(statusDiv);
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                if (statusDiv && statusDiv.parentNode) {
+                    statusDiv.remove();
+                }
+            }, 5000);
         }
 
         function handleFileSelect(input) {
@@ -585,21 +1131,20 @@
             }
         }
 
-        async function updateVersion() {
+        async function triggerManualUpdate() {
             try {
-                await db.collection('metadata').doc('routine_version').set({
-                    version: Date.now(),
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedBy: 'admin',
-                    updateType: 'manual_trigger'
-                }, { merge: true });
+                showStatus('versionStatus', '⏳ Sending push notifications to all users...', false);
+                
+                // Call Cloud Function to send manual update notifications
+                const triggerUpdate = firebase.functions().httpsCallable('triggerManualUpdate');
+                const result = await triggerUpdate();
 
-                showStatus('versionStatus', '✅ Version updated! All app users will be notified.', false);
+                showStatus('versionStatus', '✅ Push notifications sent to all users!', false);
                 loadDashboardData();
 
             } catch (error) {
-                console.error('Error updating version:', error);
-                showStatus('versionStatus', `❌ Version update failed: ${error.message}`, true);
+                console.error('Error triggering manual update:', error);
+                showStatus('versionStatus', `❌ Manual update failed: ${error.message}`, true);
             }
         }
 
@@ -639,81 +1184,196 @@
             }
         }
 
-        async function enableMaintenanceMode() {
-            const message = prompt('Enter maintenance message for users:', 'System maintenance in progress. New routines will be uploaded soon.');
-            if (message) {
-                try {
-                    await db.collection('metadata').doc('routine_version').set({
-                        version: Date.now(),
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedBy: 'admin',
-                        updateType: 'maintenance_enabled',
-                        maintenanceMode: true,
-                        maintenanceMessage: message,
-                        semesterBreak: false // Regular maintenance, not semester break
-                    }, { merge: true });
-                    
-                    showStatus('maintenanceStatus', '✅ Maintenance mode enabled! Apps will show maintenance message.', false);
-                } catch (error) {
-                    showStatus('maintenanceStatus', `❌ Failed to enable maintenance mode: ${error.message}`, true);
+        // Modal functionality
+        let currentModalAction = null;
+        
+        function openMaintenanceModal() {
+            currentModalAction = 'maintenance';
+            document.getElementById('modalIcon').textContent = '🔧';
+            document.getElementById('modalTitle').textContent = 'Maintenance Message';
+            document.getElementById('modalTextarea').placeholder = 'Enter maintenance message for users...';
+            document.getElementById('modalTextarea').value = 'System maintenance in progress. New routines will be uploaded soon.';
+            document.getElementById('modalConfirmBtn').innerHTML = '<span>🔧</span> Enable Maintenance';
+            
+            showModal();
+        }
+        
+        function openSemesterBreakModal() {
+            currentModalAction = 'semester';
+            document.getElementById('modalIcon').textContent = '🏖️';
+            document.getElementById('modalTitle').textContent = 'Semester Break Message';
+            document.getElementById('modalTextarea').placeholder = 'Enter semester break message for users...';
+            document.getElementById('modalTextarea').value = 'Semester break is in progress. New semester routine will be available soon.';
+            document.getElementById('modalConfirmBtn').innerHTML = '<span>🏖️</span> Set Semester Break';
+            
+            showModal();
+        }
+        
+        function showModal() {
+            const modal = document.getElementById('messageModal');
+            const textarea = document.getElementById('modalTextarea');
+            
+            modal.classList.add('show');
+            updateModalCharCount();
+            
+            // Focus on textarea after animation
+            setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            }, 300);
+            
+            // Close modal on escape key
+            document.addEventListener('keydown', handleEscapeKey);
+        }
+        
+        function closeMessageModal() {
+            const modal = document.getElementById('messageModal');
+            modal.classList.remove('show');
+            currentModalAction = null;
+            
+            // Remove escape key listener
+            document.removeEventListener('keydown', handleEscapeKey);
+        }
+        
+        function handleEscapeKey(e) {
+            if (e.key === 'Escape') {
+                closeMessageModal();
+            }
+        }
+        
+        function updateModalCharCount() {
+            const textarea = document.getElementById('modalTextarea');
+            const counter = document.getElementById('modalCharCount');
+            const confirmBtn = document.getElementById('modalConfirmBtn');
+            const currentLength = textarea.value.length;
+            
+            counter.textContent = currentLength;
+            
+            // Color coding based on length
+            if (currentLength > 450) {
+                counter.style.color = '#e53e3e';
+            } else if (currentLength > 350) {
+                counter.style.color = '#ed8936';
+            } else {
+                counter.style.color = '#4a5568';
+            }
+            
+            // Enable/disable confirm button
+            confirmBtn.disabled = currentLength === 0;
+        }
+        
+        async function confirmMessage() {
+            const message = document.getElementById('modalTextarea').value.trim();
+            
+            if (!message) {
+                showStatus('maintenanceStatus', '❌ Please enter a message before confirming.', true);
+                return;
+            }
+            
+            // Call the function first, then close modal after it completes
+            try {
+                if (currentModalAction === 'maintenance') {
+                    await enableMaintenanceMode(message);
+                } else if (currentModalAction === 'semester') {
+                    await setSemesterBreak(message);
                 }
+                
+                // Close modal after function completes
+                closeMessageModal();
+            } catch (error) {
+                console.error("Error in confirmMessage:", error);
+                showStatus('maintenanceStatus', '❌ Operation failed. Please try again.', true);
+                // Still close modal even if there's an error
+                closeMessageModal();
+            }
+        }
+
+        async function enableMaintenanceMode(message = null) {
+            // Check if Firebase Functions is available
+            if (typeof firebase === "undefined" || !firebase.functions) {
+                console.error("Firebase Functions not available");
+                showStatus('maintenanceStatus', '❌ Firebase Functions not loaded. Please refresh the page.', true);
+                return;
+            }
+            
+            // If no message provided, show error
+            if (!message) {
+                console.error("No message provided to enableMaintenanceMode");
+                showStatus('maintenanceStatus', '❌ No message provided for maintenance mode.', true);
+                return;
+            }
+            
+            try {
+                showStatus('maintenanceStatus', '⏳ Enabling maintenance mode and sending push notifications...', false);
+                
+                // Call Cloud Function to enable maintenance mode and send push notifications
+                const enableMaintenance = firebase.functions().httpsCallable('enableMaintenanceMode');
+                const result = await enableMaintenance({ message: message });
+                
+                showStatus('maintenanceStatus', '✅ Maintenance mode enabled! Push notifications sent to all users.', false);
+                updateSystemStatus(true, null, null); // Update system status
+                loadDashboardData();
+            } catch (error) {
+                console.error('Enable maintenance error:', error);
+                showStatus('maintenanceStatus', `❌ Failed to enable maintenance mode: ${error.message || error.code || 'Unknown error'}`, true);
             }
         }
 
         async function disableMaintenanceMode() {
             try {
-                await db.collection('metadata').doc('routine_version').set({
-                    version: Date.now(),
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedBy: 'admin',
-                    updateType: 'maintenance_disabled',
-                    maintenanceMode: false,
-                    maintenanceMessage: null,
-                    semesterBreak: false // Explicitly clear semester break when disabling maintenance
-                }, { merge: true });
+                showStatus('maintenanceStatus', '⏳ Disabling maintenance mode and sending push notifications...', false);
                 
-                showStatus('maintenanceStatus', '✅ Maintenance mode disabled! Apps will return to normal.', false);
+                // Call Cloud Function to disable maintenance mode and send push notifications
+                const disableMaintenance = firebase.functions().httpsCallable('disableMaintenanceMode');
+                const result = await disableMaintenance();
+                
+                showStatus('maintenanceStatus', '✅ Maintenance mode disabled! Push notifications sent to all users.', false);
+                updateSystemStatus(false, null, null); // Update system status
+                loadDashboardData();
             } catch (error) {
+                console.error('Disable maintenance error:', error);
                 showStatus('maintenanceStatus', `❌ Failed to disable maintenance mode: ${error.message}`, true);
             }
         }
 
-        async function setSemesterBreak() {
-            const message = prompt('Enter semester break message:', 'Semester break is in progress. New semester routine will be available soon.');
-            if (message) {
-                try {
-                    await db.collection('metadata').doc('routine_version').set({
-                        version: Date.now(),
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedBy: 'admin',
-                        updateType: 'semester_break',
-                        maintenanceMode: true,
-                        maintenanceMessage: message,
-                        semesterBreak: true
-                    }, { merge: true });
-                    
-                    showStatus('maintenanceStatus', '✅ Semester break mode enabled! Apps will show break message.', false);
-                } catch (error) {
-                    showStatus('maintenanceStatus', `❌ Failed to set semester break: ${error.message}`, true);
-                }
+        async function setSemesterBreak(message = null) {
+            // If no message provided, it came from modal
+            if (!message) {
+                return; // This should not happen with the modal system
+            }
+            
+            try {
+                await db.collection('metadata').doc('routine_version').set({
+                    version: Date.now(),
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedBy: 'admin',
+                    updateType: 'semester_break',
+                    maintenanceMode: true,
+                    maintenanceMessage: message,
+                    semesterBreak: true
+                }, { merge: true });
+                
+                showStatus('maintenanceStatus', '✅ Semester break mode enabled! Apps will show break message.', false);
+                updateSystemStatus(null, true, null); // Update system status
+            } catch (error) {
+                showStatus('maintenanceStatus', `❌ Failed to set semester break: ${error.message}`, true);
             }
         }
 
         async function clearMaintenanceData() {
             if (confirm('This will clear all maintenance settings and return the app to normal. Continue?')) {
                 try {
-                    await db.collection('metadata').doc('routine_version').set({
-                        version: Date.now(),
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedBy: 'admin',
-                        updateType: 'maintenance_cleared',
-                        maintenanceMode: false,
-                        maintenanceMessage: null,
-                        semesterBreak: false
-                    }, { merge: true });
+                    showStatus('maintenanceStatus', '⏳ Clearing maintenance data...', false);
+                    
+                    // Call Cloud Function to clear maintenance data
+                    const clearMaintenance = firebase.functions().httpsCallable('clearMaintenanceData');
+                    const result = await clearMaintenance();
                     
                     showStatus('maintenanceStatus', '✅ All maintenance data cleared! Apps will return to normal.', false);
+                    updateSystemStatus(null, null, true); // Update system status to show data cleared
+                    loadDashboardData();
                 } catch (error) {
+                    console.error('Clear maintenance error:', error);
                     showStatus('maintenanceStatus', `❌ Failed to clear maintenance data: ${error.message}`, true);
                 }
             }
@@ -796,6 +1456,221 @@
                 showStatus('uploadStatus', `❌ Error loading data: ${error.message}`, true);
             }
         }
+
+        // Debug functions
+        async function checkFCMTokens() {
+            console.log("checkFCMTokens called");
+            try {
+                showStatus('debugStatus', '⏳ Checking FCM tokens...', false);
+                console.log("Status shown: Checking FCM tokens");
+                
+                const fcmTokensSnapshot = await db.collection('fcm_tokens').get();
+                console.log("FCM tokens query result:", fcmTokensSnapshot.size);
+                
+                if (fcmTokensSnapshot.empty) {
+                    showStatus('debugStatus', '❌ No FCM tokens found in database! Android app needs to register tokens first.', true);
+                    return;
+                }
+                
+                let tokenDetails = `✅ Found ${fcmTokensSnapshot.size} FCM tokens:<br><br>`;
+                
+                fcmTokensSnapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    tokenDetails += `📱 User: ${data.userId || 'Unknown'}<br>`;
+                    tokenDetails += `🏫 Department: ${data.department || 'Unknown'}<br>`;
+                    tokenDetails += `🔑 Token: ${data.token ? data.token.substring(0, 20) + '...' : 'None'}<br>`;
+                    tokenDetails += `✅ Enabled: ${data.enabled !== false ? 'Yes' : 'No'}<br>`;
+                    tokenDetails += `⏰ Updated: ${data.updatedAt ? new Date(data.updatedAt.toDate()).toLocaleString() : 'Unknown'}<br><br>`;
+                });
+                
+                console.log("Showing token details");
+                showStatus('debugStatus', tokenDetails, false);
+                
+            } catch (error) {
+                console.error('Error checking FCM tokens:', error);
+                showStatus('debugStatus', `❌ Error checking FCM tokens: ${error.message}`, true);
+            }
+        }
+
+        async function getSystemStats() {
+            console.log("getSystemStats called");
+            try {
+                showStatus('debugStatus', '⏳ Getting system statistics...', false);
+                console.log("Status shown: Getting system statistics");
+                
+                // Check if the function exists
+                if (!firebase.functions) {
+                    console.error("Firebase Functions not available");
+                    showStatus('debugStatus', '❌ Firebase Functions not available!', true);
+                    return;
+                }
+                
+                console.log("Calling getSystemStats function");
+                const getStats = firebase.functions().httpsCallable('getSystemStats');
+                const result = await getStats();
+                console.log("Function result:", result);
+                
+                if (!result || !result.data) {
+                    console.error("No data returned");
+                    showStatus('debugStatus', '❌ No data returned from getSystemStats function!', true);
+                    return;
+                }
+                
+                const stats = result.data;
+                console.log("Stats data:", stats);
+                let statsHtml = `📊 <strong>System Statistics:</strong><br><br>`;
+                
+                if (stats.users) {
+                    statsHtml += `👥 <strong>Users:</strong> ${stats.users.total || 0}<br>`;
+                }
+                if (stats.routines) {
+                    statsHtml += `📚 <strong>Routines:</strong> ${stats.routines.total || 0}<br>`;
+                }
+                if (stats.analytics) {
+                    statsHtml += `📈 <strong>Analytics:</strong> ${stats.analytics.total || 0}<br>`;
+                }
+                if (stats.feedback) {
+                    statsHtml += `💬 <strong>Feedback:</strong> ${stats.feedback.total || 0}<br><br>`;
+                }
+                
+                if (stats.fcmTokens) {
+                    statsHtml += `📱 <strong>FCM Tokens:</strong><br>`;
+                    statsHtml += `&nbsp;&nbsp;📱 Total: ${stats.fcmTokens.total || 0}<br>`;
+                    statsHtml += `&nbsp;&nbsp;✅ Valid: ${stats.fcmTokens.validTokens || 0}<br><br>`;
+                    
+                    if (stats.fcmTokens.breakdown) {
+                        statsHtml += `🏫 <strong>Tokens by Department:</strong><br>`;
+                        Object.entries(stats.fcmTokens.breakdown).forEach(([dept, count]) => {
+                            statsHtml += `&nbsp;&nbsp;${dept}: ${count.enabled || 0}/${count.total || 0} enabled<br>`;
+                        });
+                    }
+                    
+                    if (stats.fcmTokens.total === 0) {
+                        statsHtml += `<br>⚠️ <strong>No FCM tokens found!</strong><br>`;
+                        statsHtml += `The Android app needs to be installed and opened to register FCM tokens.`;
+                    }
+                } else {
+                    statsHtml += `📱 <strong>FCM Tokens:</strong> No data available<br>`;
+                }
+                
+                // If stats object is empty or minimal, show raw data
+                if (Object.keys(stats).length === 0) {
+                    statsHtml = `📊 <strong>System Statistics:</strong><br><br>❌ No statistics data available from server.`;
+                }
+                
+                console.log("Showing stats HTML");
+                showStatus('debugStatus', statsHtml, false);
+                
+            } catch (error) {
+                console.error('Error getting system stats:', error);
+                let errorMsg = `❌ Error getting system stats: ${error.message}`;
+                
+                if (error.code === 'functions/not-found') {
+                    errorMsg += '<br><br>🔧 The getSystemStats function is not deployed. Please deploy the Cloud Functions.';
+                }
+                
+                showStatus('debugStatus', errorMsg, true);
+            }
+        }
+        
+        // Modern UI enhancements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize modal functionality
+            initializeModal();
+            
+            // Add smooth animations to status messages
+            initializeStatusAnimations();
+        });
+        
+        function initializeModal() {
+            const textarea = document.getElementById('modalTextarea');
+            const modal = document.getElementById('messageModal');
+            
+            // Character counter for modal
+            textarea.addEventListener('input', updateModalCharCount);
+            
+            // Close modal when clicking outside
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeMessageModal();
+                }
+            });
+            
+            // Auto-resize modal textarea
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.max(120, this.scrollHeight) + 'px';
+            });
+        }
+        
+        function initializeStatusAnimations() {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const target = mutation.target;
+                        if (target.classList.contains('status') && target.style.display !== 'none') {
+                            // Add entrance animation
+                            target.style.opacity = '0';
+                            target.style.transform = 'translateY(-10px)';
+                            setTimeout(() => {
+                                target.style.transition = 'all 0.3s ease';
+                                target.style.opacity = '1';
+                                target.style.transform = 'translateY(0)';
+                            }, 10);
+                        }
+                    }
+                });
+            });
+            
+            const statusElements = document.querySelectorAll('.status');
+            statusElements.forEach(element => {
+                observer.observe(element, { attributes: true });
+            });
+        }
+        
+        // Enhanced button feedback
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modern-btn')) {
+                // Add ripple effect
+                const btn = e.target;
+                const ripple = document.createElement('span');
+                const rect = btn.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.cssText = `
+                    position: absolute;
+                    width: ${size}px;
+                    height: ${size}px;
+                    left: ${x}px;
+                    top: ${y}px;
+                    background: rgba(255, 255, 255, 0.3);
+                    border-radius: 50%;
+                    transform: scale(0);
+                    animation: ripple 0.6s ease-out;
+                    pointer-events: none;
+                `;
+                
+                btn.style.position = 'relative';
+                btn.style.overflow = 'hidden';
+                btn.appendChild(ripple);
+                
+                setTimeout(() => ripple.remove(), 600);
+            }
+        });
+        
+        // Add ripple animation CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(2);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

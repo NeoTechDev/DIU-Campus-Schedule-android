@@ -52,11 +52,6 @@
             </intent-filter>
         </service>
 
-        <!-- Real-time Notification Service -->
-        <service
-            android:name=".data.remote.NotificationPollingService"
-            android:exported="false" />
-
         <!-- Task Reminder Broadcast Receiver -->
         <receiver
             android:name=".receiver.ReminderBroadcastReceiver"

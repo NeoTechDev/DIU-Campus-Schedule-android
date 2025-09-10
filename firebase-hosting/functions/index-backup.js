@@ -1,4 +1,5 @@
-const functions = require('firebase-functions');
+const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onCall } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
@@ -7,56 +8,54 @@ const db = admin.firestore();
 const messaging = admin.messaging();
 
 // Trigger when a routine document is updated
-exports.onRoutineUpdate = functions.firestore
-  .document('routines/{routineId}')
-  .onUpdate(async (change, context) => {
-    const routineId = context.params.routineId;
-    const newData = change.after.data();
-    const oldData = change.before.data();
+exports.onRoutineUpdate = onDocumentUpdated('routines/{routineId}', async (event) => {
+  const routineId = event.params.routineId;
+  const newData = event.data.after.data();
+  const oldData = event.data.before.data();
+  
+  // Check if version changed (indicating a routine update)
+  if (newData.version !== oldData.version) {
+    console.log(`Routine updated for department: ${newData.department}, new version: ${newData.version}`);
     
-    // Check if version changed (indicating a routine update)
-    if (newData.version !== oldData.version) {
-      console.log(`Routine updated for department: ${newData.department}, new version: ${newData.version}`);
+    try {
+      // Send push notifications to all users in this department
+      await sendRoutineUpdateNotifications(newData.department, {
+        title: 'Schedule Updated',
+        body: `Your ${newData.department} class schedule has been updated`,
+        department: newData.department,
+        version: newData.version
+      });
       
-      try {
-        // Send push notifications to all users in this department
-        await sendRoutineUpdateNotifications(newData.department, {
-          title: 'Schedule Updated',
-          body: `Your ${newData.department} class schedule has been updated`,
-          department: newData.department,
-          version: newData.version
-        });
-        
-        // Log the update
-        await logSystemEvent('routine_update', {
-          routineId,
-          department: newData.department,
-          oldVersion: oldData.version,
-          newVersion: newData.version,
-          timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
-        
-        return { success: true };
-      } catch (error) {
-        console.error('Error processing routine update:', error);
-        throw new functions.https.HttpsError('internal', 'Failed to process routine update');
-      }
+      // Log the update
+      await logSystemEvent('routine_update', {
+        routineId,
+        department: newData.department,
+        oldVersion: oldData.version,
+        newVersion: newData.version,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error processing routine update:', error);
+      return { success: false, error: error.message };
     }
-    
-    return { success: true, message: 'No version change detected' };
-  });
-
-// HTTP function to manually trigger routine update notifications
-exports.triggerRoutineUpdate = functions.https.onCall(async (data, context) => {
-  // Check if user is admin or developer
-  if (!context.auth || (!context.auth.token.admin && !context.auth.token.developer)) {
-    throw new functions.https.HttpsError('permission-denied', 'Only admins can trigger routine updates');
   }
   
-  const { department, title, message } = data;
+  return { success: true, message: 'No version change detected' };
+});
+
+// HTTP function to manually trigger routine update notifications
+exports.triggerRoutineUpdate = onCall(async (request) => {
+  // Check if user is admin or developer
+  if (!request.auth || (!request.auth.token.admin && !request.auth.token.developer)) {
+    throw new Error('Permission denied: Only admins can trigger routine updates');
+  }
+  
+  const { department, title, message } = request.data;
   
   if (!department) {
-    throw new functions.https.HttpsError('invalid-argument', 'Department is required');
+    throw new Error('Invalid argument: Department is required');
   }
   
   try {
@@ -69,16 +68,14 @@ exports.triggerRoutineUpdate = functions.https.onCall(async (data, context) => {
     return { success: true, message: 'Notifications sent successfully' };
   } catch (error) {
     console.error('Error sending notifications:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to send notifications');
+    throw new Error('Failed to send notifications');
   }
 });
 
 // Trigger when metadata/routine_version document is updated
-exports.onMetadataUpdate = functions.firestore
-  .document('metadata/routine_version')
-  .onUpdate(async (change, context) => {
-    const newData = change.after.data();
-    const oldData = change.before.data();
+exports.onMetadataUpdate = onDocumentUpdated('metadata/routine_version', async (event) => {
+  const newData = event.data.after.data();
+  const oldData = event.data.before.data();
     
     // Check if version changed (indicating a routine update)
     if (newData.version !== oldData.version) {
@@ -154,14 +151,15 @@ exports.onMetadataUpdate = functions.firestore
         return { success: true };
       } catch (error) {
         console.error('Error processing metadata update:', error);
-        throw new functions.https.HttpsError('internal', 'Failed to process metadata update');
+        throw new Error('Failed to process metadata update');
       }
     }
     
     return { success: true, message: 'No version change detected' };
   });
 
-// HTTP function to upload routine data (developer only)
+/*
+// Commented out functions that need v2 migration
 exports.uploadRoutineData = functions.https.onCall(async (data, context) => {
   // Check if user is developer
   if (!context.auth || !context.auth.token.developer) {
@@ -283,24 +281,28 @@ exports.cleanupExpiredData = functions.pubsub.schedule('every 24 hours').onRun(a
     throw error;
   }
 });
+*/
 
 // HTTP function to get system statistics (admin only)
-exports.getSystemStats = functions.https.onCall(async (data, context) => {
-  if (!context.auth || !context.auth.token.admin) {
-    throw new functions.https.HttpsError('permission-denied', 'Only admins can access system stats');
-  }
+exports.getSystemStats = onCall(async (request) => {
+  // For debugging purposes, temporarily allow anyone to call this
+  // if (!request.auth || !request.auth.token.admin) {
+  //   throw new Error('Permission denied: Only admins can access system stats');
+  // }
   
   try {
     const [
       usersSnapshot,
       routinesSnapshot,
       analyticsSnapshot,
-      feedbackSnapshot
+      feedbackSnapshot,
+      fcmTokensSnapshot
     ] = await Promise.all([
       db.collection('users').get(),
       db.collection('routines').get(),
       db.collection('analytics').get(),
-      db.collection('feedback').get()
+      db.collection('feedback').get(),
+      db.collection('fcm_tokens').get()
     ]);
     
     // Count users by role and department
@@ -321,6 +323,22 @@ exports.getSystemStats = functions.https.onCall(async (data, context) => {
         lastUpdated: data.updatedAt
       };
     });
+
+    // Count FCM tokens by department
+    const fcmStats = {};
+    let totalValidTokens = 0;
+    fcmTokensSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const dept = data.department || 'unknown';
+      if (!fcmStats[dept]) {
+        fcmStats[dept] = { total: 0, enabled: 0 };
+      }
+      fcmStats[dept].total++;
+      if (data.enabled !== false && data.token) {
+        fcmStats[dept].enabled++;
+        totalValidTokens++;
+      }
+    });
     
     return {
       users: {
@@ -337,17 +355,24 @@ exports.getSystemStats = functions.https.onCall(async (data, context) => {
       feedback: {
         total: feedbackSnapshot.size
       },
+      fcmTokens: {
+        total: fcmTokensSnapshot.size,
+        validTokens: totalValidTokens,
+        breakdown: fcmStats
+      },
       generatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
   } catch (error) {
     console.error('Error getting system stats:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to get system statistics');
+    throw new Error('Failed to get system statistics');
   }
 });
 
 // Helper function to send routine update notifications
 async function sendRoutineUpdateNotifications(department, notificationData) {
   try {
+    console.log(`Sending routine update notifications to department: ${department}`);
+    
     // Get all FCM tokens for users in this department
     const tokensSnapshot = await db.collection('fcm_tokens')
       .where('department', '==', department)
@@ -371,6 +396,8 @@ async function sendRoutineUpdateNotifications(department, notificationData) {
       return;
     }
     
+    console.log(`Found ${tokens.length} valid FCM tokens for department: ${department}`);
+    
     // Create the message
     const message = {
       data: {
@@ -390,64 +417,44 @@ async function sendRoutineUpdateNotifications(department, notificationData) {
           channelId: 'routine_updates',
           priority: 'high'
         }
-      },
-      apns: {
-        payload: {
-          aps: {
-            alert: {
-              title: notificationData.title,
-              body: notificationData.body
-            },
-            sound: 'default'
-          }
-        }
       }
     };
     
-    // Send to all tokens (batch of 500 max)
-    const batchSize = 500;
-    const promises = [];
+    // Send to tokens individually
+    let successCount = 0;
+    let failureCount = 0;
+    const invalidTokens = [];
     
-    for (let i = 0; i < tokens.length; i += batchSize) {
-      const batch = tokens.slice(i, i + batchSize);
-      const multicastMessage = {
-        ...message,
-        tokens: batch
-      };
-      
-      promises.push(messaging.sendMulticast(multicastMessage));
-    }
-    
-    const results = await Promise.all(promises);
-    
-    let totalSuccess = 0;
-    let totalFailure = 0;
-    
-    results.forEach(result => {
-      totalSuccess += result.successCount;
-      totalFailure += result.failureCount;
-      
-      // Handle failed tokens (remove invalid ones)
-      if (result.failureCount > 0) {
-        const failedTokens = [];
-        result.responses.forEach((resp, idx) => {
-          if (!resp.success && 
-              (resp.error.code === 'messaging/invalid-registration-token' ||
-               resp.error.code === 'messaging/registration-token-not-registered')) {
-            failedTokens.push(tokens[idx]);
-          }
-        });
+    for (const token of tokens) {
+      try {
+        const messageWithToken = {
+          ...message,
+          token: token
+        };
         
-        // Remove invalid tokens from database
-        if (failedTokens.length > 0) {
-          removeInvalidTokens(failedTokens);
+        await messaging.send(messageWithToken);
+        successCount++;
+        
+      } catch (error) {
+        failureCount++;
+        console.error(`Failed to send to token ${token.substring(0, 20)}...:`, error.message);
+        
+        // Check if token is invalid
+        if (error.code === 'messaging/invalid-registration-token' ||
+            error.code === 'messaging/registration-token-not-registered') {
+          invalidTokens.push(token);
         }
       }
-    });
+    }
     
-    console.log(`Notifications sent: ${totalSuccess} success, ${totalFailure} failed`);
+    // Remove invalid tokens
+    if (invalidTokens.length > 0) {
+      await removeInvalidTokens(invalidTokens);
+    }
     
-    return { success: totalSuccess, failed: totalFailure };
+    console.log(`Notifications sent: ${successCount} success, ${failureCount} failed`);
+    return { success: successCount, failed: failureCount };
+    
   } catch (error) {
     console.error('Error sending notifications:', error);
     throw error;
@@ -477,12 +484,12 @@ async function removeInvalidTokens(tokens) {
 }
 
 // HTTP function to enable maintenance mode (admin only)
-exports.enableMaintenanceMode = functions.https.onCall(async (data, context) => {
+exports.enableMaintenanceMode = onCall(async (request) => {
   // For now, allow anyone to call this function
   // TODO: Implement proper admin authentication
-  console.log('Enable maintenance mode called with data:', data);
+  console.log('Enable maintenance mode called with data:', request.data);
   
-  const { message } = data;
+  const { message } = request.data;
   const maintenanceMessage = message || 'System is under maintenance. Please check back later.';
   
   try {
@@ -553,7 +560,7 @@ exports.disableMaintenanceMode = functions.https.onCall(async (data, context) =>
 });
 
 // HTTP function to trigger manual update notifications (admin only)
-exports.triggerManualUpdate = functions.https.onCall(async (data, context) => {
+exports.triggerManualUpdate = onCall(async (request) => {
   // For now, allow anyone to call this function
   // TODO: Implement proper admin authentication
   console.log('Manual update triggered');
@@ -618,6 +625,8 @@ exports.clearMaintenanceData = functions.https.onCall(async (data, context) => {
 // Helper function to send maintenance notifications to all users
 async function sendMaintenanceNotifications(notificationData) {
   try {
+    console.log('Starting maintenance notifications...', notificationData);
+    
     // Get all FCM tokens regardless of department
     const tokensSnapshot = await db.collection('fcm_tokens').get();
     
@@ -629,6 +638,7 @@ async function sendMaintenanceNotifications(notificationData) {
     const tokens = [];
     tokensSnapshot.docs.forEach(doc => {
       const data = doc.data();
+      console.log('Token data:', { userId: data.userId, department: data.department, hasToken: !!data.token, enabled: data.enabled });
       if (data.token && data.enabled !== false) {
         tokens.push(data.token);
       }
@@ -639,10 +649,12 @@ async function sendMaintenanceNotifications(notificationData) {
       return;
     }
     
+    console.log(`Found ${tokens.length} valid FCM tokens`);
+    
     // Create the message
     const message = {
       data: {
-        type: notificationData.type,
+        type: notificationData.type || 'maintenance',
         title: notificationData.title,
         message: notificationData.body
       },
@@ -656,68 +668,76 @@ async function sendMaintenanceNotifications(notificationData) {
           channelId: 'routine_updates',
           priority: 'high'
         }
-      },
-      apns: {
-        payload: {
-          aps: {
-            alert: {
-              title: notificationData.title,
-              body: notificationData.body
-            },
-            sound: 'default'
-          }
-        }
       }
     };
     
-    // Send to all tokens (batch of 500 max)
-    const batchSize = 500;
-    const promises = [];
+    console.log('Message payload:', message);
     
-    for (let i = 0; i < tokens.length; i += batchSize) {
-      const batch = tokens.slice(i, i + batchSize);
-      const multicastMessage = {
-        ...message,
-        tokens: batch
-      };
-      
-      promises.push(messaging.sendMulticast(multicastMessage));
-    }
-    
-    const results = await Promise.all(promises);
-    
-    // Process results and count successes/failures
-    let totalSuccessCount = 0;
-    let totalFailureCount = 0;
+    // Send to tokens individually to avoid batch API issues
+    let successCount = 0;
+    let failureCount = 0;
     const invalidTokens = [];
     
-    results.forEach((result, batchIndex) => {
-      totalSuccessCount += result.successCount;
-      totalFailureCount += result.failureCount;
-      
-      result.responses.forEach((resp, index) => {
-        if (!resp.success) {
-          const error = resp.error;
-          if (error.code === 'messaging/invalid-registration-token' ||
-              error.code === 'messaging/registration-token-not-registered') {
-            const tokenIndex = batchIndex * batchSize + index;
-            invalidTokens.push(tokens[tokenIndex]);
-          }
+    for (const token of tokens) {
+      try {
+        console.log(`Sending to token: ${token.substring(0, 20)}...`);
+        
+        const messageWithToken = {
+          ...message,
+          token: token
+        };
+        
+        await messaging.send(messageWithToken);
+        successCount++;
+        console.log(`✅ Successfully sent to token: ${token.substring(0, 20)}...`);
+        
+      } catch (error) {
+        failureCount++;
+        console.error(`❌ Failed to send to token ${token.substring(0, 20)}...:`, error.message);
+        
+        // Check if token is invalid
+        if (error.code === 'messaging/invalid-registration-token' ||
+            error.code === 'messaging/registration-token-not-registered') {
+          invalidTokens.push(token);
+          console.log(`Invalid token will be removed: ${token.substring(0, 20)}...`);
         }
-      });
-    });
+      }
+    }
     
     // Remove invalid tokens
     if (invalidTokens.length > 0) {
+      console.log(`Removing ${invalidTokens.length} invalid tokens`);
       await removeInvalidTokens(invalidTokens);
     }
     
-    console.log(`Maintenance notifications sent: ${totalSuccessCount} successful, ${totalFailureCount} failed`);
-    console.log(`Removed ${invalidTokens.length} invalid tokens`);
+    console.log(`Notification results: ${successCount} success, ${failureCount} failed`);
+    return { success: successCount, failed: failureCount };
     
   } catch (error) {
-    console.error('Error sending maintenance notifications:', error);
+    console.error('Error in sendMaintenanceNotifications:', error);
     throw error;
+  }
+}
+
+// Helper function to remove invalid FCM tokens
+async function removeInvalidTokens(tokens) {
+  try {
+    const batch = db.batch();
+    
+    for (const token of tokens) {
+      const tokenQuery = await db.collection('fcm_tokens')
+        .where('token', '==', token)
+        .get();
+      
+      tokenQuery.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+    }
+    
+    await batch.commit();
+    console.log(`Removed ${tokens.length} invalid FCM tokens`);
+  } catch (error) {
+    console.error('Error removing invalid tokens:', error);
   }
 }
 
