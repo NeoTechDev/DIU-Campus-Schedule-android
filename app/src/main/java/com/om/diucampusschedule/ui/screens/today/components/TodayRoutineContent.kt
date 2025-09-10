@@ -53,6 +53,7 @@ fun TodayRoutineContent(
     tasks: List<Task>,
     currentUser: User?,
     isLoading: Boolean,
+    hasLoadedOnce: Boolean = false, // Add this parameter to prevent blinking
     getCourseName: (String) -> String = { it }, // Function to get course name from course code
     onClassClick: (RoutineItem) -> Unit = {},
     onUpdateTask: (Task) -> Unit = {},
@@ -71,7 +72,10 @@ fun TodayRoutineContent(
     isSemesterBreak: Boolean = false,
     updateType: String? = null
 ) {
-    if (isLoading) {
+    // Only show loading if we haven't loaded once and are currently loading
+    val shouldShowLoading = isLoading && !hasLoadedOnce
+    
+    if (shouldShowLoading) {
         LoadingContent()
     } else if (routineItems.isEmpty() && tasks.isEmpty()) {
         // Check if we need to show maintenance message for class routines specifically

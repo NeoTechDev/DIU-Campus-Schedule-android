@@ -293,7 +293,8 @@ fun TodayScreen(
                                 selectedDate = animatedDate,
                                 routineItems = emptyList(),
                                 tasks = emptyList(),
-                                isLoading = false
+                                isLoading = false,
+                                hasLoadedOnce = true // Set to true for animation states to prevent loading
                             )
                         }
                         TodayRoutineContent(
@@ -301,6 +302,7 @@ fun TodayScreen(
                             tasks = animatedTodayState.tasks,
                             currentUser = animatedTodayState.currentUser,
                             isLoading = animatedTodayState.isLoading,
+                            hasLoadedOnce = animatedTodayState.hasLoadedOnce,
                             getCourseName = todayViewModel::getCourseName,
                             onClassClick = { _ -> },
                             onUpdateTask = todayViewModel::updateTask,

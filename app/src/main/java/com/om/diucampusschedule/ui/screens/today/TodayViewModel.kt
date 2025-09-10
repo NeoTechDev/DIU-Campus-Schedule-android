@@ -47,7 +47,8 @@ data class TodayUiState(
     val isMaintenanceMode: Boolean = false, // Whether the system is in maintenance mode
     val maintenanceMessage: String? = null, // Message to show during maintenance
     val isSemesterBreak: Boolean = false, // Whether it's semester break
-    val updateType: String? = null // Type of maintenance update (maintenance_enabled, semester_break, etc.)
+    val updateType: String? = null, // Type of maintenance update (maintenance_enabled, semester_break, etc.)
+    val hasLoadedOnce: Boolean = false // Track if data has been loaded at least once to prevent blinking
 )
 
 data class CachedDayData(
@@ -83,6 +84,10 @@ class TodayViewModel @Inject constructor(
     private val dayDataCache = mutableMapOf<String, CachedDayData>()
     private val cacheExpirationTime = 5 * 60 * 1000L // 5 minutes
     
+    // Rate limiting for refresh operations
+    private var lastRefreshTime = 0L
+    private val refreshCooldownMs = 2000L // 2 seconds minimum between refreshes
+    
     private var currentUser: User? = null
     
     companion object {
@@ -107,24 +112,40 @@ class TodayViewModel @Inject constructor(
     private fun observeUser() {
         getCurrentUserUseCase.observeCurrentUser()
             .onEach { user ->
-                currentUser = user
-                if (user != null) {
-                    _uiState.value = _uiState.value.copy(currentUser = user)
-                    // Load data for current selected date
-                    loadDataForDate(_selectedDate.value)
-                } else {
+                try {
+                    currentUser = user
+                    if (user != null) {
+                        _uiState.value = _uiState.value.copy(currentUser = user)
+                        // Load data for current selected date
+                        loadDataForDate(_selectedDate.value)
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            currentUser = null,
+                            routineItems = emptyList(),
+                            tasks = emptyList(),
+                            isLoading = false,
+                            hasLoadedOnce = true
+                        )
+                        dayDataCache.clear() // Clear cache when user changes
+                    }
+                } catch (e: Exception) {
+                    logger.error(TAG, "Error in observeUser", e)
+                    // Prevent crash by setting safe state
                     _uiState.value = _uiState.value.copy(
-                        currentUser = null,
-                        routineItems = emptyList(),
-                        tasks = emptyList(),
-                        isLoading = false
+                        isLoading = false,
+                        error = null,
+                        hasLoadedOnce = true
                     )
-                    dayDataCache.clear() // Clear cache when user changes
                 }
             }
             .catch { throwable ->
-                val error = AppError.fromThrowable(throwable)
-                _uiState.value = _uiState.value.copy(error = error, isLoading = false)
+                logger.error(TAG, "Critical error in user observation", throwable)
+                // Set safe error state to prevent app crash
+                _uiState.value = _uiState.value.copy(
+                    error = null, // Don't show error UI to prevent blinking
+                    isLoading = false,
+                    hasLoadedOnce = true
+                )
             }
             .launchIn(viewModelScope)
     }
@@ -222,7 +243,8 @@ class TodayViewModel @Inject constructor(
                     tasks = currentTasks,
                     courseNames = updatedCourseNames,
                     isLoading = false,
-                    error = null
+                    error = null,
+                    hasLoadedOnce = true
                 )
                 // Also update the CourseUtils cache for ClassRoutineCard compatibility
                 CourseUtils.setCourseNames(updatedCourseNames)
@@ -241,7 +263,11 @@ class TodayViewModel @Inject constructor(
     private fun loadRoutineDataForDate(date: LocalDate) {
         val user = currentUser ?: return
         
-        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        // Only show loading state if we haven't loaded once yet, to prevent blinking
+        val currentState = _uiState.value
+        if (!currentState.hasLoadedOnce) {
+            _uiState.value = currentState.copy(isLoading = true, error = null)
+        }
         
         viewModelScope.launch {
             try {
@@ -259,7 +285,8 @@ class TodayViewModel @Inject constructor(
                     routineItems = routineItems,
                     courseNames = updatedCourseNames,
                     isLoading = false,
-                    error = null
+                    error = null,
+                    hasLoadedOnce = true
                 )
                 
                 // Also update the CourseUtils cache for ClassRoutineCard compatibility
@@ -268,7 +295,7 @@ class TodayViewModel @Inject constructor(
                 // Cache the routine data (tasks will be cached separately)
                 val cacheData = CachedDayData(routineItems, emptyList()) // Empty tasks list for routine-only cache
                 dayDataCache[getCacheKey(user, date)] = cacheData
-                android.util.Log.d("TodayViewModel", "Loaded and cached routine data for $date with ${updatedCourseNames.size} course names")
+                logger.debug(TAG, "Loaded and cached routine data for $date with ${updatedCourseNames.size} course names")
                 
                 // Update widgets when data changes for today
                 if (date == LocalDate.now()) {
@@ -276,12 +303,20 @@ class TodayViewModel @Inject constructor(
                 }
                 
             } catch (e: Exception) {
-                android.util.Log.e("TodayViewModel", "Error loading routine data for $date", e)
-                val error = AppError.fromThrowable(e)
+                logger.error(TAG, "Error loading routine data for $date", e)
+                
+                // Set a stable error state to prevent blinking
+                // Don't retry automatically to avoid infinite loops
                 _uiState.value = _uiState.value.copy(
-                    error = error,
-                    isLoading = false
+                    isLoading = false,
+                    error = null, // Don't show error for routine loading failures
+                    routineItems = emptyList(), // Show empty state instead of error
+                    hasLoadedOnce = true
                 )
+                
+                // Still cache empty result to prevent repeated failures
+                val emptyCacheData = CachedDayData(emptyList(), emptyList())
+                dayDataCache[getCacheKey(user, date)] = emptyCacheData
             }
         }
     }
@@ -298,20 +333,23 @@ class TodayViewModel @Inject constructor(
     private suspend fun loadRoutineForDateAsync(user: User, date: LocalDate): List<RoutineItem> {
         val dayName = date.format(DateTimeFormatter.ofPattern("EEEE", Locale.ENGLISH))
         
-        android.util.Log.d("TodayViewModel", "Loading routine for user: ${user.name}")
-        android.util.Log.d("TodayViewModel", "User details - Batch: '${user.batch}', Section: '${user.section}', LabSection: '${user.labSection}'")
-        android.util.Log.d("TodayViewModel", "Filtering for day: $dayName")
+        logger.debug(TAG, "Loading routine for user: ${user.name}")
+        logger.debug(TAG, "User details - Batch: '${user.batch}', Section: '${user.section}', LabSection: '${user.labSection}'")
+        logger.debug(TAG, "Filtering for day: $dayName")
         
         return getUserRoutineForDayUseCase(user, dayName).fold(
             onSuccess = { routineItems ->
-                android.util.Log.d("TodayViewModel", "Received ${routineItems.size} routine items for $dayName")
+                logger.debug(TAG, "Received ${routineItems.size} routine items for $dayName")
                 
                 val sortedRoutineItems = routineItems.sortedBy { it.startTime }
                 sortedRoutineItems
             },
             onFailure = { throwable ->
-                android.util.Log.e("TodayViewModel", "Error loading routine", throwable)
-                throw throwable
+                logger.error(TAG, "Error loading routine for $dayName", throwable)
+                
+                // Don't throw the error - return empty list instead
+                // This prevents crashes and infinite retry loops
+                emptyList()
             }
         )
     }
@@ -537,12 +575,25 @@ class TodayViewModel @Inject constructor(
     
     // Method to refresh current data (clears cache and reloads)
     fun refreshCurrentData() {
+        val currentTime = System.currentTimeMillis()
+        
+        // Rate limiting: prevent excessive refreshes
+        if (currentTime - lastRefreshTime < refreshCooldownMs) {
+            logger.debug(TAG, "Refresh rate limited - too many requests")
+            return
+        }
+        
+        lastRefreshTime = currentTime
+        
         val user = currentUser ?: return
         val date = _selectedDate.value
         
         // Clear current date from cache
         val cacheKey = getCacheKey(user, date)
         dayDataCache.remove(cacheKey)
+        
+        // Reset hasLoadedOnce to allow loading state on manual refresh
+        _uiState.value = _uiState.value.copy(hasLoadedOnce = false)
         
         // Reload data
         viewModelScope.launch {
@@ -556,7 +607,7 @@ class TodayViewModel @Inject constructor(
                 widgetManager.updateWidgets(context)
             }
         }
-        android.util.Log.d("TodayViewModel", "Refreshed data for $date")
+        logger.debug(TAG, "Refreshed data for $date")
     }
     
     // Method to preload data for nearby dates (optional performance optimization)
