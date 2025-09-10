@@ -56,11 +56,11 @@ fun WelcomeScreen(
     val buttonAlpha = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        // Smooth entrance animations
-        imageScale.animateTo(1f, animationSpec = tween(1200, easing = FastOutSlowInEasing))
-        contentAlpha.animateTo(1f, animationSpec = tween(800, delayMillis = 300))
-        titleScale.animateTo(1f, animationSpec = tween(600, delayMillis = 500))
-        buttonAlpha.animateTo(1f, animationSpec = tween(600, delayMillis = 800))
+        // Faster entrance animations with reduced delays
+        imageScale.animateTo(1f, animationSpec = tween(600, easing = FastOutSlowInEasing))
+        contentAlpha.animateTo(1f, animationSpec = tween(400, delayMillis = 100))
+        titleScale.animateTo(1f, animationSpec = tween(300, delayMillis = 150))
+        buttonAlpha.animateTo(1f, animationSpec = tween(300, delayMillis = 200))
     }
 
     DIUCampusScheduleTheme {
