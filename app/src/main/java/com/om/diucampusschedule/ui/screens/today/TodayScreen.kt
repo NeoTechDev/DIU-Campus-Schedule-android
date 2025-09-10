@@ -78,7 +78,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import kotlinx.coroutines.coroutineScope
 import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
@@ -98,6 +97,7 @@ import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 import com.om.diucampusschedule.ui.viewmodel.ModernTaskViewModel
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -181,53 +181,54 @@ fun TodayScreen(
     
     val context = LocalContext.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .run { ScreenConfig.run { withTopAppBar() } }
+    // Main content area with pull-to-refresh and swipe gesture support
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            todayViewModel.refreshCurrentData()
+            // Reset refresh state after a delay (in real implementation, this would be set when data loading completes)
+            // You should set isRefreshing = false when todayState.isLoading changes to false
+        },
+        state = pullToRefreshState,
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Custom Top App Bar with Header and Calendar content
-        CustomTopAppBar(
-            user = authState.user,
-            selectedDate = selectedDate,
-            todayViewModel = todayViewModel,
-            onProfileClick = {
-                onOpenDrawer() // Open drawer instead of navigating to profile
-            },
-            onNotificationClick = {
-                // Show a simple Toast message when notification icon is clicked
-                android.widget.Toast.makeText(
-                    context,
-                    "This feature is in development.",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-            },
-            onCalendarClick = {
-                currentCalendarMonth = YearMonth.from(selectedDate)
-                showFullCalendarBottomSheet = true
-            }
-        )
-        
-        // Main content area with pull-to-refresh and swipe gesture support
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = {
-                isRefreshing = true
-                todayViewModel.refreshCurrentData()
-                // Reset refresh state after a delay (in real implementation, this would be set when data loading completes)
-                // You should set isRefreshing = false when todayState.isLoading changes to false
-            },
-            state = pullToRefreshState,
-            modifier = Modifier.fillMaxSize()
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .run { ScreenConfig.run { withTopAppBar() } }
         ) {
+            // Custom Top App Bar with Header and Calendar content
+            CustomTopAppBar(
+                user = authState.user,
+                selectedDate = selectedDate,
+                todayViewModel = todayViewModel,
+                onProfileClick = {
+                    onOpenDrawer() // Open drawer instead of navigating to profile
+                },
+                onNotificationClick = {
+                    // Show a simple Toast message when notification icon is clicked
+                    android.widget.Toast.makeText(
+                        context,
+                        "This feature is in development.",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                },
+                onCalendarClick = {
+                    currentCalendarMonth = YearMonth.from(selectedDate)
+                    showFullCalendarBottomSheet = true
+                }
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInput(isActionButtonExpanded, selectedDate) {
                         if (isActionButtonExpanded) {
                             detectTapGestures(
-                                onTap = { 
+                                onTap = {
                                     isActionButtonExpanded = false
                                     focusManager.clearFocus()
                                 }
@@ -235,7 +236,8 @@ fun TodayScreen(
                         } else {
                             detectHorizontalDragGestures(
                                 onDragEnd = {
-                                    val swipeThreshold = 80f // Lower threshold for more responsive swipe
+                                    val swipeThreshold =
+                                        80f // Lower threshold for more responsive swipe
                                     if (horizontalOffset > swipeThreshold) {
                                         todayViewModel.selectDate(selectedDate.minusDays(1))
                                     } else if (horizontalOffset < -swipeThreshold) {
@@ -249,7 +251,8 @@ fun TodayScreen(
                                 }
                             ) { change, dragAmount ->
                                 change.consume()
-                                horizontalOffset = (horizontalOffset + dragAmount * 0.7f).coerceIn(-350f, 350f)
+                                horizontalOffset =
+                                    (horizontalOffset + dragAmount * 0.7f).coerceIn(-350f, 350f)
                             }
                         }
                     }
@@ -259,7 +262,10 @@ fun TodayScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .offset { IntOffset(animatedOffset.toInt(), 0) }
-                        .graphicsLayer { alpha = 1f - (kotlin.math.abs(animatedOffset) / 700f).coerceIn(0f, 0.25f) } // Subtle fade while swiping
+                        .graphicsLayer {
+                            alpha =
+                                1f - (kotlin.math.abs(animatedOffset) / 700f).coerceIn(0f, 0.25f)
+                        } // Subtle fade while swiping
                 ) {
                     AnimatedContent(
                         targetState = selectedDate,
@@ -308,9 +314,11 @@ fun TodayScreen(
                             },
                             isToday = animatedDate == LocalDate.now(),
                             modifier = Modifier.fillMaxSize(),
-                            noContentImage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) painterResource(id = R.drawable.muslim) else painterResource(id = R.drawable.sleep),
-                            noScheduleMessages = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "It's Friday!" else if(animatedDate == LocalDate.now()) "Nothing scheduled today!" else "Nothing scheduled that day",
-                            noScheduleSubMessage = if(animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "Offer your Jumma prayer, may Allah grant barakah in your life." else if(animatedDate == LocalDate.now()) "No classes or tasks scheduled for today. Enjoy your free time!" else "No classes or tasks will be scheduled for that day. All yours to chill and enjoy!",
+                            noContentImage = if (animatedDate.dayOfWeek == DayOfWeek.FRIDAY) painterResource(
+                                id = R.drawable.muslim
+                            ) else painterResource(id = R.drawable.sleep),
+                            noScheduleMessages = if (animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "It's Friday!" else if (animatedDate == LocalDate.now()) "Nothing scheduled today!" else "Nothing scheduled that day",
+                            noScheduleSubMessage = if (animatedDate.dayOfWeek == DayOfWeek.FRIDAY) "Offer your Jumma prayer, may Allah grant barakah in your life." else if (animatedDate == LocalDate.now()) "No classes or tasks scheduled for today. Enjoy your free time!" else "No classes or tasks will be scheduled for that day. All yours to chill and enjoy!",
                             // Maintenance mode parameters for class routines only
                             isMaintenanceMode = animatedTodayState.isMaintenanceMode,
                             maintenanceMessage = animatedTodayState.maintenanceMessage,
@@ -319,7 +327,7 @@ fun TodayScreen(
                         )
                     }
                 }
-                
+
                 // Action Button positioned at bottom right
                 Box(
                     modifier = Modifier
@@ -345,16 +353,16 @@ fun TodayScreen(
                     )
                 }
             }
-        }
-        
-        // Error handling
-        todayState.error?.let { error ->
-            LaunchedEffect(error) {
-                // Clear cache on error to ensure fresh data on retry
-                todayViewModel.clearCache()
-                // Show error in snackbar or handle as needed
-                // For now, just retry automatically
-                todayViewModel.retryLastAction()
+
+            // Error handling
+            todayState.error?.let { error ->
+                LaunchedEffect(error) {
+                    // Clear cache on error to ensure fresh data on retry
+                    todayViewModel.clearCache()
+                    // Show error in snackbar or handle as needed
+                    // For now, just retry automatically
+                    todayViewModel.retryLastAction()
+                }
             }
         }
     }

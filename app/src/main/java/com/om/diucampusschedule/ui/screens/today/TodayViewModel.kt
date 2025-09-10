@@ -7,8 +7,8 @@ import com.om.diucampusschedule.core.error.AppError
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.core.reminder.ClassReminderScheduler
 import com.om.diucampusschedule.core.service.CourseNameService
-import com.om.diucampusschedule.data.repository.TaskRepository
 import com.om.diucampusschedule.data.repository.RoutineRepository
+import com.om.diucampusschedule.data.repository.TaskRepository
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
@@ -19,11 +19,12 @@ import com.om.diucampusschedule.ui.screens.today.components.CourseUtils
 import com.om.diucampusschedule.widget.WidgetManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -91,6 +92,7 @@ class TodayViewModel @Inject constructor(
     init {
         observeUser()
         observeDateChanges()
+        observeTaskChanges() // Add task observation
         
         // Initialize class reminder scheduler
         classReminderScheduler.initialize()
@@ -131,57 +133,130 @@ class TodayViewModel @Inject constructor(
         _selectedDate
             .onEach { date ->
                 _uiState.value = _uiState.value.copy(selectedDate = date)
-                loadDataForDate(date)
+                // Load routine data only (tasks are now handled by observeTaskChanges)
+                loadDataForDate(date) // Use loadDataForDate which checks cache first
             }
             .launchIn(viewModelScope)
+    }
+    
+    private fun observeTaskChanges() {
+        // Combine selected date with task repository to get tasks for current date
+        combine(
+            _selectedDate,
+            taskRepository.getAllTasks() // Observe all tasks changes
+        ) { date, _ ->
+            // When either date changes or tasks change, reload tasks for the date
+            val dateString = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"))
+            
+            try {
+                // Get tasks for the specific date
+                val allTasksForDate = taskRepository.getTasksByDate(dateString).first()
+                val pendingTasks = allTasksForDate.filter { !it.isCompleted }
+                
+                logger.debug(TAG, "Tasks updated for $dateString: ${pendingTasks.size} pending tasks")
+                pendingTasks
+            } catch (e: Exception) {
+                logger.error(TAG, "Error loading tasks for date $dateString", e)
+                emptyList()
+            }
+        }
+            .distinctUntilChanged() // Only emit when tasks actually change
+            .onEach { tasks ->
+                // Update UI state with new tasks - but don't change loading state
+                val currentState = _uiState.value
+                _uiState.value = currentState.copy(tasks = tasks)
+                
+                // Update cache as well
+                val user = currentUser
+                val date = _selectedDate.value
+                if (user != null) {
+                    updateCache(user, date, tasks = tasks)
+                }
+            }
+            .catch { throwable ->
+                logger.error(TAG, "Error in task observation", throwable)
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun loadTasksAndUpdateUISilently(date: LocalDate) {
+        viewModelScope.launch {
+            try {
+                val tasks = loadTasksForDateAsync(date)
+                // Update UI state without changing loading state
+                _uiState.value = _uiState.value.copy(tasks = tasks)
+                
+                // Update cache with new tasks
+                val user = currentUser
+                if (user != null) {
+                    updateCache(user, date, tasks = tasks)
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Error loading tasks for silent UI update", e)
+            }
+        }
     }
     
     private fun loadDataForDate(date: LocalDate) {
         val user = currentUser ?: return
         val cacheKey = getCacheKey(user, date)
         
-        // Check cache first
+        // Check cache first for both routine and task data
         val cachedData = dayDataCache[cacheKey]
         if (cachedData != null && !isCacheExpired(cachedData)) {
-            // Use cached data - but still need to ensure course names are loaded
+            // Use cached data immediately without loading state
             viewModelScope.launch {
                 val updatedCourseNames = loadCourseNamesSync(cachedData.routineItems)
+                
+                // Get current tasks for this date from repository
+                val dateString = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"))
+                val currentTasks = try {
+                    taskRepository.getTasksByDate(dateString).first().filter { !it.isCompleted }
+                } catch (e: Exception) {
+                    logger.error(TAG, "Error loading tasks for cached data", e)
+                    emptyList()
+                }
+                
                 _uiState.value = _uiState.value.copy(
                     routineItems = cachedData.routineItems,
-                    tasks = cachedData.tasks,
+                    tasks = currentTasks,
                     courseNames = updatedCourseNames,
                     isLoading = false,
                     error = null
                 )
                 // Also update the CourseUtils cache for ClassRoutineCard compatibility
                 CourseUtils.setCourseNames(updatedCourseNames)
+                
+                // Update cache with current tasks
+                dayDataCache[cacheKey] = cachedData.copy(tasks = currentTasks)
             }
-            android.util.Log.d("TodayViewModel", "Using cached data for $date")
+            logger.debug(TAG, "Using cached data for $date - no loading state shown")
             return
         }
         
-        // Load fresh data - coordinate both routine and tasks loading
+        // Load fresh routine data only - tasks are handled by observeTaskChanges
+        loadRoutineDataForDate(date)
+    }
+    
+    private fun loadRoutineDataForDate(date: LocalDate) {
+        val user = currentUser ?: return
+        
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         
         viewModelScope.launch {
             try {
-                // Check maintenance mode first - this affects class routine display only
+                // Check maintenance mode first
                 checkMaintenanceMode()
                 
-                // Load both routine and tasks concurrently and wait for both to complete
-                val routineDeferred = async { loadRoutineForDateAsync(user, date) }
-                val tasksDeferred = async { loadTasksForDateAsync(date) }
+                // Load only routine data
+                val routineItems = loadRoutineForDateAsync(user, date)
                 
-                val routineItems = routineDeferred.await()
-                val tasks = tasksDeferred.await()
-                
-                // Load course names for the routine items and get the updated course names map
+                // Load course names for the routine items
                 val updatedCourseNames = loadCourseNamesSync(routineItems)
                 
-                // Update UI state with ALL data at once (routine, tasks, course names)
+                // Update UI state with routine data only (tasks handled separately)
                 _uiState.value = _uiState.value.copy(
                     routineItems = routineItems,
-                    tasks = tasks,
                     courseNames = updatedCourseNames,
                     isLoading = false,
                     error = null
@@ -190,10 +265,10 @@ class TodayViewModel @Inject constructor(
                 // Also update the CourseUtils cache for ClassRoutineCard compatibility
                 CourseUtils.setCourseNames(updatedCourseNames)
                 
-                // Cache the complete data
-                val cacheData = CachedDayData(routineItems, tasks)
-                dayDataCache[cacheKey] = cacheData
-                android.util.Log.d("TodayViewModel", "Loaded and cached complete data for $date with ${updatedCourseNames.size} course names")
+                // Cache the routine data (tasks will be cached separately)
+                val cacheData = CachedDayData(routineItems, emptyList()) // Empty tasks list for routine-only cache
+                dayDataCache[getCacheKey(user, date)] = cacheData
+                android.util.Log.d("TodayViewModel", "Loaded and cached routine data for $date with ${updatedCourseNames.size} course names")
                 
                 // Update widgets when data changes for today
                 if (date == LocalDate.now()) {
@@ -201,7 +276,7 @@ class TodayViewModel @Inject constructor(
                 }
                 
             } catch (e: Exception) {
-                android.util.Log.e("TodayViewModel", "Error loading data for $date", e)
+                android.util.Log.e("TodayViewModel", "Error loading routine data for $date", e)
                 val error = AppError.fromThrowable(e)
                 _uiState.value = _uiState.value.copy(
                     error = error,
@@ -307,6 +382,9 @@ class TodayViewModel @Inject constructor(
             try {
                 taskRepository.updateTask(task)
                 android.util.Log.d("TodayViewModel", "Task updated: ${task.title}")
+                
+                // Immediately refresh tasks for current date
+                refreshTasksForCurrentDate()
             } catch (e: Exception) {
                 android.util.Log.e("TodayViewModel", "Error updating task: ${e.message}")
             }
@@ -318,14 +396,58 @@ class TodayViewModel @Inject constructor(
             try {
                 taskRepository.deleteTask(task)
                 android.util.Log.d("TodayViewModel", "Task deleted: ${task.title}")
+                
+                // Immediately refresh tasks for current date
+                refreshTasksForCurrentDate()
             } catch (e: Exception) {
                 android.util.Log.e("TodayViewModel", "Error deleting task: ${e.message}")
             }
         }
     }
     
+    private fun refreshTasksForCurrentDate() {
+        val currentDate = _selectedDate.value
+        val user = currentUser
+        
+        if (user != null) {
+            // Clear cache and reload tasks immediately without showing loading
+            val cacheKey = getCacheKey(user, currentDate)
+            dayDataCache.remove(cacheKey)
+            loadTasksAndUpdateUISilently(currentDate)
+        }
+    }
+    
     fun selectDate(date: LocalDate) {
         _selectedDate.value = date
+        
+        // Preload nearby dates for smoother navigation
+        preloadNearbyDates(date)
+    }
+    
+    private fun preloadNearbyDates(currentDate: LocalDate) {
+        val user = currentUser ?: return
+        
+        viewModelScope.launch {
+            // Preload previous and next day's data in background
+            val datesToPreload = listOf(
+                currentDate.minusDays(1),
+                currentDate.plusDays(1)
+            )
+            
+            datesToPreload.forEach { date ->
+                val cacheKey = getCacheKey(user, date)
+                // Only preload if not already cached
+                if (!dayDataCache.containsKey(cacheKey)) {
+                    try {
+                        logger.debug(TAG, "Preloading data for $date")
+                        preloadDataForDate(user, date)
+                    } catch (e: Exception) {
+                        // Ignore preload failures
+                        logger.debug(TAG, "Failed to preload data for $date: ${e.message}")
+                    }
+                }
+            }
+        }
     }
     
     fun resetToToday() {
@@ -334,7 +456,7 @@ class TodayViewModel @Inject constructor(
         // Schedule today's reminders when user opens today screen
         classReminderScheduler.scheduleTodayReminders()
     }
-    
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
