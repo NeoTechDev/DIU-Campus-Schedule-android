@@ -75,24 +75,14 @@ fun NotificationToggleItem(
     val context = LocalContext.current
     val isRemindersEnabled by notificationViewModel.isClassRemindersEnabled.collectAsStateWithLifecycle()
     val hasPermissionBeenRequested by notificationViewModel.hasNotificationPermissionBeenRequested.collectAsStateWithLifecycle()
+    val hasNotificationPermission by notificationViewModel.hasNotificationPermission.collectAsStateWithLifecycle()
     
     var showPermissionDialog by remember { mutableStateOf(false) }
-    var hasNotificationPermission by remember { 
-        mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == 
-                PermissionChecker.PERMISSION_GRANTED
-            } else {
-                true // Permission not required for older versions
-            }
-        )
-    }
     
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        hasNotificationPermission = isGranted
         notificationViewModel.markNotificationPermissionRequested()
         
         if (isGranted) {
@@ -101,16 +91,6 @@ fun NotificationToggleItem(
         } else {
             // Show dialog to go to settings
             showPermissionDialog = true
-        }
-    }
-    
-    // Check permission on composition
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            hasNotificationPermission = ContextCompat.checkSelfPermission(
-                context, 
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PermissionChecker.PERMISSION_GRANTED
         }
     }
     

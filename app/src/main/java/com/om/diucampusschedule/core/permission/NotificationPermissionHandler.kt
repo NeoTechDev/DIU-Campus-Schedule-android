@@ -201,11 +201,18 @@ class NotificationPermissionHandler @Inject constructor(
     }
 
     private fun handleNotificationPermissionResult(isGranted: Boolean) {
+        // Update permission state immediately
         permissionManager.updatePermissionState()
         
         if (isGranted) {
             logger.info(TAG, "Notification permission granted")
             emitPermissionResult(NotificationPermissionResult.NotificationGranted)
+            
+            // Force an additional state update after a small delay to ensure UI refresh
+            handlerScope.launch {
+                kotlinx.coroutines.delay(100)
+                permissionManager.updatePermissionState()
+            }
             
             // Check if we need to request exact alarm permission next
             if (!permissionManager.hasExactAlarmPermission() && 
