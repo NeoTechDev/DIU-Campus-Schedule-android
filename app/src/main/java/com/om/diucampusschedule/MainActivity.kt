@@ -8,22 +8,28 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.om.diucampusschedule.domain.model.AppState
+import com.om.diucampusschedule.core.permission.NotificationPermissionHandler
 import com.om.diucampusschedule.ui.navigation.AppNavigation
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.viewmodel.AppInitializationViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     
     private val appInitializationViewModel: AppInitializationViewModel by viewModels()
+    
+    @Inject
+    lateinit var notificationPermissionHandler: NotificationPermissionHandler
     
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen before super.onCreate()
@@ -31,6 +37,9 @@ class MainActivity : ComponentActivity() {
         
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Initialize notification permission handler
+        notificationPermissionHandler.initialize(this)
         
         // Keep splash screen visible until app state is determined
         splashScreen.setKeepOnScreenCondition {
@@ -58,6 +67,14 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val appState by appInitializationViewModel.appState.collectAsStateWithLifecycle()
+                    
+                    // Handle notification permission request after app initialization
+                    LaunchedEffect(appState) {
+                        if (appState is AppState.AuthenticatedComplete) {
+                            // Request notification permissions if not already granted or requested
+                            notificationPermissionHandler.requestNotificationPermissionIfNeeded()
+                        }
+                    }
                     
                     AppNavigation(
                         navController = navController,

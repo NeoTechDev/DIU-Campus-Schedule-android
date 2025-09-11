@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +23,7 @@ class NotificationPreferences @Inject constructor(
     
     companion object {
         private val CLASS_REMINDERS_ENABLED = booleanPreferencesKey("class_reminders_enabled")
+        private val TASK_REMINDERS_ENABLED = booleanPreferencesKey("task_reminders_enabled")
         private val NOTIFICATION_PERMISSION_REQUESTED = booleanPreferencesKey("notification_permission_requested")
         private val WELCOME_DIALOG_SHOWN = booleanPreferencesKey("welcome_dialog_shown")
     }
@@ -31,6 +34,14 @@ class NotificationPreferences @Inject constructor(
     val isClassRemindersEnabled: Flow<Boolean> = context.notificationDataStore.data
         .map { preferences ->
             preferences[CLASS_REMINDERS_ENABLED] ?: true // Default enabled
+        }
+    
+    /**
+     * Flow that emits whether task reminders are enabled
+     */
+    val isTaskRemindersEnabled: Flow<Boolean> = context.notificationDataStore.data
+        .map { preferences ->
+            preferences[TASK_REMINDERS_ENABLED] ?: true // Default enabled
         }
     
     /**
@@ -59,6 +70,15 @@ class NotificationPreferences @Inject constructor(
     }
     
     /**
+     * Enable or disable task reminders
+     */
+    suspend fun setTaskRemindersEnabled(enabled: Boolean) {
+        context.notificationDataStore.edit { preferences ->
+            preferences[TASK_REMINDERS_ENABLED] = enabled
+        }
+    }
+    
+    /**
      * Mark that notification permission has been requested
      */
     suspend fun markNotificationPermissionRequested() {
@@ -73,6 +93,35 @@ class NotificationPreferences @Inject constructor(
     suspend fun markWelcomeDialogShown() {
         context.notificationDataStore.edit { preferences ->
             preferences[WELCOME_DIALOG_SHOWN] = true
+        }
+    }
+    
+    // Synchronous methods for use in cases where suspend functions can't be used
+    
+    /**
+     * Get class reminders enabled state synchronously
+     */
+    fun isClassRemindersEnabledSync(): Boolean {
+        return runBlocking {
+            isClassRemindersEnabled.first()
+        }
+    }
+    
+    /**
+     * Get task reminders enabled state synchronously
+     */
+    fun isTaskRemindersEnabledSync(): Boolean {
+        return runBlocking {
+            isTaskRemindersEnabled.first()
+        }
+    }
+    
+    /**
+     * Get notification permission requested state synchronously
+     */
+    fun hasNotificationPermissionBeenRequested(): Boolean {
+        return runBlocking {
+            hasNotificationPermissionBeenRequested.first()
         }
     }
 }
