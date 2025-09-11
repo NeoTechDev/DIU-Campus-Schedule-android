@@ -36,6 +36,12 @@
         "batch": 44
     },
     {
+        "courseCode": "MAT102",
+        "courseName": "Math-II: Linear Algebra & Fourier Analysis/ Mathematics II",
+        "credit": 3,
+        "batch": 44
+    },
+    {
         "courseCode": "SE121",
         "courseName": "Structured Programming",
         "credit": 3,
@@ -114,6 +120,12 @@
         "batch": 42
     },
     {
+        "courseCode": "SE222",
+        "courseName": " Computer Architecture",
+        "credit": 3,
+        "batch": 43
+    },
+    {
         "courseCode": "SE223",
         "courseName": "Database Systems",
         "credit": 3,
@@ -126,6 +138,18 @@
         "batch": 42
     },
     {
+        "courseCode": "SE225",
+        "courseName": " Data Communication & Computer Networking",
+        "credit": 3,
+        "batch": 41
+    },
+    {
+        "courseCode": "SE226",
+        "courseName": " Data Communication & Computer Networking Lab",
+        "credit": 1,
+        "batch": 41
+    },
+    {
         "courseCode": "SE232",
         "courseName": "Operating System & System Programming",
         "credit": 3,
@@ -136,6 +160,18 @@
         "courseName": "Operating System & System Programming Lab",
         "credit": 1,
         "batch": 41
+    },
+    {
+        "courseCode": "SE235",
+        "courseName": "Desktop & Web Programming",
+        "credit": 3,
+        "batch": 42
+    },
+    {
+        "courseCode": "SE236",
+        "courseName": "Desktop & Web Programming Lab",
+        "credit": 1,
+        "batch": 42
     },
     {
         "courseCode": "GE235",
@@ -152,6 +188,12 @@
     {
         "courseCode": "SE234",
         "courseName": "Theory of Computing",
+        "credit": 3,
+        "batch": 41
+    },
+    {
+        "courseCode": "SE311",
+        "courseName": "Design Pattern",
         "credit": 3,
         "batch": 41
     },
@@ -204,10 +246,28 @@
         "batch": 39
     },
     {
+        "courseCode": "SE333",
+        "courseName": "Artificial Intelligence",
+        "credit": 3,
+        "batch":40
+    },
+    {
+        "courseCode": "SE334",
+        "courseName": "Artificial Intelligence Lab",
+        "credit": 1,
+        "batch":40
+    },
+    {
         "courseCode": "SE535",
         "courseName": "Data Warehouse & Data Mining (Non-Major Only)",
         "credit": 3,
         "batch": 39
+    },
+    {
+        "courseCode": "SE544",
+        "courseName": "Introduction to Machine Learning Guided Elective - II",
+        "credit": 3,
+        "batch": 40
     },
     {
         "courseCode": "SE599",
@@ -264,6 +324,18 @@
         "batch": 39
     },
     {
+        "courseCode": "RE423",
+        "courseName": "Advanced Robotics",
+        "credit": 3,
+        "batch": 39
+    },
+    {
+        "courseCode": "RE424",
+        "courseName": "Advanced Robotics Lab",
+        "credit": 1,
+        "batch": 39
+    },
+    {
         "courseCode": "RE411",
         "courseName": "Embedded System Design & Development",
         "credit": 2,
@@ -274,6 +346,12 @@
         "courseName": "Embedded System Design & Development Lab",
         "credit": 1,
         "batch": 39
+    },
+    {
+        "courseCode": "EMP101",
+        "courseName": "Employability 360 (All)",
+        "credit": 3,
+        "batch": 38
     },
     {
         "courseCode": "SE442",
@@ -385,7 +463,7 @@
     },
     {
         "courseCode": "SE342",
-        "courseName": "Compailer design (Non-Major Only)",
+        "courseName": "Compiler Design (Non-Major Only)",
         "credit": 3,
         "batch": 37
     },
