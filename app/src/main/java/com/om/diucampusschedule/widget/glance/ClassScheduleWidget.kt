@@ -54,6 +54,7 @@ import com.om.diucampusschedule.ui.theme.md_theme_light_primary
 import com.om.diucampusschedule.widget.data.WidgetDataRepository
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.first
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -475,6 +476,15 @@ private fun BreakWidgetItem(
     val breakText = if (role == "Teacher") "Counselling Time" else "Break Time"
     val breakTime = "${startTime.formatTime()} - ${endTime.formatTime()}"
 
+    val duration = Duration.between(startTime, endTime)
+    val hours = duration.toHours()
+    val minutes = duration.toMinutes() % 60
+    val durationText = when {
+        hours > 0 && minutes > 0 -> "${hours}h ${minutes}min"
+        hours > 0 -> "${hours}h"
+        else -> "${minutes}min"
+    }
+
     Row(
         modifier = GlanceModifier
             .fillMaxWidth()
@@ -508,6 +518,14 @@ private fun BreakWidgetItem(
             Spacer(modifier = GlanceModifier.height(2.dp))
             Text(
                 text = breakTime.uppercase(),
+                style = TextStyle(
+                    fontSize = 12.sp,
+                    color = ColorProvider(day = Color.Gray, night = Color.White.copy(alpha = 0.7f))
+                )
+            )
+            Spacer(modifier = GlanceModifier.height(2.dp))
+            Text(
+                text = "Duration: $durationText",
                 style = TextStyle(
                     fontSize = 12.sp,
                     color = ColorProvider(day = Color.Gray, night = Color.White.copy(alpha = 0.7f))
