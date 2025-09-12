@@ -929,7 +929,7 @@ private fun TableRoutineView(
     allTimeSlots: List<String>,
     onCourseClick: (String) -> Unit = {}
 ) {
-    val days = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday")
+    val days = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday, Friday")
 
     // Use the pre-sorted time slots from database, fallback to routine-based generation if empty
     val startTimes = if (allTimeSlots.isNotEmpty()) {

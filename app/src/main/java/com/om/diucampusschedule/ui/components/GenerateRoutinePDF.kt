@@ -208,7 +208,7 @@ suspend fun generateRoutinePdf(
         }
 
         yPosition += cellHeight
-        val daysOfWeek = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday")
+        val daysOfWeek = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday, Friday")
 
         daysOfWeek.forEach { day ->
             currentX = tableStartX // Reset currentX for each day row

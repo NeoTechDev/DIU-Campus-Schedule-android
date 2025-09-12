@@ -55,7 +55,7 @@ suspend fun generateRoutineImage(
         try {
             // Image dimensions
             val imageWidth = 1200
-            val days = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday")
+            val days = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday, Friday")
             val qrCodeSize = 800 // Much bigger QR code size to fill empty space
 
             // Calculate precise height based on actual content
