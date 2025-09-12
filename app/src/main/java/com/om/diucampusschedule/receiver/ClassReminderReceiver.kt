@@ -145,7 +145,7 @@ class ClassReminderReceiver : BroadcastReceiver() {
         // Build notification exactly like the image
         val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.app_notification_logo) // Calendar icon like in image
-            .setContentTitle("Upcoming Classes: $courseName") // Main title: "Class Reminder: Object Oriented Design"
+            .setContentTitle("Upcoming Class: $courseName") // Main title: "Class Reminder: Object Oriented Design"
             .setContentText("Time: $timeComponents") // Subtitle showing time
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
@@ -166,7 +166,7 @@ class ClassReminderReceiver : BroadcastReceiver() {
         
         val bigTextStyle = NotificationCompat.BigTextStyle()
             .bigText(expandedContent)
-            .setBigContentTitle("Upcoming Classes: $courseName") // "Class Reminder: Object Oriented Design"
+            .setBigContentTitle("Upcoming Class: $courseName") // "Upcoming Class: Object Oriented Design"
         
         notificationBuilder.setStyle(bigTextStyle)
         
