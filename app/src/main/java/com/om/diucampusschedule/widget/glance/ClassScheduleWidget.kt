@@ -3,12 +3,14 @@ package com.om.diucampusschedule.widget.glance
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,6 +34,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -249,16 +252,15 @@ private fun ClassScheduleWidgetContent(
                 if (lastClassEndTime.isNotEmpty()) {
                     Box(
                         modifier = GlanceModifier
-                            .size(width = 65.dp, height = 40.dp)
                             .background(
                                 if(isDarkMode)  ImageProvider(R.drawable.widget_endtime_background_dark)
                                 else ImageProvider(R.drawable.widget_endtime_background)
                             )
-                            .cornerRadius(12.dp)
-                            .padding(6.dp),
+                            .cornerRadius(12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
+                            modifier = GlanceModifier.padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -270,13 +272,14 @@ private fun ClassScheduleWidgetContent(
                             )
                             Spacer(modifier = GlanceModifier.width(4.dp))
                             Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "ENDS",
                                     style = TextStyle(
                                         fontWeight = FontWeight.Medium,
-                                        fontSize = 9.sp,
+                                        fontSize = 8.sp,
                                         color = ColorProvider(day = md_theme_light_primary.copy(alpha = 0.8f), night = Color.White.copy(alpha = 0.8f))
                                     )
                                 )
@@ -284,7 +287,7 @@ private fun ClassScheduleWidgetContent(
                                     text = lastClassEndTime,
                                     style = TextStyle(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
+                                        fontSize = 9.sp,
                                         color = ColorProvider(day = md_theme_light_primary, night = Color.White)
                                     )
                                 )
@@ -427,7 +430,7 @@ private fun RoutineWidgetItem(routine: RoutineItem, courseName: String) {
         Box(
             modifier = GlanceModifier
                 .width(4.dp)
-                .height(50.dp)
+                .fillMaxHeight()
                 .cornerRadius(2.dp)
                 .background(androidx.glance.unit.ColorProvider(courseColor))
         ) {}
@@ -484,13 +487,13 @@ private fun BreakWidgetItem(
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Spacer(
+        Box(
             modifier = GlanceModifier
                 .width(4.dp)
-                .height(50.dp)
+                .fillMaxHeight()
                 .cornerRadius(2.dp)
                 .background(ColorProvider(md_theme_light_error))
-        )
+        ) {}
         Spacer(modifier = GlanceModifier.width(8.dp))
 
         Column(modifier = GlanceModifier.defaultWeight()) {
