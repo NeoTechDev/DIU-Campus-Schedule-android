@@ -250,7 +250,11 @@ class TaskSharer @Inject constructor(
     
     fun unregisterService() {
         registrationListener?.let {
-            nsdManager.unregisterService(it)
+            try {
+                nsdManager.unregisterService(it)
+            } catch (e: IllegalArgumentException) {
+                Log.w("TaskSharer", "Listener already unregistered or never registered.", e)
+            }
             registrationListener = null
         }
     }
