@@ -578,7 +578,7 @@ private fun NoUserState() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         androidx.glance.Image(
-            provider = ImageProvider(R.drawable.star),
+            provider = ImageProvider(R.drawable.sign_in),
             contentDescription = null,
             modifier = GlanceModifier.size(45.dp)
         )

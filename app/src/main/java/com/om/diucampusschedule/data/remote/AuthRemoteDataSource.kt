@@ -44,11 +44,20 @@ class AuthRemoteDataSource @Inject constructor(
             val result = firebaseAuth.createUserWithEmailAndPassword(request.email, request.password).await()
             val firebaseUser = result.user ?: throw Exception("User creation failed")
             
+            // Send email verification immediately after account creation
+            try {
+                firebaseUser.sendEmailVerification().await()
+            } catch (e: Exception) {
+                // Log error but don't fail signup if email sending fails
+                android.util.Log.w("AuthRemoteDataSource", "Failed to send verification email: ${e.message}")
+            }
+            
             // Create user document in Firestore
             val userDto = UserDto(
                 id = firebaseUser.uid,
                 email = firebaseUser.email ?: request.email,
-                isProfileComplete = false
+                isProfileComplete = false,
+                isEmailVerified = firebaseUser.isEmailVerified
             )
             
             usersCollection.document(firebaseUser.uid).set(userDto).await()
@@ -69,8 +78,18 @@ class AuthRemoteDataSource @Inject constructor(
             val userDoc = usersCollection.document(firebaseUser.uid).get().await()
             
             val userDto = if (userDoc.exists()) {
-                // Existing user
-                userDoc.toUserDto() ?: throw Exception("Failed to parse user data")
+                // Existing user - update email verification status from Firebase Auth
+                val existingDto = userDoc.toUserDto() ?: throw Exception("Failed to parse user data")
+                val updatedDto = existingDto.copy(isEmailVerified = firebaseUser.isEmailVerified)
+                
+                // Update Firestore with current email verification status if different
+                if (existingDto.isEmailVerified != firebaseUser.isEmailVerified) {
+                    usersCollection.document(firebaseUser.uid)
+                        .update("isEmailVerified", firebaseUser.isEmailVerified)
+                        .await()
+                }
+                
+                updatedDto
             } else {
                 // New user, create profile
                 val newUserDto = UserDto(
@@ -78,7 +97,8 @@ class AuthRemoteDataSource @Inject constructor(
                     email = firebaseUser.email ?: "",
                     name = firebaseUser.displayName ?: "",
                     profilePictureUrl = firebaseUser.photoUrl?.toString() ?: "",
-                    isProfileComplete = false
+                    isProfileComplete = false,
+                    isEmailVerified = firebaseUser.isEmailVerified
                 )
                 
                 usersCollection.document(firebaseUser.uid).set(newUserDto).await()
@@ -108,7 +128,20 @@ class AuthRemoteDataSource @Inject constructor(
             } else {
                 val userDoc = usersCollection.document(firebaseUser.uid).get().await()
                 val userDto = userDoc.toUserDto()
-                Result.success(userDto)
+                
+                // Update email verification status from Firebase Auth
+                userDto?.let { dto ->
+                    val updatedDto = dto.copy(isEmailVerified = firebaseUser.isEmailVerified)
+                    
+                    // Update Firestore with current email verification status if different
+                    if (dto.isEmailVerified != firebaseUser.isEmailVerified) {
+                        usersCollection.document(firebaseUser.uid)
+                            .update("isEmailVerified", firebaseUser.isEmailVerified)
+                            .await()
+                    }
+                    
+                    Result.success(updatedDto)
+                } ?: Result.success(null)
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -207,6 +240,20 @@ class AuthRemoteDataSource @Inject constructor(
             val currentUser = firebaseAuth.currentUser
             if (currentUser != null) {
                 currentUser.reload().await()
+                
+                // Update user data in Firestore with latest email verification status
+                val userDoc = usersCollection.document(currentUser.uid).get().await()
+                if (userDoc.exists()) {
+                    val userDto = userDoc.toUserDto()
+                    userDto?.let { dto ->
+                        if (dto.isEmailVerified != currentUser.isEmailVerified) {
+                            usersCollection.document(currentUser.uid)
+                                .update("isEmailVerified", currentUser.isEmailVerified)
+                                .await()
+                        }
+                    }
+                }
+                
                 Result.success(currentUser.isEmailVerified)
             } else {
                 Result.failure(Exception("No user is currently signed in"))

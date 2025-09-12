@@ -122,7 +122,8 @@ class AuthViewModel @Inject constructor(
                         isAuthenticated = true,
                         user = user,
                         isLoading = false,
-                        error = null
+                        error = null,
+                        isEmailVerificationSent = true // Email verification is sent during signup
                     )
                 },
                 onFailure = { exception ->
@@ -324,6 +325,15 @@ class AuthViewModel @Inject constructor(
 
     fun sendEmailVerification() {
         viewModelScope.launch {
+            // Check internet connectivity first
+            if (!networkConnectivityManager.isConnected()) {
+                _authState.value = _authState.value.copy(
+                    isLoading = false,
+                    error = networkConnectivityManager.getNetworkErrorMessage()
+                )
+                return@launch
+            }
+
             _authState.value = _authState.value.copy(isLoading = true, error = null)
             
             val result = sendEmailVerificationUseCase()
@@ -340,7 +350,11 @@ class AuthViewModel @Inject constructor(
                 onFailure = { exception ->
                     _authState.value = _authState.value.copy(
                         isLoading = false,
-                        error = exception.message,
+                        error = if (!networkConnectivityManager.isConnected()) {
+                            networkConnectivityManager.getNetworkErrorMessage()
+                        } else {
+                            "Failed to send verification email: ${exception.message ?: "Unknown error"}"
+                        },
                         isEmailVerificationSent = false
                     )
                 }

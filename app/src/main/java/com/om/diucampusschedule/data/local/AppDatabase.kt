@@ -25,7 +25,7 @@ import com.om.diucampusschedule.data.local.entities.TaskGroupEntity
         TaskEntity::class,
         TaskGroupEntity::class
     ],
-    version = 7, // Incremented version for entity structure changes
+    version = 8, // Incremented version for isEmailVerified field addition
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

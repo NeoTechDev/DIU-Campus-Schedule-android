@@ -84,6 +84,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
@@ -179,9 +181,9 @@ fun SignUpScreen(
     // Navigate based on auth state
     LaunchedEffect(authState) {
         if (authState.isAuthenticated && authState.user != null) {
-            // After successful signup, send verification email and navigate to verification screen
-            viewModel.sendEmailVerification()
-            navController.navigate("${Screen.EmailVerification.route}/${email}") {
+            // After successful signup, navigate to verification screen
+            val encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8.toString())
+            navController.navigate("${Screen.EmailVerification.route}/${encodedEmail}") {
                 popUpTo(Screen.SignUp.route) { inclusive = true }
             }
         }

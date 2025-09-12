@@ -16,6 +16,7 @@ data class UserDto(
     val labSection: String = "",
     val initial: String = "",
     val isProfileComplete: Boolean = false,
+    val isEmailVerified: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
@@ -34,6 +35,7 @@ fun UserDto.toDomainModel(): User {
         labSection = labSection,
         initial = initial,
         isProfileComplete = isProfileComplete,
+        isEmailVerified = isEmailVerified,
         createdAt = createdAt,
         updatedAt = updatedAt
     )
@@ -52,6 +54,7 @@ fun User.toDataModel(): UserDto {
         labSection = labSection,
         initial = initial,
         isProfileComplete = isProfileComplete,
+        isEmailVerified = isEmailVerified,
         createdAt = createdAt,
         updatedAt = updatedAt
     )
@@ -72,6 +75,7 @@ fun DocumentSnapshot.toUserDto(): UserDto? {
             labSection = getString("labSection") ?: "",
             initial = getString("initial") ?: "",
             isProfileComplete = getBoolean("isProfileComplete") ?: false,
+            isEmailVerified = getBoolean("isEmailVerified") ?: false,
             createdAt = getLong("createdAt") ?: System.currentTimeMillis(),
             updatedAt = getLong("updatedAt") ?: System.currentTimeMillis()
         )

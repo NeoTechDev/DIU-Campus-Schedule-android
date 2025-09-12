@@ -39,6 +39,7 @@ class AppInitializationViewModel @Inject constructor(
                     .onEach { user ->
                         _appState.value = when {
                             user == null -> AppState.Unauthenticated
+                            !user.isEmailVerified -> AppState.AuthenticatedEmailUnverified(user)
                             !user.isProfileComplete -> AppState.AuthenticatedIncomplete(user)
                             else -> {
                                 // Register FCM token for authenticated users

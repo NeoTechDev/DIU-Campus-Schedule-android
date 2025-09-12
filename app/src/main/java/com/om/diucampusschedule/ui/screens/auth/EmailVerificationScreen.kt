@@ -96,17 +96,18 @@ fun EmailVerificationScreen(
         label = "formAlpha"
     )
 
+    var resendCount by remember { mutableStateOf(0) }
+    
     // Countdown timer for resend button
-    LaunchedEffect(authState.isEmailVerificationSent) {
-        if (authState.isEmailVerificationSent) {
-            timeLeft = 60
-            canResend = false
-            while (timeLeft > 0) {
-                delay(1000)
-                timeLeft--
-            }
-            canResend = true
+    LaunchedEffect(resendCount) {
+        // Start/restart timer when screen loads or after resend
+        timeLeft = 60
+        canResend = false
+        while (timeLeft > 0) {
+            delay(1000)
+            timeLeft--
         }
+        canResend = true
     }
 
     // Check verification status periodically
@@ -239,6 +240,15 @@ fun EmailVerificationScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "Can't find the email? Check your spam folder",
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
                 }
 
@@ -380,6 +390,7 @@ fun EmailVerificationScreen(
                     OutlinedButton(
                         onClick = {
                             viewModel.sendEmailVerification()
+                            resendCount++
                         },
                         enabled = canResend && !authState.isLoading,
                         modifier = Modifier

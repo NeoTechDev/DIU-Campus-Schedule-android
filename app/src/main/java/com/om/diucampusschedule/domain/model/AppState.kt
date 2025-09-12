@@ -15,7 +15,12 @@ sealed interface AppState {
     data object Unauthenticated : AppState
     
     /**
-     * User is authenticated but profile setup is incomplete
+     * User is authenticated but email not verified - should show email verification flow
+     */
+    data class AuthenticatedEmailUnverified(val user: User) : AppState
+    
+    /**
+     * User is authenticated and email verified but profile setup is incomplete
      */
     data class AuthenticatedIncomplete(val user: User) : AppState
     

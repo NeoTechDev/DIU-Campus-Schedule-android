@@ -12,6 +12,7 @@ data class User(
     val labSection: String = "", // for students
     val initial: String = "", // for teachers
     val isProfileComplete: Boolean = false,
+    val isEmailVerified: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

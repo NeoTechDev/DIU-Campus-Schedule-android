@@ -20,6 +20,7 @@ data class UserEntity(
     val labSection: String,
     val initial: String,
     val isProfileComplete: Boolean,
+    val isEmailVerified: Boolean,
     val createdAt: Long,
     val updatedAt: Long
 )
@@ -38,6 +39,7 @@ fun UserEntity.toDomainModel(): User {
         labSection = labSection,
         initial = initial,
         isProfileComplete = isProfileComplete,
+        isEmailVerified = isEmailVerified,
         createdAt = createdAt,
         updatedAt = updatedAt
     )
@@ -56,6 +58,7 @@ fun User.toEntity(): UserEntity {
         labSection = labSection,
         initial = initial,
         isProfileComplete = isProfileComplete,
+        isEmailVerified = isEmailVerified,
         createdAt = createdAt,
         updatedAt = updatedAt
     )
@@ -74,6 +77,7 @@ fun UserDto.toEntity(): UserEntity {
         labSection = labSection,
         initial = initial,
         isProfileComplete = isProfileComplete,
+        isEmailVerified = isEmailVerified,
         createdAt = createdAt,
         updatedAt = updatedAt
     )
@@ -92,6 +96,7 @@ fun UserEntity.toDto(): UserDto {
         labSection = labSection,
         initial = initial,
         isProfileComplete = isProfileComplete,
+        isEmailVerified = isEmailVerified,
         createdAt = createdAt,
         updatedAt = updatedAt
     )

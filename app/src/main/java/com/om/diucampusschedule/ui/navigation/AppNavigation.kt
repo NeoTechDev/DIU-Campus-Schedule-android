@@ -36,6 +36,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import com.om.diucampusschedule.domain.model.AppState
 import com.om.diucampusschedule.ui.components.MainScaffold
 import com.om.diucampusschedule.ui.components.NavigationDrawer
@@ -60,6 +62,7 @@ import com.om.diucampusschedule.ui.viewmodel.AppInitializationViewModel
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
 import com.om.diucampusschedule.ui.viewmodel.WelcomeViewModel
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
 
 // Animation constants
 private const val ANIMATION_DURATION = 400
@@ -241,6 +244,15 @@ fun AppNavigation(
                 )
             }
             
+            is AppState.AuthenticatedEmailUnverified -> {
+                // Show email verification flow
+                val encodedEmail = URLEncoder.encode(targetState.user.email, StandardCharsets.UTF_8.toString())
+                AuthNavigationHost(
+                    navController = navController,
+                    startDestination = startDestination ?: "${Screen.EmailVerification.route}/${encodedEmail}"
+                )
+            }
+            
             is AppState.AuthenticatedIncomplete -> {
                 // Show profile completion flow
                 AuthNavigationHost(
@@ -387,7 +399,8 @@ private fun AuthNavigationHost(
             popEnterTransition = { NavigationAnimations.slideInFromLeft },
             popExitTransition = { NavigationAnimations.slideOutToRight }
         ) { backStackEntry ->
-            val email = backStackEntry.arguments?.getString("email") ?: ""
+            val encodedEmail = backStackEntry.arguments?.getString("email") ?: ""
+            val email = URLDecoder.decode(encodedEmail, StandardCharsets.UTF_8.toString())
             EmailVerificationScreen(
                 navController = navController,
                 userEmail = email
