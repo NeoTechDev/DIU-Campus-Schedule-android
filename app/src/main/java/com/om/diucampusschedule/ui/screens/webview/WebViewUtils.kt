@@ -49,13 +49,16 @@ fun setupWebView(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT
         )
         
-        // Configure WebView settings for better portal access
+        // Configure WebView settings for Cloudflare compatibility
         settings.apply {
-            // Core settings
+            // Core settings - enable JavaScript for Cloudflare challenges
             javaScriptEnabled = true
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK // Try cache first, may help with 403
             domStorageEnabled = true
+            databaseEnabled = true
+            
+            // Network settings
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            cacheMode = WebSettings.LOAD_DEFAULT
             loadWithOverviewMode = true
             useWideViewPort = true
 
@@ -122,12 +125,12 @@ fun setupWebView(
             allowContentAccess = true
             allowFileAccess = true
             
-            // User agent
-            userAgentString = if (isDesktopMode) {
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            } else {
-                WebSettings.getDefaultUserAgent(context)
-            }
+            // User agent - use desktop mode by default to bypass Cloudflare
+            userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            
+            // Cache settings for Cloudflare compatibility
+            cacheMode = WebSettings.LOAD_DEFAULT
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
 
         // Clear cache and cookies (from working version)
@@ -159,39 +162,7 @@ fun setupWebView(
             }
             
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
-                // Add more aggressive headers to bypass 403 restrictions
-                request?.let { req ->
-                    if (req.url.host?.contains("diu.edu.bd") == true) {
-                        try {
-                            val url = req.url.toString()
-                            val connection = java.net.URL(url).openConnection()
-                            
-                            // Add comprehensive headers to mimic desktop browser
-                            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                            connection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-                            connection.setRequestProperty("Accept-Language", "en-US,en;q=0.9")
-                            connection.setRequestProperty("Accept-Encoding", "gzip, deflate, br")
-                            connection.setRequestProperty("DNT", "1")
-                            connection.setRequestProperty("Connection", "keep-alive")
-                            connection.setRequestProperty("Upgrade-Insecure-Requests", "1")
-                            connection.setRequestProperty("Sec-Fetch-Dest", "document")
-                            connection.setRequestProperty("Sec-Fetch-Mode", "navigate")
-                            connection.setRequestProperty("Sec-Fetch-Site", "none")
-                            connection.setRequestProperty("Sec-Fetch-User", "?1")
-                            connection.setRequestProperty("Cache-Control", "max-age=0")
-                            connection.setRequestProperty("Referer", "https://diu.edu.bd/")
-                            connection.setRequestProperty("Origin", "https://diu.edu.bd")
-                            
-                            val inputStream = connection.getInputStream()
-                            val mimeType = connection.contentType?.substringBefore(";") ?: "text/html"
-                            val encoding = connection.contentType?.substringAfter("charset=", "UTF-8")?.takeIf { it.isNotEmpty() } ?: "UTF-8"
-                            
-                            return WebResourceResponse(mimeType, encoding, inputStream)
-                        } catch (e: Exception) {
-                            // Fallback to default handling if custom request fails
-                        }
-                    }
-                }
+                // Don't intercept DIU requests - let Cloudflare challenges work naturally
                 return super.shouldInterceptRequest(view, request)
             }
             

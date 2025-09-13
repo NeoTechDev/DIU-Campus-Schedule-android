@@ -145,7 +145,7 @@ fun NavigationDrawer(
                 }
 
                 // Main Section Items (Faculty Info & Previous Questions)
-                items(getMainSectionItems(onNavigate, context)) { item ->
+                items(getMainSectionItems(onNavigate, context, authState.user)) { item ->
                     NavigationItem(
                         item = item,
                         onClick = {
@@ -652,37 +652,87 @@ data class DrawerItem(
 // Section 1: Main Section (Faculty Info & Previous Questions)
 private fun getMainSectionItems(
     onNavigate: (String) -> Unit,
-    context: Context
+    context: Context,
+    user: User?
 ): List<DrawerItem> {
-    return listOf(
-        DrawerItem(
-            iconRes = R.drawable.student_portal,
-            title = "Student Portal",
-            action = {
-                onNavigate(Screen.WebView.createRoute(PortalUrls.STUDENT_PORTAL, PortalTitles.STUDENT_PORTAL))
-            }
-        ),
-        DrawerItem(
-            iconRes = R.drawable.hall_portal,
-            title = "Hall Portal",
-            action = {
-                onNavigate(Screen.WebView.createRoute(PortalUrls.HALL_PORTAL, PortalTitles.HALL_PORTAL))
-            }
-        ),
-        DrawerItem(
-            iconRes = R.drawable.teacher_portal,
-            title = "Teacher Portal",
-            action = {
-                onNavigate(Screen.WebView.createRoute(PortalUrls.TEACHER_PORTAL, PortalTitles.TEACHER_PORTAL))
-            }
-        ),
+    val portalItems = mutableListOf<DrawerItem>()
+    
+    // Add portal items based on user role
+    when (user?.role) {
+        UserRole.STUDENT -> {
+            // Students see Student Portal and Hall Portal
+            portalItems.add(
+                DrawerItem(
+                    iconRes = R.drawable.student_portal,
+                    title = "Student Portal",
+                    action = {
+                        onNavigate(Screen.WebView.createRoute(PortalUrls.STUDENT_PORTAL, PortalTitles.STUDENT_PORTAL))
+                    }
+                )
+            )
+            portalItems.add(
+                DrawerItem(
+                    iconRes = R.drawable.hall_portal,
+                    title = "Hall Portal",
+                    action = {
+                        onNavigate(Screen.WebView.createRoute(PortalUrls.HALL_PORTAL, PortalTitles.HALL_PORTAL))
+                    }
+                )
+            )
+        }
+        UserRole.TEACHER -> {
+            // Teachers see Teacher Portal
+            portalItems.add(
+                DrawerItem(
+                    iconRes = R.drawable.teacher_portal,
+                    title = "Teacher Portal",
+                    action = {
+                        onNavigate(Screen.WebView.createRoute(PortalUrls.TEACHER_PORTAL, PortalTitles.TEACHER_PORTAL))
+                    }
+                )
+            )
+        }
+        else -> {
+            // If no role or unknown role, show all portals
+            portalItems.addAll(listOf(
+                DrawerItem(
+                    iconRes = R.drawable.student_portal,
+                    title = "Student Portal",
+                    action = {
+                        onNavigate(Screen.WebView.createRoute(PortalUrls.STUDENT_PORTAL, PortalTitles.STUDENT_PORTAL))
+                    }
+                ),
+                DrawerItem(
+                    iconRes = R.drawable.hall_portal,
+                    title = "Hall Portal",
+                    action = {
+                        onNavigate(Screen.WebView.createRoute(PortalUrls.HALL_PORTAL, PortalTitles.HALL_PORTAL))
+                    }
+                ),
+                DrawerItem(
+                    iconRes = R.drawable.teacher_portal,
+                    title = "Teacher Portal",
+                    action = {
+                        onNavigate(Screen.WebView.createRoute(PortalUrls.TEACHER_PORTAL, PortalTitles.TEACHER_PORTAL))
+                    }
+                )
+            ))
+        }
+    }
+    
+    // Add BLC for everyone
+    portalItems.add(
         DrawerItem(
             iconRes = R.drawable.blc,
             title = "BLC",
             action = {
                 onNavigate(Screen.WebView.createRoute(PortalUrls.BLC, PortalTitles.BLC))
             }
-        ),
+        )
+    )
+    
+    // Add common items that everyone sees
+    portalItems.addAll(listOf(
         DrawerItem(
             iconRes = R.drawable.faculty_info,
             title = "Faculty Info",
@@ -714,7 +764,9 @@ private fun getMainSectionItems(
                 context.startActivity(intent)
             }
         )
-    )
+    ))
+    
+    return portalItems
 }
 
 // Section 2: Community (DIUCS Connect)
