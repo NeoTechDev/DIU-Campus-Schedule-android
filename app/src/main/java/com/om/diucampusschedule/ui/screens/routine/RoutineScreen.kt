@@ -962,227 +962,195 @@ private fun TableRoutineView(
     val scrollStateHorizontal = rememberScrollState()
     val scrollStateVertical = rememberScrollState()
 
-    AnimatedVisibility(
-        visible = true,
-        enter = scaleIn(
-            animationSpec = tween(
-                durationMillis = 500,
-                delayMillis = 300,
-                easing = EaseInOutCubic
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp)
+            .clip(shape = RoundedCornerShape(20.dp))
+            .background(color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surface else AppBackgroundColorLight)
+            .border(
+                width = 2.dp,
+                color = AppPrimaryColorLight,
+                shape = RoundedCornerShape(20.dp)
             )
-        ) + fadeIn(
-            animationSpec = tween(
-                durationMillis = 500,
-                delayMillis = 300,
-                easing = EaseInOutCubic
-            )
-        )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp)
-                .clip(shape = RoundedCornerShape(20.dp))
-                .background(color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surface else AppBackgroundColorLight)
-                .border(
-                    width = 2.dp,
-                    color = AppPrimaryColorLight,
-                    shape = RoundedCornerShape(20.dp)
-                )
-        ) {
-            Column(modifier = Modifier.verticalScroll(scrollStateVertical)) {
-                // Header row
-                AnimatedVisibility(
-                    visible = true,
-                    enter = scaleIn(
-                        animationSpec = tween(
-                            durationMillis = 400,
-                            delayMillis = 400,
-                            easing = EaseInOutCubic
-                        )
-                    ) + fadeIn(
-                        animationSpec = tween(
-                            durationMillis = 400,
-                            delayMillis = 400,
-                            easing = EaseInOutCubic
-                        )
-                    )
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Sticky header row (not vertically scrollable)
+            Row(modifier = Modifier.horizontalScroll(scrollStateHorizontal)) {
+                Box(
+                    modifier = Modifier
+                        .width(110.dp)
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(modifier = Modifier.horizontalScroll(scrollStateHorizontal)) {
-                        Box(
-                            modifier = Modifier
-                                .width(110.dp)
-                                .padding(8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "Day/Time",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        startTimes.forEach { time ->
-                            Box(
-                                modifier = Modifier
-                                    .width(110.dp)
-                                    .padding(8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    time,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
+                    Text(
+                        "Day/Time",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                startTimes.forEach { time ->
+                    Box(
+                        modifier = Modifier
+                            .width(110.dp)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            time,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
+            }
 
-                HorizontalDivider(thickness = 1.dp, color = Color.Gray)
+            HorizontalDivider(thickness = 1.dp, color = Color.Gray)
 
-                // Days rows
-                days.forEachIndexed { index, day ->
-                    val routinesForDay =
-                        routineItems.filter { it.day.equals(day, ignoreCase = true) }
-                    val firstClass = routinesForDay.minByOrNull { it.startTime ?: LocalTime.MIN }
-                    val lastClass = routinesForDay.maxByOrNull { it.endTime ?: LocalTime.MAX }
-                    
+            // Data rows (vertically scrollable, horizontally scrollable with header)
+            Box(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.verticalScroll(scrollStateVertical)) {
+                    days.forEachIndexed { index, day ->
+                        val routinesForDay =
+                            routineItems.filter { it.day.equals(day, ignoreCase = true) }
+                        val firstClass = routinesForDay.minByOrNull { it.startTime ?: LocalTime.MIN }
+                        val lastClass = routinesForDay.maxByOrNull { it.endTime ?: LocalTime.MAX }
 
-
-                    if (routinesForDay.isNotEmpty()) {
-                        Row(
-                            modifier = Modifier.horizontalScroll(scrollStateHorizontal),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(110.dp)
-                                    .padding(8.dp),
-                                contentAlignment = Alignment.Center
+                        if (routinesForDay.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier.horizontalScroll(scrollStateHorizontal),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = day.take(3).uppercase(),
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            startTimes.forEach { time ->
-                                val timeSlots = routinesForDay.filter { it.time.startsWith(time) }
-                                Column(
+                                Box(
                                     modifier = Modifier
                                         .width(110.dp)
-                                        .padding(4.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    if (timeSlots.isNotEmpty()) {
-                                        timeSlots.forEach { routine ->
-                                            RoutineCell(
-                                                routine = routine,
-                                                onCourseClick = onCourseClick
-                                            )
-                                        }
-                                    } else {
-                                        // Handle empty time slots
-                                        val startTime = try {
-                                            LocalTime.parse(time, formatter12HourUS)
-                                        } catch (e: Exception) {
-                                            null
-                                        }
-                                        val firstClassTime = firstClass?.startTime ?: LocalTime.MIN
-                                        val lastClassTime = lastClass?.endTime ?: LocalTime.MAX
+                                    Text(
+                                        text = day.take(3).uppercase(),
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
 
-                                        if (startTime != null && startTime.isAfter(firstClassTime) && startTime.isBefore(
-                                                lastClassTime
-                                            )
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .width(110.dp)
-                                                    .height(60.dp)
-                                                    .background(
-                                                        color = Color.Transparent,
-                                                        shape = RoundedCornerShape(20.dp)
-                                                    ),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = getBreakCounsellingText(currentUser, currentFilter),
-                                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                                        fontWeight = FontWeight.Bold
-                                                    ),
-                                                    color = if (!isSystemInDarkTheme()) Color.DarkGray else MaterialTheme.colorScheme.onSurface,
-                                                    textAlign = TextAlign.Center
+                                startTimes.forEach { time ->
+                                    val timeSlots = routinesForDay.filter { it.time.startsWith(time) }
+                                    Column(
+                                        modifier = Modifier
+                                            .width(110.dp)
+                                            .padding(4.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        if (timeSlots.isNotEmpty()) {
+                                            timeSlots.forEach { routine ->
+                                                RoutineCell(
+                                                    routine = routine,
+                                                    onCourseClick = onCourseClick
                                                 )
                                             }
                                         } else {
-                                            Box(
-                                                modifier = Modifier
-                                                    .height(110.dp)
-                                                    .padding(4.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {}
+                                            // Handle empty time slots
+                                            val startTime = try {
+                                                LocalTime.parse(time, formatter12HourUS)
+                                            } catch (e: Exception) {
+                                                null
+                                            }
+                                            val firstClassTime = firstClass?.startTime ?: LocalTime.MIN
+                                            val lastClassTime = lastClass?.endTime ?: LocalTime.MAX
+
+                                            if (startTime != null && startTime.isAfter(firstClassTime) && startTime.isBefore(
+                                                    lastClassTime
+                                                )
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .width(110.dp)
+                                                        .height(60.dp)
+                                                        .background(
+                                                            color = Color.Transparent,
+                                                            shape = RoundedCornerShape(20.dp)
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = getBreakCounsellingText(currentUser, currentFilter),
+                                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                                            fontWeight = FontWeight.Bold
+                                                        ),
+                                                        color = if (!isSystemInDarkTheme()) Color.DarkGray else MaterialTheme.colorScheme.onSurface,
+                                                        textAlign = TextAlign.Center
+                                                    )
+                                                }
+                                            } else {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .height(110.dp)
+                                                        .padding(4.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {}
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        HorizontalDivider(thickness = 1.dp, color = Color.Gray)
-                    } else {
-                        // Display "OFF DAY" for days with no routines
-                        Row(
-                            modifier = Modifier.horizontalScroll(scrollStateHorizontal),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(110.dp)
-                                    .padding(8.dp),
-                                contentAlignment = Alignment.Center
+                            HorizontalDivider(thickness = 1.dp, color = Color.Gray)
+                        } else {
+                            // Display "OFF DAY" for days with no routines
+                            Row(
+                                modifier = Modifier.horizontalScroll(scrollStateHorizontal),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = day.take(3).uppercase(),
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
+                                Box(
+                                    modifier = Modifier
+                                        .width(110.dp)
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = day.take(3).uppercase(),
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
 
-                            // Create one wide cell for "OFF DAY" text
-                            Box(
-                                modifier = Modifier
-                                    .width((110 * startTimes.size).dp)
-                                    .height(60.dp)
-                                    .padding(4.dp)
-                                    .background(
-                                        color = Color.LightGray.copy(alpha = 0.3f),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "OFF DAY",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
-                                    ),
-                                    color = if (!isSystemInDarkTheme()) Color.Gray else MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Center
-                                )
+                                // Create one wide cell for "OFF DAY" text
+                                Box(
+                                    modifier = Modifier
+                                        .width((110 * startTimes.size).dp)
+                                        .height(60.dp)
+                                        .padding(4.dp)
+                                        .background(
+                                            color = Color.LightGray.copy(alpha = 0.3f),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "OFF DAY",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 18.sp
+                                        ),
+                                        color = if (!isSystemInDarkTheme()) Color.Gray else MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
+                            HorizontalDivider(thickness = 1.dp, color = Color.Gray)
                         }
-                        HorizontalDivider(thickness = 1.dp, color = Color.Gray)
                     }
                 }
             }
