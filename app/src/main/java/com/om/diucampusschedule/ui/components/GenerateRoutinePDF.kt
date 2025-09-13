@@ -121,15 +121,15 @@ suspend fun generateRoutinePdf(
             )
         }
 
-        val marginHorizontal = 10f
-        val marginVertical = 100f
-        var yPosition = marginVertical + 40f
-        val cellHeight = 30f
-        val dayColumnWidth = 90f
-        val timeColumnWidth = 100f
-        val tableTotalWidth = dayColumnWidth + (startTimes.size * timeColumnWidth)
-        val tableStartX = (pageInfo.pageWidth - tableTotalWidth) / 2f
-        var currentX = tableStartX
+    val marginHorizontal = 10f
+    val marginVertical = 100f
+    var yPosition = marginVertical + 40f
+    val cellHeight = 30f
+    val dayColumnWidth = 90f // Increased from 90f
+    val timeColumnWidth = 110f // Increased from 100f
+    val tableTotalWidth = dayColumnWidth + (startTimes.size * timeColumnWidth)
+    val tableStartX = (pageInfo.pageWidth - tableTotalWidth) / 2f
+    var currentX = tableStartX
 
 
         // Table Headers
@@ -277,7 +277,7 @@ suspend fun generateRoutinePdf(
                     if (routinesForCell.isNotEmpty()) {
                         routinesForCell.forEach { routine ->
                             val courseText =
-                                "${routine.courseCode} - ${routine.room} (${routine.batch}_${routine.section})"
+                                "${routine.courseCode}(${routine.teacherInitial}) - ${routine.room} (${routine.batch}_${routine.section})"
                             canvas.drawText(courseText, currentX + 2f, cellTextY + 3f, textPaint)
                             cellTextY += 14f
                         }
