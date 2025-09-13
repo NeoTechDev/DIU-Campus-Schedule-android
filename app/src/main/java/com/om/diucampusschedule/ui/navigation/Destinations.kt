@@ -28,6 +28,11 @@ sealed class Screen(val route: String) {
     }
     object Profile : Screen("profile")
     object Community : Screen("community")
+    object WebView : Screen("webview") {
+        fun createRoute(url: String, title: String): String {
+            return "$route?url=${java.net.URLEncoder.encode(url, "UTF-8")}&title=${java.net.URLEncoder.encode(title, "UTF-8")}"
+        }
+    }
     object Debug : Screen("debug")
 }
 

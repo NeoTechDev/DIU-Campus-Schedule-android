@@ -82,6 +82,8 @@ import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.navigation.Screen
+import com.om.diucampusschedule.ui.screens.webview.PortalTitles
+import com.om.diucampusschedule.ui.screens.webview.PortalUrls
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -653,6 +655,34 @@ private fun getMainSectionItems(
     context: Context
 ): List<DrawerItem> {
     return listOf(
+        DrawerItem(
+            iconRes = R.drawable.student_portal,
+            title = "Student Portal",
+            action = {
+                onNavigate(Screen.WebView.createRoute(PortalUrls.STUDENT_PORTAL, PortalTitles.STUDENT_PORTAL))
+            }
+        ),
+        DrawerItem(
+            iconRes = R.drawable.hall_portal,
+            title = "Hall Portal",
+            action = {
+                onNavigate(Screen.WebView.createRoute(PortalUrls.HALL_PORTAL, PortalTitles.HALL_PORTAL))
+            }
+        ),
+        DrawerItem(
+            iconRes = R.drawable.teacher_portal,
+            title = "Teacher Portal",
+            action = {
+                onNavigate(Screen.WebView.createRoute(PortalUrls.TEACHER_PORTAL, PortalTitles.TEACHER_PORTAL))
+            }
+        ),
+        DrawerItem(
+            iconRes = R.drawable.blc,
+            title = "BLC",
+            action = {
+                onNavigate(Screen.WebView.createRoute(PortalUrls.BLC, PortalTitles.BLC))
+            }
+        ),
         DrawerItem(
             iconRes = R.drawable.faculty_info,
             title = "Faculty Info",

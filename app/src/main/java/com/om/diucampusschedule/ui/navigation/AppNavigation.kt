@@ -57,6 +57,7 @@ import com.om.diucampusschedule.ui.screens.profile.ProfileScreen
 import com.om.diucampusschedule.ui.screens.routine.RoutineScreen
 import com.om.diucampusschedule.ui.screens.tasks.TaskScreen
 import com.om.diucampusschedule.ui.screens.today.TodayScreen
+import com.om.diucampusschedule.ui.screens.webview.WebViewScreen
 import com.om.diucampusschedule.ui.screens.welcome.WelcomeScreen
 import com.om.diucampusschedule.ui.viewmodel.AppInitializationViewModel
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
@@ -658,6 +659,26 @@ private fun MainAppNavigationHost(
                     popExitTransition = { NavigationAnimations.slideOutToRight }
                 ) {
                     DebugScreen(navController = navController)
+                }
+
+                composable(
+                    route = "${Screen.WebView.route}?url={url}&title={title}",
+                    enterTransition = { NavigationAnimations.slideInFromRight },
+                    exitTransition = { NavigationAnimations.slideOutToLeft },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) { backStackEntry ->
+                    val url = backStackEntry.arguments?.getString("url")?.let { 
+                        URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) 
+                    } ?: ""
+                    val title = backStackEntry.arguments?.getString("title")?.let { 
+                        URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) 
+                    } ?: ""
+                    WebViewScreen(
+                        url = url,
+                        title = title,
+                        onNavigateBack = { navController.navigateUp() }
+                    )
                 }
             }
         }
