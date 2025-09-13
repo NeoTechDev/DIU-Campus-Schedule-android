@@ -4,12 +4,15 @@ import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
+import android.net.http.SslError
+import android.os.Build
 import android.os.Environment
 import android.util.Log
 import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.GeolocationPermissions
 import android.webkit.PermissionRequest
+import android.webkit.SslErrorHandler
 import android.webkit.URLUtil
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -22,13 +25,8 @@ import android.webkit.WebViewClient
 import android.widget.Toast
 
 /**
- * Professional WebView configuration utility using Android best practices
- * 
- * This implementation follows Google's recommended WebView practices:
- * - Secure default settings
- * - Proper touch and gesture handling
- * - Professional error handling
- * - Minimal JavaScript injection
+ * WebView configuration based on working previous version
+ * This approach uses the exact settings that made menu drawers work properly
  */
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -45,58 +43,100 @@ fun setupWebView(
     onDownload: (String, String) -> Unit
 ) {
     webView.apply {
-        // Enable hardware acceleration for better performance
-        setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+        // Layout params (from working version)
+        layoutParams = android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        )
         
-        // Enable scrollbar fading and nested scrolling
-        isScrollbarFadingEnabled = true
-        isNestedScrollingEnabled = true
-        
-        // Configure WebView settings with modern best practices
+        // Configure WebView settings for better portal access
         settings.apply {
-            // JavaScript settings
+            // Core settings
             javaScriptEnabled = true
-            javaScriptCanOpenWindowsAutomatically = true
-            
-            // Storage settings
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK // Try cache first, may help with 403
             domStorageEnabled = true
-            
-            // File access settings (secure by default)
-            allowFileAccess = false
+            loadWithOverviewMode = true
+            useWideViewPort = true
+
+            // File access settings (required for proper functionality)
+            allowFileAccess = true
             allowContentAccess = true
-            // Note: File access from URLs is disabled for security
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(true)
             
-            // Cache settings
-            cacheMode = WebSettings.LOAD_DEFAULT
+            // Security settings - more permissive for educational sites
+            @Suppress("DEPRECATION")
+            allowUniversalAccessFromFileURLs = true
+            @Suppress("DEPRECATION")
+            allowFileAccessFromFileURLs = true
             
-            // Touch and zoom settings
+            // Plugin and rendering settings
+            @Suppress("DEPRECATION")
+            pluginState = WebSettings.PluginState.OFF
+            @Suppress("DEPRECATION")
+            setRenderPriority(WebSettings.RenderPriority.HIGH)
+            @Suppress("DEPRECATION")
+            setEnableSmoothTransition(true)
+            blockNetworkImage = false
+            
+            // Zoom settings
             setSupportZoom(true)
             builtInZoomControls = true
             displayZoomControls = false
-            setSupportMultipleWindows(false)
-            
-            // Layout settings
-            useWideViewPort = true
-            loadWithOverviewMode = true
-            layoutAlgorithm = WebSettings.LayoutAlgorithm.TEXT_AUTOSIZING
-            
-            // Media settings
+
+            // Lollipop+ specific settings
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            }
+
+            // Enable debugging
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                WebView.setWebContentsDebuggingEnabled(true)
+            }
+
+            // File URL access (important for menu functionality)
+            @Suppress("DEPRECATION")
+            allowUniversalAccessFromFileURLs = true
+            @Suppress("DEPRECATION")
+            allowFileAccessFromFileURLs = true
+
+            // Database and session management
+            @Suppress("DEPRECATION")
+            databaseEnabled = true
+            setGeolocationEnabled(true)
+            @Suppress("DEPRECATION")
+            setDatabasePath(context.getDir("database", Context.MODE_PRIVATE).path)
+            @Suppress("DEPRECATION")
+            setGeolocationDatabasePath(context.getDir("geolocation", Context.MODE_PRIVATE).path)
+            @Suppress("DEPRECATION")
+            setSaveFormData(true)
+            @Suppress("DEPRECATION")
+            setSavePassword(true)
+
+            // Network and media settings
+            loadsImagesAutomatically = true
             mediaPlaybackRequiresUserGesture = false
+            setSupportMultipleWindows(true)
+            setNeedInitialFocus(true)
+            allowContentAccess = true
+            allowFileAccess = true
             
-            // Security settings
-            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-            
-            // Font settings
-            textZoom = 100
-            minimumFontSize = 8
-            
-            // User agent configuration
+            // User agent
             userAgentString = if (isDesktopMode) {
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             } else {
                 WebSettings.getDefaultUserAgent(context)
             }
         }
+
+        // Clear cache and cookies (from working version)
+        clearCache(true)
+        clearHistory()
+        CookieManager.getInstance().removeAllCookies(null)
+        CookieManager.getInstance().flush()
+        CookieManager.getInstance().setAcceptCookie(true)
+        CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
         
         // Enable cookies for authentication
         CookieManager.getInstance().apply {
@@ -104,23 +144,55 @@ fun setupWebView(
             setAcceptThirdPartyCookies(webView, true)
         }
         
-        // Professional WebViewClient implementation
+        // WebViewClient with enhanced error handling
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val url = request?.url?.toString() ?: return false
+                val url = request?.url?.toString()
                 
-                return when {
-                    // Allow DIU portal domains
-                    url.contains("diu.edu.bd") || 
-                    url.contains("daffodilvarsity.edu.bd") ||
-                    url.contains("elearn.daffodilvarsity.edu.bd") -> false
-                    
-                    // Allow document downloads
-                    url.matches(Regex(".*\\.(pdf|doc|docx|xls|xlsx|ppt|pptx).*", RegexOption.IGNORE_CASE)) -> false
-                    
-                    // Handle other URLs as needed
-                    else -> false
+                // Allow all DIU related URLs
+                if (url?.contains("diu.edu.bd") == true || 
+                    url?.contains("daffodilvarsity.edu.bd") == true) {
+                    return false
                 }
+                
+                return false // Handle all URLs in WebView
+            }
+            
+            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                // Add more aggressive headers to bypass 403 restrictions
+                request?.let { req ->
+                    if (req.url.host?.contains("diu.edu.bd") == true) {
+                        try {
+                            val url = req.url.toString()
+                            val connection = java.net.URL(url).openConnection()
+                            
+                            // Add comprehensive headers to mimic desktop browser
+                            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                            connection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+                            connection.setRequestProperty("Accept-Language", "en-US,en;q=0.9")
+                            connection.setRequestProperty("Accept-Encoding", "gzip, deflate, br")
+                            connection.setRequestProperty("DNT", "1")
+                            connection.setRequestProperty("Connection", "keep-alive")
+                            connection.setRequestProperty("Upgrade-Insecure-Requests", "1")
+                            connection.setRequestProperty("Sec-Fetch-Dest", "document")
+                            connection.setRequestProperty("Sec-Fetch-Mode", "navigate")
+                            connection.setRequestProperty("Sec-Fetch-Site", "none")
+                            connection.setRequestProperty("Sec-Fetch-User", "?1")
+                            connection.setRequestProperty("Cache-Control", "max-age=0")
+                            connection.setRequestProperty("Referer", "https://diu.edu.bd/")
+                            connection.setRequestProperty("Origin", "https://diu.edu.bd")
+                            
+                            val inputStream = connection.getInputStream()
+                            val mimeType = connection.contentType?.substringBefore(";") ?: "text/html"
+                            val encoding = connection.contentType?.substringAfter("charset=", "UTF-8")?.takeIf { it.isNotEmpty() } ?: "UTF-8"
+                            
+                            return WebResourceResponse(mimeType, encoding, inputStream)
+                        } catch (e: Exception) {
+                            // Fallback to default handling if custom request fails
+                        }
+                    }
+                }
+                return super.shouldInterceptRequest(view, request)
             }
             
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
@@ -134,18 +206,7 @@ fun setupWebView(
                 url?.let { onUrlChanged(it) }
                 updateNavigationState(view)
                 
-                // Minimal viewport fix only if needed
-                view?.evaluateJavascript("""
-                    javascript:(function() {
-                        var existingMeta = document.querySelector('meta[name="viewport"]');
-                        if (!existingMeta) {
-                            var meta = document.createElement('meta');
-                            meta.name = 'viewport';
-                            meta.content = 'width=device-width, initial-scale=1.0, user-scalable=yes';
-                            document.head.appendChild(meta);
-                        }
-                    })()
-                """.trimIndent(), null)
+                // NO JavaScript injection - let the site work naturally
             }
             
             override fun onReceivedError(
@@ -155,6 +216,7 @@ fun setupWebView(
             ) {
                 super.onReceivedError(view, request, error)
                 if (request?.isForMainFrame == true) {
+                    Log.e("WebView", "Error loading page: ${error?.description}")
                     onError("Failed to load page: ${error?.description}")
                 }
             }
@@ -166,7 +228,23 @@ fun setupWebView(
             ) {
                 super.onReceivedHttpError(view, request, errorResponse)
                 if (request?.isForMainFrame == true) {
-                    onError("HTTP Error: ${errorResponse?.statusCode}")
+                    Log.e("WebView", "HTTP Error: ${errorResponse?.statusCode} - ${errorResponse?.reasonPhrase}")
+                    when (errorResponse?.statusCode) {
+                        403 -> onError("Access Forbidden (403) - Try refreshing or check your internet connection")
+                        404 -> onError("Page Not Found (404)")
+                        500 -> onError("Server Error (500) - Please try again later")
+                        else -> onError("HTTP Error: ${errorResponse?.statusCode}")
+                    }
+                }
+            }
+            
+            override fun onReceivedSslError(view: WebView?, handler: android.webkit.SslErrorHandler?, error: android.net.http.SslError?) {
+                // Accept SSL certificates for DIU domains (they might have certificate issues)
+                val url = error?.url
+                if (url?.contains("diu.edu.bd") == true || url?.contains("daffodilvarsity.edu.bd") == true) {
+                    handler?.proceed()
+                } else {
+                    super.onReceivedSslError(view, handler, error)
                 }
             }
             
@@ -175,7 +253,7 @@ fun setupWebView(
             }
         }
         
-        // Professional WebChromeClient implementation
+        // WebChromeClient for progress and file uploads
         webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 super.onProgressChanged(view, newProgress)
@@ -197,7 +275,6 @@ fun setupWebView(
                             Log.w("WebView", "JS Warning: ${msg.message()}")
                         }
                         else -> {
-                            // Only log debug messages for important info
                             Log.d("WebView", "JS: ${msg.message()}")
                         }
                     }
@@ -242,7 +319,7 @@ fun setupWebView(
             }
         }
         
-        // Set up download listener
+        // Set up download listener (from working version)
         setDownloadListener { url, _, contentDisposition, mimeType, _ ->
             try {
                 val filename = URLUtil.guessFileName(url, contentDisposition, mimeType)
