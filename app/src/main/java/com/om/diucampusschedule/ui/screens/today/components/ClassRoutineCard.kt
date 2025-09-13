@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.ui.theme.customFontFamily
+import com.om.diucampusschedule.utils.TimeFormatterUtils
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.LocalDate
@@ -218,7 +219,7 @@ fun RoutineCard(
                             )
                         ) {
                             Text(
-                                text = routine.startTime?.format(formatter12HourUS ?: DateTimeFormatter.ofPattern("hh:mm a")) ?: "",
+                                text = routine.startTime?.format(formatter12HourUS ?: TimeFormatterUtils.createRobustTimeFormatter()) ?: "",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontSize = 14.sp
                                 ),
@@ -267,7 +268,7 @@ fun RoutineCard(
                             )
                         ) {
                             Text(
-                                text = routine.endTime?.format(formatter12HourUS ?: DateTimeFormatter.ofPattern("hh:mm a")) ?: "",
+                                text = routine.endTime?.format(formatter12HourUS ?: TimeFormatterUtils.createRobustTimeFormatter()) ?: "",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
@@ -617,7 +618,7 @@ fun RoutineCardPreview() {
             routine = sampleRoutineItem.toClassRoutine(),
             courseName = "Software Engineering",
             selectedDate = LocalDate.now(),
-            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+            formatter12HourUS = TimeFormatterUtils.createRobustTimeFormatter(),
             onTeacherClick = { /* Preview - no action */ }
         )
 
@@ -629,7 +630,7 @@ fun RoutineCardPreview() {
             ).toClassRoutine(),
             courseName = "Mathematics",
             selectedDate = LocalDate.now(),
-            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+            formatter12HourUS = TimeFormatterUtils.createRobustTimeFormatter(),
             onTeacherClick = { /* Preview - no action */ }
         )
     }
@@ -710,7 +711,7 @@ fun BreakTimeCard(
                         )
                     ) {
                         Text(
-                            text = startTime.format(formatter12HourUS ?: DateTimeFormatter.ofPattern("hh:mm a")),
+                            text = startTime.format(formatter12HourUS ?: TimeFormatterUtils.createRobustTimeFormatter()),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
@@ -754,7 +755,7 @@ fun BreakTimeCard(
                         )
                     ) {
                         Text(
-                            text = endTime.format(formatter12HourUS ?: DateTimeFormatter.ofPattern("hh:mm a")),
+                            text = endTime.format(formatter12HourUS ?: TimeFormatterUtils.createRobustTimeFormatter()),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,

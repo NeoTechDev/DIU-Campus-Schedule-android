@@ -36,6 +36,7 @@ import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.screens.tasks.TaskCard
 import com.om.diucampusschedule.ui.viewmodel.ClassStatus
+import com.om.diucampusschedule.utils.TimeFormatterUtils
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -94,7 +95,16 @@ fun TodayRoutineContent(
             )
         }
     } else {
-        val scheduleItems = if (routineItems.isNotEmpty()) createScheduleWithBreaks(routineItems) else emptyList()
+        val scheduleItems = if (routineItems.isNotEmpty()) {
+            // Add debug logging for Xiaomi compatibility issues
+            android.util.Log.d("TodayRoutineContent", "Processing ${routineItems.size} routine items")
+            routineItems.forEachIndexed { index, item ->
+                android.util.Log.d("TodayRoutineContent", "Item $index: ${item.courseCode} - startTime: ${item.startTime}, endTime: ${item.endTime}")
+            }
+            val result = createScheduleWithBreaks(routineItems)
+            android.util.Log.d("TodayRoutineContent", "Created ${result.size} schedule items after processing")
+            result
+        } else emptyList()
         val classRoutines = routineItems.map { it.toClassRoutine() }
         
         LazyColumn(
@@ -120,7 +130,7 @@ fun TodayRoutineContent(
                             title = "Your Classes",
                             countColor = Color(0xFF6200EE),
                             filteredRoutines = classRoutines,
-                            formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                            formatter12HourUS = TimeFormatterUtils.createRobustTimeFormatter(),
                             selectedDate = if (isToday) LocalDate.now() else null
                         )
                         
@@ -151,23 +161,39 @@ fun TodayRoutineContent(
                                     routine = scheduleItem.routineItem.toClassRoutine(),
                                     courseName = getCourseName(scheduleItem.routineItem.courseCode),
                                     selectedDate = LocalDate.now(),
-                                    formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                                    formatter12HourUS = TimeFormatterUtils.createRobustTimeFormatter(),
                                     isToday = isToday,
                                     onTeacherClick = onTeacherClick
                                 )
                             }
                             is ScheduleItem.Break -> {
                                 // Parse the break time strings back to LocalTime for the BreakTimeCard
-                                val formatter = DateTimeFormatter.ofPattern("hh:mm a")
+                                val robustFormatter = TimeFormatterUtils.createRobustTimeFormatter()
                                 val startTime = try {
-                                    LocalTime.parse(scheduleItem.startTime, formatter)
+                                    LocalTime.parse(scheduleItem.startTime, robustFormatter)
                                 } catch (e: Exception) {
-                                    LocalTime.parse(scheduleItem.startTime, DateTimeFormatter.ofPattern("h:mm a"))
+                                    try {
+                                        LocalTime.parse(scheduleItem.startTime, DateTimeFormatter.ofPattern("h:mm a"))
+                                    } catch (e2: Exception) {
+                                        try {
+                                            LocalTime.parse(scheduleItem.startTime, DateTimeFormatter.ofPattern("HH:mm"))
+                                        } catch (e3: Exception) {
+                                            LocalTime.now() // fallback
+                                        }
+                                    }
                                 }
                                 val endTime = try {
-                                    LocalTime.parse(scheduleItem.endTime, formatter)
+                                    LocalTime.parse(scheduleItem.endTime, robustFormatter)
                                 } catch (e: Exception) {
-                                    LocalTime.parse(scheduleItem.endTime, DateTimeFormatter.ofPattern("h:mm a"))
+                                    try {
+                                        LocalTime.parse(scheduleItem.endTime, DateTimeFormatter.ofPattern("h:mm a"))
+                                    } catch (e2: Exception) {
+                                        try {
+                                            LocalTime.parse(scheduleItem.endTime, DateTimeFormatter.ofPattern("HH:mm"))
+                                        } catch (e3: Exception) {
+                                            LocalTime.now().plusHours(1) // fallback
+                                        }
+                                    }
                                 }
                                 
                                 BreakTimeCard(
@@ -175,7 +201,7 @@ fun TodayRoutineContent(
                                     subText = if(currentUser?.role == UserRole.STUDENT) "Time to recharge and\nget ready!" else "Time for student\nconsultations and guidance",
                                     startTime = startTime,
                                     endTime = endTime,
-                                    formatter12HourUS = DateTimeFormatter.ofPattern("hh:mm a"),
+                                    formatter12HourUS = robustFormatter,
                                     isToday = isToday
                                 )
                             }
@@ -334,11 +360,19 @@ private fun getClassStatus(routineItem: RoutineItem): ClassStatus {
 
 private fun createScheduleWithBreaks(routineItems: List<RoutineItem>): List<ScheduleItem> {
     val scheduleItems = mutableListOf<ScheduleItem>()
-    val sortedItems = routineItems
-        .filter { it.startTime != null && it.endTime != null }
-        .sortedBy { it.startTime }
     
-    if (sortedItems.isEmpty()) return emptyList()
+    // Separate items with valid times from those without
+    val itemsWithValidTimes = routineItems.filter { it.startTime != null && it.endTime != null }
+    val itemsWithoutValidTimes = routineItems.filter { it.startTime == null || it.endTime == null }
+    
+    // If no items have valid times, just show all items as classes without breaks
+    if (itemsWithValidTimes.isEmpty()) {
+        return routineItems.map { ScheduleItem.Class(it) }
+    }
+    
+    val sortedItems = itemsWithValidTimes.sortedBy { it.startTime }
+    
+    if (sortedItems.isEmpty()) return routineItems.map { ScheduleItem.Class(it) }
     
     // Merge consecutive identical classes
     val mergedItems = mergeConsecutiveClasses(sortedItems)
@@ -360,8 +394,8 @@ private fun createScheduleWithBreaks(routineItems: List<RoutineItem>): List<Sche
             // Only add break if it's more than 5 minutes (to avoid very short gaps)
             if (breakDurationMinutes > 5) {
                 val breakDuration = formatBreakDuration(breakDurationMinutes)
-                val startTimeFormatted = previousEndTime.format(DateTimeFormatter.ofPattern("hh:mm a"))
-                val endTimeFormatted = currentStartTime.format(DateTimeFormatter.ofPattern("hh:mm a"))
+                val startTimeFormatted = TimeFormatterUtils.formatTime(previousEndTime)
+                val endTimeFormatted = TimeFormatterUtils.formatTime(currentStartTime)
                 
                 scheduleItems.add(
                     ScheduleItem.Break(
@@ -375,6 +409,11 @@ private fun createScheduleWithBreaks(routineItems: List<RoutineItem>): List<Sche
         
         // Add current class
         scheduleItems.add(ScheduleItem.Class(currentClass))
+    }
+    
+    // Add items without valid times at the end
+    itemsWithoutValidTimes.forEach { item ->
+        scheduleItems.add(ScheduleItem.Class(item))
     }
     
     return scheduleItems
@@ -405,9 +444,9 @@ private fun mergeConsecutiveClasses(routineItems: List<RoutineItem>): List<Routi
             currentRoutine.section == routine.section &&
             currentRoutine.teacherInitial == routine.teacherInitial) {
             // Merge the routines by updating the time string
-            val startTimeFormatted = currentRoutine.startTime?.format(DateTimeFormatter.ofPattern("hh:mm a"))
-            val endTimeFormatted = routine.endTime?.format(DateTimeFormatter.ofPattern("hh:mm a"))
-            if (startTimeFormatted != null && endTimeFormatted != null) {
+            val startTimeFormatted = TimeFormatterUtils.formatTime(currentRoutine.startTime)
+            val endTimeFormatted = TimeFormatterUtils.formatTime(routine.endTime)
+            if (startTimeFormatted.isNotEmpty() && endTimeFormatted.isNotEmpty()) {
                 val mergedTime = "$startTimeFormatted - $endTimeFormatted"
                 currentRoutine = currentRoutine.copy(time = mergedTime)
             }

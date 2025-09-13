@@ -23,7 +23,7 @@ data class RoutineItem(
     val startTime: LocalTime?
         get() = try {
             val timeRange = time.split(" - ")[0].trim()
-            LocalTime.parse(timeRange, DateTimeFormatter.ofPattern("hh:mm a"))
+            parseTimeWithFallbacks(timeRange)
         } catch (e: Exception) {
             null
         }
@@ -31,22 +31,72 @@ data class RoutineItem(
     val endTime: LocalTime?
         get() = try {
             val timeRange = time.split(" - ")[1].trim()
-            LocalTime.parse(timeRange, DateTimeFormatter.ofPattern("hh:mm a"))
+            parseTimeWithFallbacks(timeRange)
         } catch (e: Exception) {
             null
         }
+    
+    private fun parseTimeWithFallbacks(timeString: String): LocalTime? {
+        val formats = listOf(
+            DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.ENGLISH), // 02:30 PM
+            DateTimeFormatter.ofPattern("h:mm a", java.util.Locale.ENGLISH),  // 2:30 PM
+            DateTimeFormatter.ofPattern("HH:mm"),                             // 14:30
+            DateTimeFormatter.ofPattern("H:mm"),                              // 2:30
+            DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.getDefault()), // Device locale
+            DateTimeFormatter.ofPattern("h:mm a", java.util.Locale.getDefault())   // Device locale
+        )
+        
+        for (format in formats) {
+            try {
+                return LocalTime.parse(timeString, format)
+            } catch (e: Exception) {
+                // Continue to next format
+            }
+        }
+        
+        // Last resort: try to extract numbers and guess format
+        try {
+            val cleanTime = timeString.replace("\\s+".toRegex(), " ").trim()
+            if (cleanTime.contains(":")) {
+                val parts = cleanTime.split(":")
+                if (parts.size >= 2) {
+                    val hour = parts[0].filter { it.isDigit() }.toIntOrNull() ?: return null
+                    val minute = parts[1].take(2).filter { it.isDigit() }.toIntOrNull() ?: return null
+                    val isPM = cleanTime.uppercase().contains("PM")
+                    
+                    val finalHour = when {
+                        hour == 12 && !isPM -> 0 // 12:xx AM -> 00:xx
+                        hour != 12 && isPM -> hour + 12 // x:xx PM -> (x+12):xx
+                        else -> hour
+                    }
+                    
+                    if (finalHour in 0..23 && minute in 0..59) {
+                        return LocalTime.of(finalHour, minute)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Final fallback failed
+        }
+        
+        return null
+    }
     
     val duration: String
         get() = try {
             val times = time.split(" - ")
             if (times.size == 2) {
-                val start = LocalTime.parse(times[0].trim(), DateTimeFormatter.ofPattern("hh:mm a"))
-                val end = LocalTime.parse(times[1].trim(), DateTimeFormatter.ofPattern("hh:mm a"))
-                val minutes = java.time.Duration.between(start, end).toMinutes()
-                when {
-                    minutes < 60 -> "${minutes}m"
-                    minutes % 60 == 0L -> "${minutes / 60}h"
-                    else -> "${minutes / 60}h ${minutes % 60}m"
+                val start = parseTimeWithFallbacks(times[0].trim())
+                val end = parseTimeWithFallbacks(times[1].trim())
+                if (start != null && end != null) {
+                    val minutes = java.time.Duration.between(start, end).toMinutes()
+                    when {
+                        minutes < 60 -> "${minutes}m"
+                        minutes % 60 == 0L -> "${minutes / 60}h"
+                        else -> "${minutes / 60}h ${minutes % 60}m"
+                    }
+                } else {
+                    time // Fallback to original time string
                 }
             } else time
         } catch (e: Exception) {

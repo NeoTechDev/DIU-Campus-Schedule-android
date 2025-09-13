@@ -341,6 +341,16 @@ class TodayViewModel @Inject constructor(
             onSuccess = { routineItems ->
                 logger.debug(TAG, "Received ${routineItems.size} routine items for $dayName")
                 
+                // Log time parsing status for debugging Xiaomi issues
+                routineItems.forEachIndexed { index, item ->
+                    val startTime = item.startTime
+                    val endTime = item.endTime
+                    logger.debug(TAG, "Item $index: ${item.courseCode} - Time: '${item.time}' | StartTime: $startTime | EndTime: $endTime")
+                    if (startTime == null || endTime == null) {
+                        logger.warning(TAG, "Time parsing failed for item $index: ${item.courseCode} with time '${item.time}'")
+                    }
+                }
+                
                 val sortedRoutineItems = routineItems.sortedBy { it.startTime }
                 sortedRoutineItems
             },
