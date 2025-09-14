@@ -260,9 +260,17 @@ class TaskSharer @Inject constructor(
     }
 
     fun stopDiscovery() {
-        discoveryListener?.let {
-            nsdManager.stopServiceDiscovery(it)
-            discoveryListener = null
+        discoveryListener?.let { listener ->
+            try {
+                nsdManager.stopServiceDiscovery(listener)
+                Log.d("TaskSharer", "Service discovery stopped successfully.")
+            } catch (e: IllegalArgumentException) {
+                // This exception can occur if the listener was already unregistered
+                // or if discovery was never successfully started.
+                Log.w("TaskSharer", "Error stopping service discovery: listener not registered.", e)
+            } finally {
+                discoveryListener = null // Ensure listener is nulled out even if stop fails or was already stopped
+            }
         }
         _discoveredServices.value = emptyList()
     }
