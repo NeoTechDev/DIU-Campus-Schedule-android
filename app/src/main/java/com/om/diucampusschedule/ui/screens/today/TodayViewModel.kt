@@ -122,8 +122,20 @@ class TodayViewModel @Inject constructor(
         getCurrentUserUseCase.observeCurrentUser()
             .onEach { user ->
                 try {
+                    val previousUser = currentUser
                     currentUser = user
+                    
                     if (user != null) {
+                        // Check if this is a user profile change that affects class filtering
+                        val shouldClearCache = previousUser == null || 
+                                             previousUser.id != user.id ||
+                                             hasClassFilteringChanges(previousUser, user)
+                        
+                        if (shouldClearCache) {
+                            dayDataCache.clear() // Clear cache when user changes or profile affects filtering
+                            logger.debug(TAG, "Cleared cache due to user profile changes affecting class filtering")
+                        }
+                        
                         _uiState.value = _uiState.value.copy(currentUser = user)
                         // Load data for current selected date
                         loadDataForDate(_selectedDate.value)
@@ -157,6 +169,25 @@ class TodayViewModel @Inject constructor(
                 )
             }
             .launchIn(viewModelScope)
+    }
+    
+    /**
+     * Check if user profile changes affect class filtering
+     */
+    private fun hasClassFilteringChanges(previousUser: User, currentUser: User): Boolean {
+        return when (currentUser.role.name) {
+            "STUDENT" -> {
+                // For students, check batch, section, and labSection
+                previousUser.batch != currentUser.batch ||
+                previousUser.section != currentUser.section ||
+                previousUser.labSection != currentUser.labSection
+            }
+            "TEACHER" -> {
+                // For teachers, check initial
+                previousUser.initial != currentUser.initial
+            }
+            else -> false
+        }
     }
     
     private fun observeDateChanges() {

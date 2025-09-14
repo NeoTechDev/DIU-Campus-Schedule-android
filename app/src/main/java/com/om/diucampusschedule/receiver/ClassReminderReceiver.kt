@@ -8,21 +8,23 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.om.diucampusschedule.MainActivity
 import com.om.diucampusschedule.R
+import com.om.diucampusschedule.data.preferences.NotificationPreferences
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
-
-private val Context.notificationDataStore by preferencesDataStore(name = "notification_preferences")
+import javax.inject.Inject
 
 /**
  * Professional broadcast receiver for class reminder notifications.
  * Creates rich notifications matching the design shown in the image.
  */
+@AndroidEntryPoint
 class ClassReminderReceiver : BroadcastReceiver() {
+    
+    @Inject
+    lateinit var notificationPreferences: NotificationPreferences
     
     companion object {
         // Channel for class reminders
@@ -44,17 +46,12 @@ class ClassReminderReceiver : BroadcastReceiver() {
         const val EXTRA_CLASS_ID = "class_id"
         const val EXTRA_TARGET_DATE = "target_date"
         const val EXTRA_REMINDER_MINUTES = "reminder_minutes"
-        
-        // Preference key
-        private val CLASS_REMINDERS_ENABLED = booleanPreferencesKey("class_reminders_enabled")
     }
     
     override fun onReceive(context: Context, intent: Intent) {
-        // Check if notifications are enabled using runBlocking for simplicity in BroadcastReceiver
+        // Check if notifications are enabled using the injected NotificationPreferences
         val notificationsEnabled = runBlocking {
-            context.notificationDataStore.data
-                .map { preferences -> preferences[CLASS_REMINDERS_ENABLED] ?: true }
-                .first()
+            notificationPreferences.isClassRemindersEnabled.first()
         }
         
         if (!notificationsEnabled) {

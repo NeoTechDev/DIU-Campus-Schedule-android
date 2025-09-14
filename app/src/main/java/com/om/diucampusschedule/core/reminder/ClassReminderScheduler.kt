@@ -193,14 +193,39 @@ class ClassReminderScheduler @Inject constructor(
                 }
                 
                 previousUser != null && user != null -> {
-                    // Same user - check if we need to refresh (e.g., routine data might have changed)
-                    logger.debug(TAG, "User data updated for ${user.name}")
-                    // We don't automatically refresh here to avoid too many operations
-                    // Refresh will be triggered by explicit calls when routine data changes
+                    // Same user - check if profile changes affect class filtering
+                    val hasClassFilteringChanges = hasClassFilteringChanges(previousUser, user)
+                    if (hasClassFilteringChanges) {
+                        logger.info(TAG, "User profile changes affect class filtering - refreshing reminders for ${user.name}")
+                        if (checkPermissions()) {
+                            reminderService.refreshReminders()
+                        }
+                    } else {
+                        logger.debug(TAG, "User data updated for ${user.name} - no class filtering changes")
+                    }
                 }
             }
         } catch (e: Exception) {
             logger.error(TAG, "Error handling user change", e)
+        }
+    }
+    
+    /**
+     * Check if user profile changes affect class filtering
+     */
+    private fun hasClassFilteringChanges(previousUser: User, currentUser: User): Boolean {
+        return when (currentUser.role.name) {
+            "STUDENT" -> {
+                // For students, check batch, section, and labSection
+                previousUser.batch != currentUser.batch ||
+                previousUser.section != currentUser.section ||
+                previousUser.labSection != currentUser.labSection
+            }
+            "TEACHER" -> {
+                // For teachers, check initial
+                previousUser.initial != currentUser.initial
+            }
+            else -> false
         }
     }
     

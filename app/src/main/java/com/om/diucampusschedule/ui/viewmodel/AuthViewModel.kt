@@ -3,6 +3,7 @@ package com.om.diucampusschedule.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.om.diucampusschedule.core.cache.RoutineCacheService
 import com.om.diucampusschedule.core.network.NetworkConnectivityManager
 import com.om.diucampusschedule.data.repository.AuthRepositoryImpl
 import com.om.diucampusschedule.domain.model.AuthState
@@ -39,7 +40,8 @@ class AuthViewModel @Inject constructor(
     private val checkEmailVerificationUseCase: CheckEmailVerificationUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
     // Inject the repository implementation to demonstrate accessing additional methods
-    private val authRepositoryImpl: AuthRepositoryImpl
+    private val authRepositoryImpl: AuthRepositoryImpl,
+    private val routineCacheService: RoutineCacheService
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow(AuthState())
@@ -275,9 +277,18 @@ class AuthViewModel @Inject constructor(
             val result = updateUserProfileUseCase(currentUser.id, form)
             
             result.fold(
-                onSuccess = { user ->
+                onSuccess = { updatedUser ->
+                    // Check if profile changes affect class filtering
+                    val hasClassFilteringChanges = hasClassFilteringChanges(currentUser, updatedUser)
+                    
+                    if (hasClassFilteringChanges) {
+                        // Clear routine cache when class filtering criteria change
+                        routineCacheService.clearCacheForUser(currentUser)
+                        android.util.Log.d("AuthViewModel", "Profile update affects class filtering - cleared cache for user: ${updatedUser.name}")
+                    }
+                    
                     _authState.value = _authState.value.copy(
-                        user = user,
+                        user = updatedUser,
                         isLoading = false,
                         error = null,
                         successMessage = "Profile updated successfully!"
@@ -294,6 +305,25 @@ class AuthViewModel @Inject constructor(
                     )
                 }
             )
+        }
+    }
+    
+    /**
+     * Check if user profile changes affect class filtering
+     */
+    private fun hasClassFilteringChanges(previousUser: User, currentUser: User): Boolean {
+        return when (currentUser.role.name) {
+            "STUDENT" -> {
+                // For students, check batch, section, and labSection
+                previousUser.batch != currentUser.batch ||
+                previousUser.section != currentUser.section ||
+                previousUser.labSection != currentUser.labSection
+            }
+            "TEACHER" -> {
+                // For teachers, check initial
+                previousUser.initial != currentUser.initial
+            }
+            else -> false
         }
     }
 
