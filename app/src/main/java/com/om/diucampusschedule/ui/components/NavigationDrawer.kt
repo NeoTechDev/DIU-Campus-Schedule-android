@@ -98,7 +98,6 @@ fun NavigationDrawer(
     val lazyListState = LazyListState()
 
     var showMeetTheDevelopersDialog by remember { mutableStateOf(false) }
-    val showBatteryOptimizationDialog = remember { mutableStateOf(false) }
 
     // Get app version
     val packageInfo = remember {
@@ -181,7 +180,7 @@ fun NavigationDrawer(
                         onItemClick = { /* Toggle handled internally */ }
                     )
                 }
-                items(getNotificationSectionItems { showBatteryOptimizationDialog.value = true }) { item ->
+                items(getNotificationSectionItems(onNavigate)) { item ->
                     SupportItem(
                         item = item,
                         onClick = {
@@ -230,181 +229,6 @@ fun NavigationDrawer(
                 onDismiss = { showMeetTheDevelopersDialog = false },
                 developers = developers,
                 dialogTitle = "The Developers"
-            )
-        }
-
-        // Battery Optimization dialog
-        if (showBatteryOptimizationDialog.value) {
-            BasicAlertDialog(
-                onDismissRequest = { showBatteryOptimizationDialog.value = false },
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxWidth(0.95f) // Use 95% of screen width
-                    .clip(RoundedCornerShape(28.dp)),
-                properties = DialogProperties(
-                    dismissOnBackPress = true,
-                    dismissOnClickOutside = true,
-                    usePlatformDefaultWidth = false // Disable default width constraint
-                ),
-                content = {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(24.dp)
-                            )
-                            .padding(14.dp), // Slightly reduced padding
-                    ) {
-                        // Header with improved styling
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp) // Slightly smaller box
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.single_reminder),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp) // Slightly smaller icon
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Optimize Notifications",
-                                style = MaterialTheme.typography.titleMedium, // Smaller font size
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp)) // Reduced spacing
-                        HorizontalDivider(
-                            Modifier,
-                            DividerDefaults.Thickness,
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp)) // Reduced spacing
-
-                        // Content with improved description
-                        Text(
-                            text = "To ensure you receive timely notifications, please follow these steps:",
-                            style = MaterialTheme.typography.bodyMedium, // Smaller font
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp)) // Reduced spacing
-
-                        LazyColumn(
-                            modifier = Modifier
-                                .heightIn(max = 350.dp)
-                                .fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            item {
-                                // Section 1: Battery Optimization
-                                OptimizationSection(
-                                    title = "1. Disable Battery Optimization",
-                                    iconId = R.drawable.eco_battery,
-                                    steps = listOf(
-                                        "-> Go to Settings > Battery > Battery Optimization",
-                                        "-> Find \"DIU Campus Schedule\" in the app list",
-                                        "-> Select \"Don't optimize\" or \"Unrestricted\"",
-                                        "-> Save your changes"
-                                    )
-                                )
-                            }
-
-                            item {
-                                // Section 2: Clear Cache
-                                OptimizationSection(
-                                    title = "2. Clear App Cache",
-                                    iconId = R.drawable.delete_24,
-                                    steps = listOf(
-                                        "-> Go to Settings > Apps > DIU Campus Schedule",
-                                        "-> Tap on 'Storage & cache'",
-                                        "-> Tap 'Clear cache'",
-                                        "-> Restart the app"
-                                    )
-                                )
-                            }
-
-                            item {
-                                // Section 3: Background Activity
-                                OptimizationSection(
-                                    title = "3. Allow Background Activity",
-                                    iconId = R.drawable.baseline_access_time_24,
-                                    steps = listOf(
-                                        "-> Go to Settings > Apps > DIU Campus Schedule",
-                                        "-> Tap on 'Battery'",
-                                        "-> Select 'Allow background activity'",
-                                        "-> Toggle any 'Autostart' option if available"
-                                    )
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp)) // Reduced spacing
-
-                        // Buttons with improved styling
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Cancel button
-                            TextButton(
-                                onClick = { showBatteryOptimizationDialog.value = false },
-                                modifier = Modifier.padding(end = 8.dp), // Reduced padding
-                                shape = RoundedCornerShape(20.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp), // Reduced padding
-                            ) {
-                                Text(
-                                    text = "Close",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.labelMedium, // Smaller font
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-
-                            // Open Battery Settings button
-                            Button(
-                                onClick = {
-                                    try {
-                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                            data = Uri.fromParts("package", context.packageName, null)
-                                        }
-                                        context.startActivity(intent)
-                                        showBatteryOptimizationDialog.value = false  // Close the dialog after opening settings
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "Couldn't open battery settings", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                ),
-                                shape = RoundedCornerShape(20.dp),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), // Reduced padding
-                                elevation = ButtonDefaults.buttonElevation(
-                                    defaultElevation = 2.dp
-                                )
-                            ) {
-                                Text(
-                                    text = "Open Settings",
-                                    style = MaterialTheme.typography.labelMedium, // Smaller font
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-                }
             )
         }
     }
@@ -776,14 +600,14 @@ private fun getCommunitySectionItems(
 
 // Section 3: Notifications (Fixed Notification Delays)
 private fun getNotificationSectionItems(
-    onShowBatteryOptimizationDialog: () -> Unit
+    onNavigate: (String) -> Unit
 ): List<DrawerItem> {
     return listOf(
         DrawerItem(
             icon = Icons.Outlined.Error,
             title = "Fix Notification Delays",
             action = {
-                onShowBatteryOptimizationDialog()
+                onNavigate(Screen.NotificationOptimization.route)
             }
         )
     )
@@ -1004,72 +828,5 @@ fun SocialIconButton(iconRes: Int, onClick: () -> Unit) {
             contentDescription = null,
             modifier = Modifier.size(28.dp)
         )
-    }
-}
-
-@Composable
-private fun OptimizationSection(
-    title: String,
-    iconId: Int,
-    steps: List<String>
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp), // Smaller corner radius
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 0.dp
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp) // Reduced padding
-        ) {
-            // Section title with icon
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    painter = painterResource(id = iconId),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp) // Smaller icon
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge, // Smaller font
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp)) // Reduced spacing
-
-            // Steps
-            steps.forEach { step ->
-                Row(
-                    modifier = Modifier.padding(vertical = 3.dp), // Reduced padding
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(5.dp) // Smaller bullet point
-                            .padding(top = 6.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp)) // Reduced spacing
-                    Text(
-                        text = step,
-                        style = MaterialTheme.typography.bodySmall, // Smaller font
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
     }
 }

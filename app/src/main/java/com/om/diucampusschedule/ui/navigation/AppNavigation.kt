@@ -478,6 +478,18 @@ private fun MainAppNavigationHost(
                         }
                     )
                 }
+                
+                composable(
+                    route = Screen.NotificationOptimization.route,
+                    enterTransition = { NavigationAnimations.slideInFromRight },
+                    exitTransition = { NavigationAnimations.slideOutToLeft },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
+                    com.om.diucampusschedule.ui.screens.notificationOptimization.NotificationOptimizationScreen(
+                        onBack = { navController.navigateUp() }
+                    )
+                }
                 // Main App Screens with smart directional transitions
                 composable(
                     route = Screen.Today.route,

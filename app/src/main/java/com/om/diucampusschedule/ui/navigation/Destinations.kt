@@ -35,6 +35,7 @@ sealed class Screen(val route: String) {
     }
     object Debug : Screen("debug")
     object Notices : Screen("notices")
+    object NotificationOptimization : Screen("notification_optimization")
 }
 
 // Bottom Navigation Items
