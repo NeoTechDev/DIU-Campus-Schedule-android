@@ -35,6 +35,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -118,6 +120,7 @@ fun TodayScreen(
     val selectedDate by todayViewModel.selectedDate.collectAsStateWithLifecycle()
     val todayState by todayViewModel.uiState.collectAsStateWithLifecycle()
     val taskGroups by taskViewModel.taskGroups.collectAsState(initial = emptyList())
+    val unreadNotificationCount by todayViewModel.unreadNotificationCount.collectAsState()
 
     val focusManager = LocalFocusManager.current
     
@@ -181,8 +184,6 @@ fun TodayScreen(
             todayViewModel.clearCache()
         }
     }
-    
-    val context = LocalContext.current
 
     // Main content area with pull-to-refresh and swipe gesture support
     PullToRefreshBox(
@@ -208,6 +209,7 @@ fun TodayScreen(
                 user = authState.user,
                 selectedDate = selectedDate,
                 todayViewModel = todayViewModel,
+                unreadNotificationCount = unreadNotificationCount,
                 onProfileClick = {
                     onOpenDrawer() // Open drawer instead of navigating to profile
                 },
@@ -502,6 +504,7 @@ private fun CustomTopAppBar(
     user: User?,
     selectedDate: LocalDate,
     todayViewModel: TodayViewModel,
+    unreadNotificationCount: Int,
     onProfileClick: () -> Unit,
     onNotificationClick: () -> Unit,
     onCalendarClick: () -> Unit
@@ -588,12 +591,28 @@ private fun CustomTopAppBar(
                 IconButton(
                     onClick = onNotificationClick
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notifications",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(topbarIconSize)
-                    )
+                    BadgedBox(
+                        badge = {
+                            if (unreadNotificationCount > 0) {
+                                Badge(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    contentColor = MaterialTheme.colorScheme.onError
+                                ) {
+                                    Text(
+                                        text = if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString(),
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notifications",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(topbarIconSize)
+                        )
+                    }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(

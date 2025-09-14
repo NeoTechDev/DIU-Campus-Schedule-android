@@ -10,6 +10,7 @@ import com.om.diucampusschedule.core.service.CourseNameService
 import com.om.diucampusschedule.data.repository.NoticeRepository
 import com.om.diucampusschedule.data.repository.RoutineRepository
 import com.om.diucampusschedule.data.repository.TaskRepository
+import com.om.diucampusschedule.data.repository.NotificationRepository
 import com.om.diucampusschedule.domain.model.Notice
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.Task
@@ -67,6 +68,7 @@ class TodayViewModel @Inject constructor(
     private val courseNameService: CourseNameService,
     private val taskRepository: TaskRepository,
     private val routineRepository: RoutineRepository,
+    private val notificationRepository: NotificationRepository,
     private val classReminderScheduler: ClassReminderScheduler,
     private val widgetManager: WidgetManager,
     private val logger: AppLogger,
@@ -97,6 +99,10 @@ class TodayViewModel @Inject constructor(
     val notices: StateFlow<List<Notice>> = _notices
     private val _isNoticesLoading = MutableStateFlow(false)
     val isNoticesLoading: StateFlow<Boolean> = _isNoticesLoading
+    
+    // Notification count state
+    private val _unreadNotificationCount = MutableStateFlow(0)
+    val unreadNotificationCount: StateFlow<Int> = _unreadNotificationCount
 
     companion object {
         private const val TAG = "TodayViewModel"
@@ -106,6 +112,7 @@ class TodayViewModel @Inject constructor(
         observeUser()
         observeDateChanges()
         observeTaskChanges() // Add task observation
+        observeNotificationCount() // Add notification count observation
         
         // Initialize class reminder scheduler
         classReminderScheduler.initialize()
@@ -691,6 +698,29 @@ class TodayViewModel @Inject constructor(
             )
         } catch (e: Exception) {
             logger.error(TAG, "Error checking maintenance mode for Today screen", e)
+        }
+    }
+    
+    private fun observeNotificationCount() {
+        viewModelScope.launch {
+            try {
+                val currentUser = getCurrentUserUseCase()
+                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
+                    val user = currentUser.getOrThrow()!!
+                    
+                    notificationRepository.getUnreadCount(user.id)
+                        .catch { exception ->
+                            logger.error(TAG, "Failed to observe unread notification count", exception)
+                        }
+                        .collect { count ->
+                            _unreadNotificationCount.value = count
+                        }
+                } else {
+                    logger.warning(TAG, "User not authenticated - cannot observe notification count")
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Failed to setup notification count observation", e)
+            }
         }
     }
     

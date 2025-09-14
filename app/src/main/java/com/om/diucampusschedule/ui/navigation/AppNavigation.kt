@@ -472,7 +472,10 @@ private fun MainAppNavigationHost(
                     popExitTransition = { NavigationAnimations.slideOutToRight }
                 ) {
                     com.om.diucampusschedule.ui.screens.notices.NoticesScreen(
-                        onBack = { navController.navigateUp() }
+                        onBack = { navController.navigateUp() },
+                        onNavigateToWebView = { url, title ->
+                            navController.navigate(Screen.WebView.createRoute(url, title))
+                        }
                     )
                 }
                 // Main App Screens with smart directional transitions
