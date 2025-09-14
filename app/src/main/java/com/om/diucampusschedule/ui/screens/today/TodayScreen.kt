@@ -82,6 +82,7 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.om.diucampusschedule.R
+import com.om.diucampusschedule.domain.model.Notice
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.components.AddTaskBottomSheet
@@ -147,6 +148,8 @@ fun TodayScreen(
     var showTaskBottomSheet by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
     
+    // No more ModalSheet for notices; navigation will be used
+    
     // Swipe gesture states
     var horizontalOffset by remember { mutableStateOf(0f) }
     val animatedOffset by animateFloatAsState(
@@ -209,12 +212,8 @@ fun TodayScreen(
                     onOpenDrawer() // Open drawer instead of navigating to profile
                 },
                 onNotificationClick = {
-                    // Show a simple Toast message when notification icon is clicked
-                    android.widget.Toast.makeText(
-                        context,
-                        "This feature is in development.",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
+                    todayViewModel.fetchNotices()
+                    navController.navigate(com.om.diucampusschedule.ui.navigation.Screen.Notices.route)
                 },
                 onCalendarClick = {
                     currentCalendarMonth = YearMonth.from(selectedDate)
@@ -457,6 +456,8 @@ fun TodayScreen(
             )
         }
     }
+    
+    // Notices ModalSheet removed; handled by navigation to NoticesScreen
 }
 
 /**

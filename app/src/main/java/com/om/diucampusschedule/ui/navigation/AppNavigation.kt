@@ -464,6 +464,17 @@ private fun MainAppNavigationHost(
                 startDestination = startDestination,
                 modifier = Modifier.padding(paddingValues)
             ) {
+                composable(
+                    route = Screen.Notices.route,
+                    enterTransition = { NavigationAnimations.slideInFromRight },
+                    exitTransition = { NavigationAnimations.slideOutToLeft },
+                    popEnterTransition = { NavigationAnimations.slideInFromLeft },
+                    popExitTransition = { NavigationAnimations.slideOutToRight }
+                ) {
+                    com.om.diucampusschedule.ui.screens.notices.NoticesScreen(
+                        onBack = { navController.navigateUp() }
+                    )
+                }
                 // Main App Screens with smart directional transitions
                 composable(
                     route = Screen.Today.route,

@@ -34,6 +34,7 @@ sealed class Screen(val route: String) {
         }
     }
     object Debug : Screen("debug")
+    object Notices : Screen("notices")
 }
 
 // Bottom Navigation Items

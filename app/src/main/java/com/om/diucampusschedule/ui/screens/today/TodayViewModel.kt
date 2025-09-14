@@ -7,8 +7,10 @@ import com.om.diucampusschedule.core.error.AppError
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.core.reminder.ClassReminderScheduler
 import com.om.diucampusschedule.core.service.CourseNameService
+import com.om.diucampusschedule.data.repository.NoticeRepository
 import com.om.diucampusschedule.data.repository.RoutineRepository
 import com.om.diucampusschedule.data.repository.TaskRepository
+import com.om.diucampusschedule.domain.model.Notice
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
@@ -90,6 +92,12 @@ class TodayViewModel @Inject constructor(
     
     private var currentUser: User? = null
     
+    // Notices state
+    private val _notices = MutableStateFlow<List<Notice>>(emptyList())
+    val notices: StateFlow<List<Notice>> = _notices
+    private val _isNoticesLoading = MutableStateFlow(false)
+    val isNoticesLoading: StateFlow<Boolean> = _isNoticesLoading
+
     companion object {
         private const val TAG = "TodayViewModel"
     }
@@ -692,5 +700,23 @@ class TodayViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         classReminderScheduler.cleanup()
+    }
+
+    // Notices management
+    @Inject
+    lateinit var noticeRepository: NoticeRepository
+
+    fun fetchNotices() {
+        viewModelScope.launch {
+            _isNoticesLoading.value = true
+            try {
+                val result = noticeRepository.fetchNotices()
+                _notices.value = result
+            } catch (e: Exception) {
+                _notices.value = emptyList()
+            } finally {
+                _isNoticesLoading.value = false
+            }
+        }
     }
 }
