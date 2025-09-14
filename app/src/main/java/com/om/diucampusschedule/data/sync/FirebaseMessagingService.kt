@@ -1,17 +1,23 @@
 package com.om.diucampusschedule.data.sync
 
+import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.core.notification.NotificationManager
+import com.om.diucampusschedule.core.work.SaveNotificationWorker
 import com.om.diucampusschedule.domain.usecase.routine.SyncRoutineUseCase
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.data.repository.NotificationRepository
 import com.om.diucampusschedule.domain.model.NotificationType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -40,6 +46,8 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(remoteMessage)
 
         logger.info(TAG, "FCM message received from: ${remoteMessage.from}")
+        logger.debug(TAG, "FCM data: ${remoteMessage.data}")
+        logger.debug(TAG, "FCM notification: ${remoteMessage.notification?.title} - ${remoteMessage.notification?.body}")
 
         try {
             // Check if message contains data payload
@@ -52,6 +60,11 @@ class FirebaseMessagingService : FirebaseMessagingService() {
             remoteMessage.notification?.let {
                 logger.debug(TAG, "Message notification body: ${it.body}")
                 handleNotificationMessage(it, remoteMessage.data)
+            }
+            
+            // If neither data nor notification payload, log warning
+            if (remoteMessage.data.isEmpty() && remoteMessage.notification == null) {
+                logger.warning(TAG, "FCM message received with no data or notification payload")
             }
         } catch (e: Exception) {
             logger.error(TAG, "Error processing FCM message", e)
@@ -90,8 +103,8 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         
         logger.info(TAG, "Processing routine update for department: $department")
         
-        // Save notification locally
-        CoroutineScope(Dispatchers.IO).launch {
+        // Save notification locally - use runBlocking to ensure completion in background
+        runBlocking {
             try {
                 val currentUser = getCurrentUserUseCase()
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
@@ -143,8 +156,8 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         
         logger.info(TAG, "Processing class reminder")
         
-        // Save notification locally
-        CoroutineScope(Dispatchers.IO).launch {
+        // Save notification locally - use runBlocking to ensure completion in background
+        runBlocking {
             try {
                 val currentUser = getCurrentUserUseCase()
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
@@ -178,33 +191,24 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         val messageType = data["type"] ?: "general"
         
         logger.info(TAG, "Processing general message")
+        logger.debug(TAG, "General message data - Title: $title, Message: $message, Type: $messageType, ActionRoute: $actionRoute")
         
-        // Save notification locally
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val currentUser = getCurrentUserUseCase()
-                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
-                    val user = currentUser.getOrThrow()!!
-                    
-                    val notificationType = when (messageType) {
-                        "maintenance" -> NotificationType.MAINTENANCE
-                        "admin_message" -> NotificationType.ADMIN_MESSAGE
-                        else -> NotificationType.GENERAL
-                    }
-                    
-                    notificationRepository.insertNotificationFromFCM(
-                        title = title,
-                        message = message,
-                        type = notificationType,
-                        userId = user.id,
-                        actionRoute = actionRoute,
-                        isFromAdmin = (messageType == "admin_message" || messageType == "maintenance")
-                    )
-                }
-            } catch (e: Exception) {
-                logger.error(TAG, "Failed to save general notification", e)
-            }
+        // Determine notification type and admin status
+        val notificationType = when (messageType) {
+            "maintenance" -> NotificationType.MAINTENANCE
+            "admin_message" -> NotificationType.ADMIN_MESSAGE
+            else -> NotificationType.GENERAL
         }
+        val isFromAdmin = (messageType == "admin_message" || messageType == "maintenance")
+        
+        // Save notification using WorkManager for guaranteed background execution
+        scheduleNotificationSave(
+            title = title,
+            message = message,
+            type = notificationType,
+            actionRoute = actionRoute,
+            isFromAdmin = isFromAdmin
+        )
         
         notificationManager.showGeneralNotification(
             title = title,
@@ -220,33 +224,23 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         
         logger.info(TAG, "Processing notification message")
         
-        // Save notification locally
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val currentUser = getCurrentUserUseCase()
-                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
-                    val user = currentUser.getOrThrow()!!
-                    
-                    val notificationType = when (messageType) {
-                        "maintenance" -> NotificationType.MAINTENANCE
-                        "admin_message" -> NotificationType.ADMIN_MESSAGE
-                        "routine_update" -> NotificationType.ROUTINE_UPDATE
-                        else -> NotificationType.GENERAL
-                    }
-                    
-                    notificationRepository.insertNotificationFromFCM(
-                        title = notification.title ?: "DIU Campus Schedule",
-                        message = notification.body ?: "You have a new notification",
-                        type = notificationType,
-                        userId = user.id,
-                        actionRoute = actionRoute,
-                        isFromAdmin = (messageType == "admin_message" || messageType == "maintenance" || messageType == "routine_update")
-                    )
-                }
-            } catch (e: Exception) {
-                logger.error(TAG, "Failed to save notification message", e)
-            }
+        // Determine notification type and admin status
+        val notificationType = when (messageType) {
+            "maintenance" -> NotificationType.MAINTENANCE
+            "admin_message" -> NotificationType.ADMIN_MESSAGE
+            "routine_update" -> NotificationType.ROUTINE_UPDATE
+            else -> NotificationType.GENERAL
         }
+        val isFromAdmin = (messageType == "admin_message" || messageType == "maintenance" || messageType == "routine_update")
+        
+        // Save notification using WorkManager for guaranteed background execution
+        scheduleNotificationSave(
+            title = notification.title ?: "DIU Campus Schedule",
+            message = notification.body ?: "You have a new notification",
+            type = notificationType,
+            actionRoute = actionRoute,
+            isFromAdmin = isFromAdmin
+        )
         
         notificationManager.showGeneralNotification(
             title = notification.title ?: "DIU Campus Schedule",
@@ -262,6 +256,9 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         // Store token locally and send to server
         storeTokenLocally(token)
         sendTokenToServer(token)
+        
+        // Subscribe to topics
+        subscribeToTopics()
     }
 
     private fun storeTokenLocally(token: String) {
@@ -320,6 +317,39 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         }
     }
     
+    /**
+     * Subscribe to FCM topics for receiving notifications
+     */
+    fun subscribeToTopics() {
+        val topics = listOf("general", "admin", "maintenance", "all")
+        
+        topics.forEach { topic ->
+            FirebaseMessaging.getInstance().subscribeToTopic(topic)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        logger.info(TAG, "Successfully subscribed to topic: $topic")
+                    } else {
+                        logger.error(TAG, "Failed to subscribe to topic: $topic", task.exception)
+                    }
+                }
+        }
+    }
+    
+    /**
+     * Subscribe to department-specific topic
+     */
+    fun subscribeToDepartmentTopic(department: String) {
+        val topic = "dept_${department.lowercase()}"
+        FirebaseMessaging.getInstance().subscribeToTopic(topic)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    logger.info(TAG, "Successfully subscribed to department topic: $topic")
+                } else {
+                    logger.error(TAG, "Failed to subscribe to department topic: $topic", task.exception)
+                }
+            }
+    }
+    
     private fun getAppVersion(): String {
         return try {
             val packageInfo = packageManager.getPackageInfo(packageName, 0)
@@ -345,5 +375,32 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                 logger.error(TAG, "Failed to sync after deleted messages", e)
             }
         }
+    }
+
+    private fun scheduleNotificationSave(
+        title: String,
+        message: String,
+        type: NotificationType,
+        actionRoute: String? = null,
+        department: String? = null,
+        imageUrl: String? = null,
+        isFromAdmin: Boolean = false
+    ) {
+        val workData = workDataOf(
+            SaveNotificationWorker.KEY_TITLE to title,
+            SaveNotificationWorker.KEY_MESSAGE to message,
+            SaveNotificationWorker.KEY_TYPE to type.name,
+            SaveNotificationWorker.KEY_ACTION_ROUTE to actionRoute,
+            SaveNotificationWorker.KEY_DEPARTMENT to department,
+            SaveNotificationWorker.KEY_IMAGE_URL to imageUrl,
+            SaveNotificationWorker.KEY_IS_FROM_ADMIN to isFromAdmin
+        )
+
+        val workRequest = OneTimeWorkRequestBuilder<SaveNotificationWorker>()
+            .setInputData(workData)
+            .build()
+
+        WorkManager.getInstance(this).enqueue(workRequest)
+        logger.debug(TAG, "Scheduled background notification save: $title")
     }
 }

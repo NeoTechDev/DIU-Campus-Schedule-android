@@ -13,7 +13,6 @@ import androidx.core.app.NotificationManagerCompat
 import com.om.diucampusschedule.MainActivity
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.core.logging.AppLogger
-import com.om.diucampusschedule.domain.model.RoutineItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,7 +31,6 @@ class NotificationManager @Inject constructor(
         
         // Notification IDs
         const val NOTIFICATION_ID_ROUTINE_UPDATE = 1001
-        const val NOTIFICATION_ID_CLASS_REMINDER = 2000 // Base ID, will add class ID
         const val NOTIFICATION_ID_GENERAL = 3000
     }
 
@@ -128,54 +126,6 @@ class NotificationManager @Inject constructor(
     }
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    fun showClassReminderNotification(
-        routineItem: RoutineItem,
-        minutesUntilClass: Int
-    ) {
-        try {
-            val title = "Class Reminder"
-            val message = "${routineItem.courseCode} starts in $minutesUntilClass minutes\nRoom ${routineItem.room} • ${routineItem.teacherInitial}"
-
-            val intent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                putExtra("navigate_to", "routine")
-                putExtra("selected_day", routineItem.day)
-            }
-
-            val notificationId = NOTIFICATION_ID_CLASS_REMINDER + routineItem.hashCode()
-            val pendingIntent = PendingIntent.getActivity(
-                context,
-                notificationId,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            val notification = NotificationCompat.Builder(context, CHANNEL_CLASS_REMINDERS)
-                .setSmallIcon(R.drawable.app_notification_logo)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-                .setCategory(NotificationCompat.CATEGORY_REMINDER)
-                .build()
-
-            notificationManager.notify(notificationId, notification)
-            
-            logger.logUserAction("notification_shown", mapOf(
-                "type" to "class_reminder",
-                "course" to routineItem.courseCode,
-                "minutes_until" to minutesUntilClass.toString()
-            ))
-            
-        } catch (e: Exception) {
-            logger.error("NotificationManager", "Failed to show class reminder notification", e)
-        }
-    }
-
-    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showGeneralNotification(
         title: String,
         message: String,
@@ -198,7 +148,7 @@ class NotificationManager @Inject constructor(
                 .setSmallIcon(R.drawable.app_notification_logo)
                 .setContentTitle(title)
                 .setContentText(message)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))

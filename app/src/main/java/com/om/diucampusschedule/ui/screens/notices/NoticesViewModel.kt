@@ -44,9 +44,11 @@ class NoticesViewModel @Inject constructor(
     fun loadNotifications() {
         viewModelScope.launch {
             try {
+                logger.debug(TAG, "Loading notifications...")
                 val currentUser = getCurrentUserUseCase()
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
                     val user = currentUser.getOrThrow()!!
+                    logger.debug(TAG, "Loading notifications for user: ${user.id}")
                     
                     _isNotificationsLoading.value = true
                     
@@ -56,12 +58,16 @@ class NoticesViewModel @Inject constructor(
                             _isNotificationsLoading.value = false
                         }
                         .onEach { notifications ->
+                            logger.info(TAG, "Loaded ${notifications.size} notifications for user: ${user.id}")
+                            notifications.forEach { notification ->
+                                logger.debug(TAG, "Notification: ${notification.title} - ${notification.type} - isRead: ${notification.isRead}")
+                            }
                             _notifications.value = notifications
                             _isNotificationsLoading.value = false
                         }
                         .collect {}
                 } else {
-                    logger.warning(TAG, "User not authenticated - cannot load notifications")
+                    logger.warning(TAG, "User not authenticated - cannot load notifications. Error: ${currentUser.exceptionOrNull()?.message}")
                     _isNotificationsLoading.value = false
                 }
             } catch (e: Exception) {

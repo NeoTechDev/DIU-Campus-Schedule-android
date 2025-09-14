@@ -102,7 +102,7 @@ fun NoticesScreen(
                 Text(
                     text = "Notices & Notifications",
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -110,10 +110,10 @@ fun NoticesScreen(
             },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            actions = {
+            /*actions = {
                 // Test button - remove in production
                 IconButton(onClick = { noticesViewModel.addTestNotifications() }) {
                     Text(
@@ -122,7 +122,7 @@ fun NoticesScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-            },
+            },*/
             modifier = Modifier.fillMaxWidth()
         )
 

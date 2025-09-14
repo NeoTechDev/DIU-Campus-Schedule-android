@@ -109,6 +109,8 @@ dependencies {
 
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
+    implementation("androidx.hilt:hilt-work:1.0.0")
+    ksp("androidx.hilt:hilt-compiler:1.0.0")
 
     // Date/Time
     implementation(libs.threetenabp)
