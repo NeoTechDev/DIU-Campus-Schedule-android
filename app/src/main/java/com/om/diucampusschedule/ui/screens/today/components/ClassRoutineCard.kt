@@ -57,7 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.ui.theme.customFontFamily
-import com.om.diucampusschedule.utils.TimeFormatterUtils
+import com.om.diucampusschedule.ui.utils.TimeFormatterUtils
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.LocalDate

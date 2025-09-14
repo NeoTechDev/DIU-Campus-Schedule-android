@@ -1,4 +1,4 @@
-package com.om.diucampusschedule.utils
+package com.om.diucampusschedule.ui.utils
 
 import android.util.Log
 import java.time.LocalTime
@@ -11,7 +11,7 @@ import java.util.Locale
  */
 object TimeFormatterUtils {
     private const val TAG = "TimeFormatterUtils"
-    
+
     /**
      * Creates a robust DateTimeFormatter that works across different devices and locales.
      * Falls back through multiple formatting options to ensure compatibility.
@@ -32,14 +32,14 @@ object TimeFormatterUtils {
             }
         }
     }
-    
+
     /**
      * Formats a LocalTime using the robust formatter with fallback options.
      * Returns a formatted time string or "N/A" if formatting fails completely.
      */
     fun formatTime(time: LocalTime?): String {
         if (time == null) return ""
-        
+
         return try {
             // First try with US locale 12-hour format
             time.format(DateTimeFormatter.ofPattern("hh:mm a", Locale.US))

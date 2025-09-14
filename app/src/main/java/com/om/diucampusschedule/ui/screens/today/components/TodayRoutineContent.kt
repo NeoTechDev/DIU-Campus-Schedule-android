@@ -36,7 +36,7 @@ import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.screens.tasks.TaskCard
 import com.om.diucampusschedule.ui.viewmodel.ClassStatus
-import com.om.diucampusschedule.utils.TimeFormatterUtils
+import com.om.diucampusschedule.ui.utils.TimeFormatterUtils
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter

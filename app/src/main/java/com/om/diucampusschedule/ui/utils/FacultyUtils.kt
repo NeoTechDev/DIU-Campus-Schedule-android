@@ -1,4 +1,4 @@
-package com.om.diucampusschedule.util
+package com.om.diucampusschedule.ui.utils
 
 import android.content.Context
 import com.om.diucampusschedule.domain.model.Faculty
@@ -20,7 +20,7 @@ object FacultyUtils {
 
             for (i in 0 until jsonArray.length()) {
                 val facultyJsonObject = jsonArray.getJSONObject(i)
-                val faculty = Json.decodeFromJsonElement<Faculty>(Json.parseToJsonElement(facultyJsonObject.toString()))
+                val faculty = Json.Default.decodeFromJsonElement<Faculty>(Json.Default.parseToJsonElement(facultyJsonObject.toString()))
                 facultyDataList.add(faculty)
             }
             facultyDataList

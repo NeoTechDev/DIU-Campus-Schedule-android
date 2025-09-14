@@ -81,7 +81,7 @@ import com.om.diucampusschedule.domain.model.Faculty
 import com.om.diucampusschedule.ui.theme.EaseInOutCubic
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
-import com.om.diucampusschedule.util.FacultyUtils
+import com.om.diucampusschedule.ui.utils.FacultyUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
