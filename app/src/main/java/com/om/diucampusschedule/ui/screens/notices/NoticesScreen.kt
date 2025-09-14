@@ -7,69 +7,58 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.om.diucampusschedule.ui.screens.today.TodayViewModel
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.painterResource
-import com.om.diucampusschedule.R
-import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.Article
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.om.diucampusschedule.ui.screens.today.TodayViewModel
 import kotlinx.coroutines.launch
-import androidx.compose.material3.HorizontalDivider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +75,7 @@ fun NoticesScreen(
     val isNotificationsLoading by noticesViewModel.isNotificationsLoading.collectAsState()
     val unreadNotificationCount by noticesViewModel.unreadNotificationCount.collectAsState()
     val context = LocalContext.current
-    
+
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
 
@@ -113,7 +102,7 @@ fun NoticesScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            /*actions = {
+            actions = {
                 // Test button - remove in production
                 IconButton(onClick = { noticesViewModel.addTestNotifications() }) {
                     Text(
@@ -122,7 +111,7 @@ fun NoticesScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-            },*/
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -136,7 +125,7 @@ fun NoticesScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
             },
-            divider = { 
+            divider = {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
             }
         ) {
@@ -179,7 +168,7 @@ fun NoticesScreen(
                 },
                 text = {
                     Text(
-                        "Department Notices", 
+                        "Department Notices",
                         color = if (pagerState.currentPage == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -246,36 +235,39 @@ fun NotificationsTab(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(48.dp)
                 )
                 Text(
                     "No notifications yet",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 16.dp)
+                    modifier = Modifier.padding(top = 12.dp)
                 )
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Mark All as Read button
-                if (notifications.isNotEmpty()) {
+                // Mark All as Read button - more compact
+                if (notifications.any { !it.isRead }) {
                     OutlinedButton(
                         onClick = onMarkAllAsRead,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp, 16.dp, 20.dp, 8.dp)
+                            .padding(16.dp, 8.dp, 16.dp, 0.dp)
                     ) {
-                        Text("Mark All as Read")
+                        Text(
+                            text = "Mark All as Read",
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                 }
-                
+
                 LazyColumn(
-                    contentPadding = PaddingValues(20.dp, 8.dp, 20.dp, 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(notifications) { notification ->
-                        NotificationCard(
+                        CompactNotificationCard(
                             notification = notification,
                             onClick = { onNotificationClick(notification) },
                             onDelete = { onDeleteNotification(notification.id) }
@@ -302,127 +294,29 @@ fun DepartmentNoticesTab(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.bells),
+                    imageVector = Icons.AutoMirrored.Outlined.Article,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(48.dp)
                 )
                 Text(
                     "No notices found",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 16.dp)
+                    modifier = Modifier.padding(top = 12.dp)
                 )
             }
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(20.dp, 24.dp, 20.dp, 24.dp),
-                verticalArrangement = Arrangement.spacedBy(22.dp),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(notices) { notice ->
-                    Card(
-                        shape = MaterialTheme.shapes.large,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNoticeClick(notice) }
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f)
-                                        )
-                                    )
-                                )
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Notice icon on left - bigger size
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                                            )
-                                        ),
-                                        shape = MaterialTheme.shapes.large
-                                    )
-                                    .padding(16.dp)
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.bells),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                            // Main content
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 20.dp, end = 12.dp)
-                            ) {
-                                Text(
-                                    text = notice.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.SemiBold,
-                                    lineHeight = MaterialTheme.typography.titleMedium.lineHeight
-                                )
-                                Row(
-                                    modifier = Modifier.padding(top = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CalendarToday,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.secondary,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = notice.date,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.padding(start = 6.dp)
-                                    )
-                                }
-                            }
-                            // Arrow icon on right
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
-                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f)
-                                            )
-                                        ),
-                                        shape = MaterialTheme.shapes.medium
-                                    )
-                                    .padding(10.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier
-                                        .graphicsLayer(rotationZ = 180f)
-                                        .size(18.dp)
-                                )
-                            }
-                        }
-                    }
+                    CompactNoticeCard(
+                        notice = notice,
+                        onClick = { onNoticeClick(notice) }
+                    )
                 }
             }
         }
@@ -430,124 +324,271 @@ fun DepartmentNoticesTab(
 }
 
 @Composable
-fun NotificationCard(
+fun CompactNotificationCard(
     notification: com.om.diucampusschedule.domain.model.Notification,
     onClick: () -> Unit,
     onDelete: () -> Unit = {}
 ) {
-    Card(
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = if (notification.isRead) 
-                MaterialTheme.colorScheme.surface 
-            else 
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (notification.isRead) 4.dp else 8.dp),
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = if (notification.isRead)
+            MaterialTheme.colorScheme.surface
+        else
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), // More visible unread background
+        tonalElevation = if (notification.isRead) 1.dp else 3.dp, // Higher elevation for unread
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Notification type icon
+            // Type indicator with enhanced unread state
             Box(
                 modifier = Modifier
+                    .size(36.dp)
                     .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                when (notification.type) {
-                                    com.om.diucampusschedule.domain.model.NotificationType.ROUTINE_UPDATE -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                    com.om.diucampusschedule.domain.model.NotificationType.ADMIN_MESSAGE -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                                    com.om.diucampusschedule.domain.model.NotificationType.MAINTENANCE -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
-                                    else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-                                },
-                                when (notification.type) {
-                                    com.om.diucampusschedule.domain.model.NotificationType.ROUTINE_UPDATE -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                                    com.om.diucampusschedule.domain.model.NotificationType.ADMIN_MESSAGE -> MaterialTheme.colorScheme.error.copy(alpha = 0.08f)
-                                    com.om.diucampusschedule.domain.model.NotificationType.MAINTENANCE -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f)
-                                    else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f)
-                                }
-                            )
-                        ),
-                        shape = MaterialTheme.shapes.large
-                    )
-                    .padding(16.dp)
+                        color = when (notification.type) {
+                            com.om.diucampusschedule.domain.model.NotificationType.ROUTINE_UPDATE -> {
+                                if (notification.isRead)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                else
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) // Stronger color for unread
+                            }
+                            com.om.diucampusschedule.domain.model.NotificationType.ADMIN_MESSAGE -> {
+                                if (notification.isRead)
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
+                                else
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f)
+                            }
+                            com.om.diucampusschedule.domain.model.NotificationType.MAINTENANCE -> {
+                                if (notification.isRead)
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+                                else
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.25f)
+                            }
+                            else -> {
+                                if (notification.isRead)
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
+                                else
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f)
+                            }
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = when (notification.type) {
-                        com.om.diucampusschedule.domain.model.NotificationType.ROUTINE_UPDATE -> Icons.Default.CalendarToday
-                        com.om.diucampusschedule.domain.model.NotificationType.ADMIN_MESSAGE -> Icons.Default.Notifications
+                        com.om.diucampusschedule.domain.model.NotificationType.ROUTINE_UPDATE -> Icons.Outlined.Schedule
+                        com.om.diucampusschedule.domain.model.NotificationType.ADMIN_MESSAGE -> Icons.AutoMirrored.Filled.Message
                         else -> Icons.Default.Notifications
                     },
                     contentDescription = null,
                     tint = when (notification.type) {
-                        com.om.diucampusschedule.domain.model.NotificationType.ROUTINE_UPDATE -> MaterialTheme.colorScheme.primary
-                        com.om.diucampusschedule.domain.model.NotificationType.ADMIN_MESSAGE -> MaterialTheme.colorScheme.error
-                        com.om.diucampusschedule.domain.model.NotificationType.MAINTENANCE -> MaterialTheme.colorScheme.tertiary
-                        else -> MaterialTheme.colorScheme.secondary
+                        com.om.diucampusschedule.domain.model.NotificationType.ROUTINE_UPDATE -> {
+                            if (notification.isRead)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) // Dimmed for read
+                            else
+                                MaterialTheme.colorScheme.primary // Full color for unread
+                        }
+                        com.om.diucampusschedule.domain.model.NotificationType.ADMIN_MESSAGE -> {
+                            if (notification.isRead)
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+                            else
+                                MaterialTheme.colorScheme.secondary
+                        }
+                        com.om.diucampusschedule.domain.model.NotificationType.MAINTENANCE -> {
+                            if (notification.isRead)
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)
+                            else
+                                MaterialTheme.colorScheme.tertiary
+                        }
+                        else -> {
+                            if (notification.isRead)
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+                            else
+                                MaterialTheme.colorScheme.secondary
+                        }
                     },
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
-            
-            // Content
+
+            // Content with enhanced read/unread styling
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 16.dp, end = 12.dp)
+                    .padding(start = 12.dp, end = 8.dp)
             ) {
                 Text(
                     text = notification.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = if (notification.isRead) FontWeight.Medium else FontWeight.SemiBold
-                )
-                Text(
-                    text = notification.message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                    maxLines = 2,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (notification.isRead)
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f) // Slightly dimmed for read
+                    else
+                        MaterialTheme.colorScheme.onSurface, // Full opacity for unread
+                    fontWeight = if (notification.isRead) FontWeight.Medium else FontWeight.Bold, // Bold for unread
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = formatNotificationTime(notification.timestamp),
+                    text = notification.message,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(top = 8.dp)
+                    color = if (notification.isRead)
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f) // More dimmed for read
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AccessTime,
+                        contentDescription = null,
+                        tint = if (notification.isRead)
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                        else
+                            MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(10.dp)
+                    )
+                    Text(
+                        text = formatNotificationTime(notification.timestamp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (notification.isRead)
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                        else
+                            MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
             }
-            
-            // Delete button
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(32.dp)
+
+            // Actions row with enhanced unread indicator
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Delete button with contextual styling
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = if (notification.isRead)
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        else
+                            MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+
+                // Enhanced unread indicator
+                if (!notification.isRead) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp) // Slightly larger for better visibility
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape
+                            )
+                    )
+                } else {
+                    // Placeholder space to maintain consistent layout
+                    Box(modifier = Modifier.size(8.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CompactNoticeCard(
+    notice: com.om.diucampusschedule.domain.model.Notice,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Notice icon - compact
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete notification",
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(18.dp)
+                    imageVector = Icons.AutoMirrored.Outlined.Article,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
                 )
             }
-            
-            // Unread indicator
-            if (!notification.isRead) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .padding(start = 8.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = CircleShape
-                        )
+
+            // Content - more compact
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp, end = 8.dp)
+            ) {
+                Text(
+                    text = notice.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = MaterialTheme.typography.titleSmall.lineHeight
                 )
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(10.dp)
+                    )
+                    Text(
+                        text = notice.date,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
             }
+
+            // Chevron icon - minimal
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }
@@ -555,11 +596,11 @@ fun NotificationCard(
 private fun formatNotificationTime(timestamp: java.time.LocalDateTime): String {
     val now = java.time.LocalDateTime.now()
     val duration = java.time.Duration.between(timestamp, now)
-    
+
     return when {
-        duration.toDays() > 0 -> "${duration.toDays()}d ago"
-        duration.toHours() > 0 -> "${duration.toHours()}h ago"
-        duration.toMinutes() > 0 -> "${duration.toMinutes()}m ago"
-        else -> "Just now"
+        duration.toDays() > 0 -> "${duration.toDays()}d"
+        duration.toHours() > 0 -> "${duration.toHours()}h"
+        duration.toMinutes() > 0 -> "${duration.toMinutes()}m"
+        else -> "now"
     }
 }
