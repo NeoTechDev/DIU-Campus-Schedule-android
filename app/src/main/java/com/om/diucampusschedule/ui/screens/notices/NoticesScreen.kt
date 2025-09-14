@@ -59,7 +59,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.om.diucampusschedule.ui.screens.today.TodayViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
@@ -67,24 +66,22 @@ import java.time.temporal.ChronoUnit
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoticesScreen(
-    todayViewModel: TodayViewModel = hiltViewModel(),
     noticesViewModel: NoticesViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onNavigateToWebView: (url: String, title: String) -> Unit
 ) {
 
-    val notices by todayViewModel.notices.collectAsState()
-    val isNoticesLoading by todayViewModel.isNoticesLoading.collectAsState()
+    val notices by noticesViewModel.notices.collectAsState()
+    val isNoticesLoading by noticesViewModel.isNoticesLoading.collectAsState()
     val notifications by noticesViewModel.notifications.collectAsState()
     val isNotificationsLoading by noticesViewModel.isNotificationsLoading.collectAsState()
     val unreadNotificationCount by noticesViewModel.unreadNotificationCount.collectAsState()
-    val context = LocalContext.current
 
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        todayViewModel.fetchNotices()
+        noticesViewModel.fetchNotices()
         noticesViewModel.loadNotifications()
     }
 

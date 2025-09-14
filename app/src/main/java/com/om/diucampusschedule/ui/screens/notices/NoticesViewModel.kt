@@ -3,7 +3,9 @@ package com.om.diucampusschedule.ui.screens.notices
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.om.diucampusschedule.core.logging.AppLogger
+import com.om.diucampusschedule.data.repository.NoticeRepository
 import com.om.diucampusschedule.data.repository.NotificationRepository
+import com.om.diucampusschedule.domain.model.Notice
 import com.om.diucampusschedule.domain.model.Notification
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +36,12 @@ class NoticesViewModel @Inject constructor(
 
     private val _isNotificationsLoading = MutableStateFlow(false)
     val isNotificationsLoading: StateFlow<Boolean> = _isNotificationsLoading.asStateFlow()
+
+    // Notices state
+    private val _notices = MutableStateFlow<List<Notice>>(emptyList())
+    val notices: StateFlow<List<Notice>> = _notices
+    private val _isNoticesLoading = MutableStateFlow(false)
+    val isNoticesLoading: StateFlow<Boolean> = _isNoticesLoading
 
     init {
         loadNotifications()
@@ -189,6 +197,24 @@ class NoticesViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 logger.error(TAG, "Failed to mark all notifications as read", e)
+            }
+        }
+    }
+
+    // Notices management
+    @Inject
+    lateinit var noticeRepository: NoticeRepository
+
+    fun fetchNotices() {
+        viewModelScope.launch {
+            _isNoticesLoading.value = true
+            try {
+                val result = noticeRepository.fetchNotices()
+                _notices.value = result
+            } catch (e: Exception) {
+                _notices.value = emptyList()
+            } finally {
+                _isNoticesLoading.value = false
             }
         }
     }

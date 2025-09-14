@@ -134,7 +134,7 @@ fun NavigationDrawer(
                         onCloseDrawer()
                     }
                 }
-                
+
                 // Divider under profile section
                 item {
                     HorizontalDivider(
@@ -656,7 +656,7 @@ private fun getMainSectionItems(
     user: User?
 ): List<DrawerItem> {
     val portalItems = mutableListOf<DrawerItem>()
-    
+
     // Add portal items based on user role
     when (user?.role) {
         UserRole.STUDENT -> {
@@ -719,53 +719,42 @@ private fun getMainSectionItems(
             ))
         }
     }
-    
-    // Add BLC for everyone
-    portalItems.add(
-        DrawerItem(
-            iconRes = R.drawable.blc,
-            title = "BLC",
-            action = {
-                onNavigate(Screen.WebView.createRoute(PortalUrls.BLC, PortalTitles.BLC))
-            }
+
+    // Add common items that everyone sees
+    portalItems.addAll(
+        listOf(
+            DrawerItem(
+                iconRes = R.drawable.blc,
+                title = "BLC",
+                action = {
+                    onNavigate(Screen.WebView.createRoute(PortalUrls.BLC, PortalTitles.BLC))
+                }
+            ),
+            DrawerItem(
+                iconRes = R.drawable.faculty_info,
+                title = "Faculty Info",
+                action = {
+                     onNavigate(Screen.FacultyInfo.route)
+                }
+            ),
+            DrawerItem(
+                iconRes =  R.drawable.previous_question,
+                title = "Previous Questions",
+                action = {
+                    val previousQuestionDriveUrl = "https://drive.google.com/drive/folders/1oGno4UzJxg65H-iyWR-z2uB9kBgs2Nba?usp=sharing"
+                    val intent = Intent(Intent.ACTION_VIEW, previousQuestionDriveUrl.toUri())
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    intent.setPackage("com.google.android.apps.docs")
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: ActivityNotFoundException) {
+                        Toast.makeText(context, "Google Docs not found", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
         )
     )
-    
-    // Add common items that everyone sees
-    portalItems.addAll(listOf(
-        DrawerItem(
-            iconRes = R.drawable.faculty_info,
-            title = "Faculty Info",
-            action = {
-                 onNavigate(Screen.FacultyInfo.route)
-            }
-        ),
-        DrawerItem(
-            iconRes =  R.drawable.previous_question,
-            title = "Previous Questions",
-            action = {
-                val previousQuestionDriveUrl = "https://drive.google.com/drive/folders/1oGno4UzJxg65H-iyWR-z2uB9kBgs2Nba?usp=sharing"
-                val intent = Intent(Intent.ACTION_VIEW, previousQuestionDriveUrl.toUri())
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                intent.setPackage("com.google.android.apps.docs")
-                try {
-                    context.startActivity(intent)
-                } catch (e: ActivityNotFoundException) {
-                    Toast.makeText(context, "Google Docs not found", Toast.LENGTH_SHORT).show()
-                }
-            }
-        ),
-        DrawerItem(
-            iconRes = R.drawable.notice,
-            title = "Department Notice",
-            action = {
-                val deptNoticeSiteUrl = "https://daffodilvarsity.edu.bd/department/swe/notice"
-                val intent = Intent(Intent.ACTION_VIEW, deptNoticeSiteUrl.toUri())
-                context.startActivity(intent)
-            }
-        )
-    ))
-    
+
     return portalItems
 }
 

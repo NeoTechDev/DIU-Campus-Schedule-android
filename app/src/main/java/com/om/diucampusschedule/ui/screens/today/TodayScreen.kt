@@ -89,6 +89,7 @@ import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.components.AddTaskBottomSheet
 import com.om.diucampusschedule.ui.navigation.Screen
+import com.om.diucampusschedule.ui.screens.notices.NoticesViewModel
 import com.om.diucampusschedule.ui.screens.today.components.CalendarViewComponent
 import com.om.diucampusschedule.ui.screens.today.components.FindCourseBottomSheetContent
 import com.om.diucampusschedule.ui.screens.today.components.MiniCalendar
@@ -114,7 +115,8 @@ fun TodayScreen(
     onOpenDrawer: () -> Unit = {}, // Add drawer parameter
     authViewModel: AuthViewModel = hiltViewModel(),
     todayViewModel: TodayViewModel = hiltViewModel(),
-    taskViewModel: ModernTaskViewModel = hiltViewModel()
+    taskViewModel: ModernTaskViewModel = hiltViewModel(),
+    noticesViewModel: NoticesViewModel = hiltViewModel()
 ) {
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val selectedDate by todayViewModel.selectedDate.collectAsStateWithLifecycle()
@@ -214,8 +216,8 @@ fun TodayScreen(
                     onOpenDrawer() // Open drawer instead of navigating to profile
                 },
                 onNotificationClick = {
-                    todayViewModel.fetchNotices()
-                    navController.navigate(com.om.diucampusschedule.ui.navigation.Screen.Notices.route)
+                    noticesViewModel.fetchNotices()
+                    navController.navigate(Screen.Notices.route)
                 },
                 onCalendarClick = {
                     currentCalendarMonth = YearMonth.from(selectedDate)
