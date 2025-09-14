@@ -127,7 +127,7 @@ fun NoticesScreen(
                 )
             },
             divider = {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                HorizontalDivider(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
             }
         ) {
             Tab(
@@ -144,7 +144,7 @@ fun NoticesScreen(
                     ) {
                         Text(
                             "Notifications",
-                            color = if (pagerState.currentPage == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            color = if (pagerState.currentPage == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                         if (unreadNotificationCount > 0) {
                             Badge(
@@ -169,8 +169,8 @@ fun NoticesScreen(
                 },
                 text = {
                     Text(
-                        "Dept. Notices",
-                        color = if (pagerState.currentPage == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        "Department Notices",
+                        color = if (pagerState.currentPage == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
             )
