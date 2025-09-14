@@ -1,7 +1,9 @@
 package com.om.diucampusschedule.ui.screens.notices
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,10 +26,9 @@ import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Badge
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -52,6 +53,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +61,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.om.diucampusschedule.ui.screens.today.TodayViewModel
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,7 +106,7 @@ fun NoticesScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            actions = {
+           /* actions = {
                 // Test button - remove in production
                 IconButton(onClick = { noticesViewModel.addTestNotifications() }) {
                     Text(
@@ -111,7 +115,7 @@ fun NoticesScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-            },
+            },*/
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -168,7 +172,7 @@ fun NoticesScreen(
                 },
                 text = {
                     Text(
-                        "Department Notices",
+                        "Dept. Notices",
                         color = if (pagerState.currentPage == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -201,6 +205,9 @@ fun NoticesScreen(
                     },
                     onMarkAllAsRead = {
                         noticesViewModel.markAllAsRead()
+                    },
+                    onDeleteAll = {
+                        noticesViewModel.deleteAllNotifications()
                     }
                 )
                 1 -> DepartmentNoticesTab(
@@ -221,8 +228,10 @@ fun NotificationsTab(
     isLoading: Boolean,
     onNotificationClick: (com.om.diucampusschedule.domain.model.Notification) -> Unit,
     onDeleteNotification: (String) -> Unit,
-    onMarkAllAsRead: () -> Unit
+    onMarkAllAsRead: () -> Unit,
+    onDeleteAll: () -> Unit
 ) {
+
     Box(modifier = Modifier.fillMaxSize()) {
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -246,32 +255,74 @@ fun NotificationsTab(
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Mark All as Read button - more compact
-                if (notifications.any { !it.isRead }) {
-                    OutlinedButton(
-                        onClick = onMarkAllAsRead,
+                // Action buttons row
+                if (notifications.isNotEmpty()) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp, 8.dp, 16.dp, 0.dp)
+                            .padding(16.dp, 8.dp, 16.dp, 0.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "Mark All as Read",
-                            style = MaterialTheme.typography.labelLarge
-                        )
+                        // Mark All as Read button
+                        if (notifications.any { !it.isRead }) {
+                            OutlinedButton(
+                                onClick = onMarkAllAsRead,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "Mark All As Read",
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
+                        }
+
+                        // Delete All button
+                        OutlinedButton(
+                            onClick = onDeleteAll,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteSweep,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Delete All",
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+                        }
                     }
                 }
+
+                // Notifications list with time-based grouping
+                val groupedNotifications = notifications.groupByTimeCategory()
 
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(notifications) { notification ->
-                        CompactNotificationCard(
-                            notification = notification,
-                            onClick = { onNotificationClick(notification) },
-                            onDelete = { onDeleteNotification(notification.id) }
-                        )
+                    groupedNotifications.forEach { (category, categoryNotifications) ->
+                        // Category header
+                        item {
+                            Text(
+                                text = category,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+
+                        // Notifications in this category
+                        items(categoryNotifications) { notification ->
+                            CompactNotificationCard(
+                                notification = notification,
+                                onClick = { onNotificationClick(notification) },
+                                onDelete = { onDeleteNotification(notification.id) }
+                            )
+                        }
                     }
                 }
             }
@@ -332,10 +383,18 @@ fun CompactNotificationCard(
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = if (notification.isRead)
-            MaterialTheme.colorScheme.surface
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
         else
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), // More visible unread background
-        tonalElevation = if (notification.isRead) 1.dp else 3.dp, // Higher elevation for unread
+            MaterialTheme.colorScheme.surface, // More visible unread background
+        tonalElevation = if (notification.isRead) 0.dp else 3.dp, // Higher elevation for unread
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (!notification.isRead && !isSystemInDarkTheme()) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            } else {
+                Color.Transparent
+            }
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
@@ -589,6 +648,27 @@ fun CompactNoticeCard(
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(16.dp)
             )
+        }
+    }
+}
+
+// Extension function to group notifications by time categories
+private fun List<com.om.diucampusschedule.domain.model.Notification>.groupByTimeCategory(): List<Pair<String, List<com.om.diucampusschedule.domain.model.Notification>>> {
+    val now = LocalDateTime.now()
+    val grouped = this.groupBy { notification ->
+        val daysDiff = ChronoUnit.DAYS.between(notification.timestamp.toLocalDate(), now.toLocalDate())
+        when {
+            daysDiff == 0L -> "New"
+            daysDiff <= 7L -> "This Week"
+            else -> "Earlier"
+        }
+    }
+
+    // Return in desired order
+    val order = listOf("New", "This Week", "Earlier")
+    return order.mapNotNull { category ->
+        grouped[category]?.let { notifications ->
+            category to notifications.sortedByDescending { it.timestamp }
         }
     }
 }

@@ -149,7 +149,7 @@ class NotificationRepository @Inject constructor(
         }
     }
 
-    suspend fun cleanupOldNotifications(daysToKeep: Int = 30): Result<Unit> {
+    suspend fun cleanupOldNotifications(daysToKeep: Int = 120): Result<Unit> {
         return try {
             val cutoffTime = LocalDateTime.now().minusDays(daysToKeep.toLong())
             val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME

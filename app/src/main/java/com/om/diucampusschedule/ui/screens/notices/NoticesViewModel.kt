@@ -146,6 +146,30 @@ class NoticesViewModel @Inject constructor(
         }
     }
 
+    fun deleteAllNotifications() {
+        viewModelScope.launch {
+            try {
+                val currentUser = getCurrentUserUseCase()
+                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
+                    val user = currentUser.getOrThrow()!!
+                    
+                    val result = notificationRepository.deleteAllUserNotifications(user.id)
+                    if (result.isSuccess) {
+                        logger.debug(TAG, "All notifications deleted for user: ${user.id}")
+                        loadNotifications() // Refresh the notifications list
+                        loadUnreadCount() // Refresh the unread count
+                    } else {
+                        logger.error(TAG, "Failed to delete all notifications", result.exceptionOrNull())
+                    }
+                } else {
+                    logger.error(TAG, "User not authenticated - cannot delete notifications")
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Failed to delete all notifications", e)
+            }
+        }
+    }
+
     fun markAllAsRead() {
         viewModelScope.launch {
             try {
