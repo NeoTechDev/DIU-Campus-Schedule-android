@@ -19,11 +19,9 @@ class NoticeRepository @Inject constructor() {
                 val titleElement = entry.selectFirst(".date-description .heading a")
                 val title = titleElement?.text() ?: continue
                 val link = titleElement.absUrl("href")
-                val dateElement = entry.selectFirst(".event-date-wrap p")
-                val monthYearElement = entry.selectFirst(".event-date-wrap span")
-                val date = if (dateElement != null && monthYearElement != null) {
-                    dateElement.text() + " " + monthYearElement.text()
-                } else ""
+                // Parse date from the col-md-2 div that contains calendar icon and date
+                val dateElement = entry.selectFirst(".date-description .row .col-md-2:has(i.fas.fa-calendar-alt)")
+                val date = dateElement?.text()?.replace("📅", "")?.trim() ?: ""
                 notices.add(Notice(title = title, link = link, date = date))
             }
         } catch (e: Exception) {
