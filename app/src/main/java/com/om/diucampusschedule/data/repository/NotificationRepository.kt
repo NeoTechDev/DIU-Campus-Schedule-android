@@ -1,5 +1,6 @@
 package com.om.diucampusschedule.data.repository
 
+import com.om.diucampusschedule.core.events.NotificationEventBroadcaster
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.data.local.dao.NotificationDao
 import com.om.diucampusschedule.data.local.entities.NotificationEntity
@@ -16,6 +17,7 @@ import javax.inject.Singleton
 @Singleton
 class NotificationRepository @Inject constructor(
     private val notificationDao: NotificationDao,
+    private val notificationEventBroadcaster: NotificationEventBroadcaster,
     private val logger: AppLogger
 ) {
     companion object {
@@ -48,18 +50,6 @@ class NotificationRepository @Inject constructor(
         return notificationDao.getUnreadAdminCount(userId)
     }
 
-    suspend fun insertNotification(notification: Notification, userId: String): Result<Unit> {
-        return try {
-            val entity = notification.toEntity(userId)
-            notificationDao.insertNotification(entity)
-            logger.debug(TAG, "Notification inserted: ${notification.id}")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            logger.error(TAG, "Failed to insert notification: ${notification.id}", e)
-            Result.failure(e)
-        }
-    }
-
     suspend fun insertNotificationFromFCM(
         title: String,
         message: String,
@@ -87,6 +77,17 @@ class NotificationRepository @Inject constructor(
             )
             notificationDao.insertNotification(entity)
             logger.info(TAG, "FCM notification saved: $notificationId")
+            
+            // PROFESSIONAL: Broadcast event for real-time UI updates
+            notificationEventBroadcaster.broadcastNotificationReceived(
+                notificationId = notificationId,
+                title = title,
+                message = message,
+                type = type.name,
+                userId = userId
+            )
+            logger.debug(TAG, "Notification event broadcasted for real-time update")
+            
             Result.success(notificationId)
         } catch (e: Exception) {
             logger.error(TAG, "Failed to save FCM notification", e)
@@ -96,8 +97,18 @@ class NotificationRepository @Inject constructor(
 
     suspend fun markAsRead(notificationId: String): Result<Unit> {
         return try {
+            // Get the notification first to find the user ID for event broadcasting
+            val notification = notificationDao.getNotificationById(notificationId)
+            
             notificationDao.markAsRead(notificationId)
             logger.debug(TAG, "Notification marked as read: $notificationId")
+            
+            // PROFESSIONAL: Broadcast event for real-time UI updates
+            notification?.let {
+                notificationEventBroadcaster.broadcastNotificationRead(notificationId, it.userId)
+                logger.debug(TAG, "Read event broadcasted for notification: $notificationId")
+            }
+            
             Result.success(Unit)
         } catch (e: Exception) {
             logger.error(TAG, "Failed to mark notification as read: $notificationId", e)
@@ -129,8 +140,18 @@ class NotificationRepository @Inject constructor(
 
     suspend fun deleteNotification(notificationId: String): Result<Unit> {
         return try {
+            // Get the notification first to find the user ID for event broadcasting
+            val notification = notificationDao.getNotificationById(notificationId)
+            
             notificationDao.deleteNotificationById(notificationId)
             logger.debug(TAG, "Notification deleted: $notificationId")
+            
+            // PROFESSIONAL: Broadcast event for real-time UI updates
+            notification?.let {
+                notificationEventBroadcaster.broadcastNotificationDeleted(notificationId, it.userId)
+                logger.debug(TAG, "Delete event broadcasted for notification: $notificationId")
+            }
+            
             Result.success(Unit)
         } catch (e: Exception) {
             logger.error(TAG, "Failed to delete notification: $notificationId", e)

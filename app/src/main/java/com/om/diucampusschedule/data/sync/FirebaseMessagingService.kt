@@ -1,5 +1,7 @@
 package com.om.diucampusschedule.data.sync
 
+import android.Manifest
+import androidx.annotation.RequiresPermission
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -17,7 +19,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -42,6 +43,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         private const val TAG = "FCM"
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
@@ -50,203 +52,188 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         logger.debug(TAG, "FCM notification: ${remoteMessage.notification?.title} - ${remoteMessage.notification?.body}")
 
         try {
-            // Check if message contains data payload
-            if (remoteMessage.data.isNotEmpty()) {
-                logger.debug(TAG, "Message data payload: ${remoteMessage.data}")
-                handleDataMessage(remoteMessage.data)
-            }
-
-            // Check if message contains notification payload
-            remoteMessage.notification?.let {
-                logger.debug(TAG, "Message notification body: ${it.body}")
-                handleNotificationMessage(it, remoteMessage.data)
-            }
+            // PROFESSIONAL APPROACH: Always save notification to database first
+            // This ensures delivery regardless of app state (foreground/background/killed)
+            saveNotificationToDatabase(remoteMessage)
             
-            // If neither data nor notification payload, log warning
-            if (remoteMessage.data.isEmpty() && remoteMessage.notification == null) {
-                logger.warning(TAG, "FCM message received with no data or notification payload")
-            }
+            // Then handle UI updates based on app state
+            handleUIBasedOnAppState(remoteMessage)
+            
         } catch (e: Exception) {
             logger.error(TAG, "Error processing FCM message", e)
         }
     }
-
-    private fun handleDataMessage(data: Map<String, String>) {
-        val messageType = data["type"]
-        
-        logger.debug(TAG, "Handling data message of type: $messageType")
-        
-        when (messageType) {
-            "routine_update" -> {
-                handleRoutineUpdateMessage(data)
-            }
+    
+    /**
+     * PROFESSIONAL: Save notification to database immediately
+     * This ensures persistence regardless of app state
+     */
+    private fun saveNotificationToDatabase(remoteMessage: RemoteMessage) {
+        // Extract notification data
+        val title = remoteMessage.notification?.title 
+            ?: remoteMessage.data["title"] 
+            ?: "DIU Campus Schedule"
             
-            "class_reminder" -> {
-                handleClassReminderMessage(data)
-            }
+        val message = remoteMessage.notification?.body 
+            ?: remoteMessage.data["message"] 
+            ?: remoteMessage.data["body"] 
+            ?: "You have a new notification"
             
-            "general" -> {
-                handleGeneralMessage(data)
-            }
-            
-            else -> {
-                logger.warning(TAG, "Unknown message type: $messageType")
-                handleGeneralMessage(data)
-            }
-        }
-    }
-
-    private fun handleRoutineUpdateMessage(data: Map<String, String>) {
-        val department = data["department"] ?: "Unknown"
-        val title = data["title"] ?: "Routine Updated"
-        val message = data["message"] ?: data["body"] ?: "Your class schedule has been updated"
-        
-        logger.info(TAG, "Processing routine update for department: $department")
-        
-        // Save notification locally - use runBlocking to ensure completion in background
-        runBlocking {
-            try {
-                val currentUser = getCurrentUserUseCase()
-                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
-                    val user = currentUser.getOrThrow()!!
-                    
-                    // Save notification to local database
-                    notificationRepository.insertNotificationFromFCM(
-                        title = title,
-                        message = message,
-                        type = NotificationType.ROUTINE_UPDATE,
-                        userId = user.id,
-                        department = department,
-                        isFromAdmin = true
-                    )
-                    
-                    // Only sync if the update is for the user's department
-                    if (user.department == department || department == "All") {
-                        syncRoutineUseCase(department)
-                        logger.info(TAG, "Routine sync completed for department: $department")
-                        
-                        // Show notification after successful sync
-                        notificationManager.showRoutineUpdateNotification(
-                            title = title,
-                            message = message,
-                            department = department
-                        )
-                    } else {
-                        logger.debug(TAG, "Skipping sync - user department (${user.department}) doesn't match update department ($department)")
-                    }
-                } else {
-                    logger.warning(TAG, "User not authenticated - skipping routine sync")
-                }
-            } catch (e: Exception) {
-                logger.error(TAG, "Failed to sync routine for department: $department", e)
-                
-                // Still show notification even if sync fails
-                notificationManager.showRoutineUpdateNotification(
-                    title = title,
-                    message = "Schedule update received. Please open the app to refresh.",
-                    department = department
-                )
-            }
-        }
-    }
-
-    private fun handleClassReminderMessage(data: Map<String, String>) {
-        val title = data["title"] ?: "Class Reminder"
-        val message = data["message"] ?: data["body"] ?: "You have an upcoming class"
-        
-        logger.info(TAG, "Processing class reminder")
-        
-        // Save notification locally - use runBlocking to ensure completion in background
-        runBlocking {
-            try {
-                val currentUser = getCurrentUserUseCase()
-                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
-                    val user = currentUser.getOrThrow()!!
-                    
-                    notificationRepository.insertNotificationFromFCM(
-                        title = title,
-                        message = message,
-                        type = NotificationType.GENERAL,
-                        userId = user.id,
-                        actionRoute = "routine",
-                        isFromAdmin = false
-                    )
-                }
-            } catch (e: Exception) {
-                logger.error(TAG, "Failed to save class reminder notification", e)
-            }
-        }
-        
-        notificationManager.showGeneralNotification(
-            title = title,
-            message = message,
-            actionRoute = "routine"
-        )
-    }
-
-    private fun handleGeneralMessage(data: Map<String, String>) {
-        val title = data["title"] ?: "DIU Campus Schedule"
-        val message = data["message"] ?: data["body"] ?: "You have a new notification"
-        val actionRoute = data["action_route"]
-        val messageType = data["type"] ?: "general"
-        
-        logger.info(TAG, "Processing general message")
-        logger.debug(TAG, "General message data - Title: $title, Message: $message, Type: $messageType, ActionRoute: $actionRoute")
+        val messageType = remoteMessage.data["type"] ?: "general"
+        val actionRoute = remoteMessage.data["action_route"]
+        val department = remoteMessage.data["department"]
+        val imageUrl = remoteMessage.data["image_url"]
         
         // Determine notification type and admin status
         val notificationType = when (messageType) {
-            "maintenance" -> NotificationType.MAINTENANCE
-            "admin_message" -> NotificationType.ADMIN_MESSAGE
-            else -> NotificationType.GENERAL
-        }
-        val isFromAdmin = (messageType == "admin_message" || messageType == "maintenance")
-        
-        // Save notification using WorkManager for guaranteed background execution
-        scheduleNotificationSave(
-            title = title,
-            message = message,
-            type = notificationType,
-            actionRoute = actionRoute,
-            isFromAdmin = isFromAdmin
-        )
-        
-        notificationManager.showGeneralNotification(
-            title = title,
-            message = message,
-            actionRoute = actionRoute
-        )
-    }
-
-    private fun handleNotificationMessage(notification: RemoteMessage.Notification, data: Map<String, String>) {
-        // If no specific data payload handling, show general notification
-        val actionRoute = data["action_route"]
-        val messageType = data["type"] ?: "general"
-        
-        logger.info(TAG, "Processing notification message")
-        
-        // Determine notification type and admin status
-        val notificationType = when (messageType) {
-            "maintenance" -> NotificationType.MAINTENANCE
-            "admin_message" -> NotificationType.ADMIN_MESSAGE
             "routine_update" -> NotificationType.ROUTINE_UPDATE
+            "maintenance" -> NotificationType.MAINTENANCE
+            "admin_message" -> NotificationType.ADMIN_MESSAGE
+            "class_reminder" -> NotificationType.GENERAL
             else -> NotificationType.GENERAL
         }
         val isFromAdmin = (messageType == "admin_message" || messageType == "maintenance" || messageType == "routine_update")
         
-        // Save notification using WorkManager for guaranteed background execution
+        logger.info(TAG, "Saving FCM notification to database - Type: $messageType, Title: $title")
+        
+        // Use WorkManager for guaranteed background execution (Google's recommended approach)
         scheduleNotificationSave(
-            title = notification.title ?: "DIU Campus Schedule",
-            message = notification.body ?: "You have a new notification",
+            title = title,
+            message = message,
             type = notificationType,
             actionRoute = actionRoute,
+            department = department,
+            imageUrl = imageUrl,
             isFromAdmin = isFromAdmin
         )
+    }
+    
+    /**
+     * PROFESSIONAL: Handle UI updates based on app lifecycle state
+     * Similar to how WhatsApp, Telegram handle foreground/background notifications
+     */
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    private fun handleUIBasedOnAppState(remoteMessage: RemoteMessage) {
+        val title = remoteMessage.notification?.title 
+            ?: remoteMessage.data["title"] 
+            ?: "DIU Campus Schedule"
+            
+        val message = remoteMessage.notification?.body 
+            ?: remoteMessage.data["message"] 
+            ?: remoteMessage.data["body"] 
+            ?: "You have a new notification"
+            
+        val actionRoute = remoteMessage.data["action_route"]
+        val messageType = remoteMessage.data["type"] ?: "general"
         
-        notificationManager.showGeneralNotification(
-            title = notification.title ?: "DIU Campus Schedule",
-            message = notification.body ?: "You have a new notification",
-            actionRoute = actionRoute
+        // PROFESSIONAL: Check app lifecycle state
+        if (isAppInForeground()) {
+            logger.info(TAG, "📱 App in foreground - notification will update UI directly via real-time flows")
+            // Don't show system notification when app is in foreground
+            // The database update + event broadcasting will automatically trigger UI update
+        } else {
+            logger.info(TAG, "📴 App in background - showing system notification")
+            // Show system notification when app is in background/killed
+            when (messageType) {
+                "routine_update" -> {
+                    val department = remoteMessage.data["department"] ?: "Unknown"
+                    notificationManager.showRoutineUpdateNotification(title, message, department)
+                }
+                else -> {
+                    notificationManager.showGeneralNotification(title, message, actionRoute)
+                }
+            }
+        }
+        
+        // Handle specific business logic (routine sync, etc.)
+        handleSpecificNotificationLogic(remoteMessage)
+    }
+    
+    /**
+     * PROFESSIONAL: Detect if app is currently in foreground
+     * Uses ProcessLifecycleOwner (Google's recommended approach)
+     */
+    private fun isAppInForeground(): Boolean {
+        return try {
+            val processLifecycleOwner = androidx.lifecycle.ProcessLifecycleOwner.get()
+            val isInForeground = processLifecycleOwner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
+            logger.debug(TAG, "App foreground state: $isInForeground")
+            isInForeground
+        } catch (e: Exception) {
+            logger.warning(TAG, "Could not determine app foreground state", e)
+            false // Default to background behavior for safety
+        }
+    }
+    
+    /**
+     * PROFESSIONAL: Handle specific notification logic (routine sync, etc.)
+     */
+    private fun handleSpecificNotificationLogic(remoteMessage: RemoteMessage) {
+        val messageType = remoteMessage.data["type"] ?: "general"
+        
+        when (messageType) {
+            "routine_update" -> {
+                val department = remoteMessage.data["department"] ?: "Unknown"
+                handleRoutineSync(department)
+            }
+            // Add other specific handlers as needed
+        }
+    }
+    
+    /**
+     * PROFESSIONAL: Handle routine synchronization in background
+     */
+    private fun handleRoutineSync(department: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val currentUser = getCurrentUserUseCase()
+                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
+                    val user = currentUser.getOrThrow()!!
+                    
+                    // Only sync if the update is for the user's department
+                    if (user.department == department || department == "All") {
+                        logger.info(TAG, "Starting routine sync for department: $department")
+                        syncRoutineUseCase(department)
+                        logger.info(TAG, "Routine sync completed for department: $department")
+                    } else {
+                        logger.debug(TAG, "Skipping sync - user department (${user.department}) doesn't match update department ($department)")
+                    }
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Failed to sync routine for department: $department", e)
+            }
+        }
+    }
+
+    /**
+     * PROFESSIONAL: Enhanced WorkManager scheduling with better error handling
+     */
+    private fun scheduleNotificationSave(
+        title: String,
+        message: String,
+        type: NotificationType,
+        actionRoute: String? = null,
+        department: String? = null,
+        imageUrl: String? = null,
+        isFromAdmin: Boolean = false
+    ) {
+        val workData = workDataOf(
+            SaveNotificationWorker.KEY_TITLE to title,
+            SaveNotificationWorker.KEY_MESSAGE to message,
+            SaveNotificationWorker.KEY_TYPE to type.name,
+            SaveNotificationWorker.KEY_ACTION_ROUTE to actionRoute,
+            SaveNotificationWorker.KEY_DEPARTMENT to department,
+            SaveNotificationWorker.KEY_IMAGE_URL to imageUrl,
+            SaveNotificationWorker.KEY_IS_FROM_ADMIN to isFromAdmin
         )
+
+        val workRequest = OneTimeWorkRequestBuilder<SaveNotificationWorker>()
+            .setInputData(workData)
+            .addTag("fcm_notification_save")
+            .build()
+
+        WorkManager.getInstance(this).enqueue(workRequest)
+        logger.info(TAG, "Scheduled background notification save via WorkManager: $title")
     }
 
     override fun onNewToken(token: String) {
@@ -334,22 +321,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                 }
         }
     }
-    
-    /**
-     * Subscribe to department-specific topic
-     */
-    fun subscribeToDepartmentTopic(department: String) {
-        val topic = "dept_${department.lowercase()}"
-        FirebaseMessaging.getInstance().subscribeToTopic(topic)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    logger.info(TAG, "Successfully subscribed to department topic: $topic")
-                } else {
-                    logger.error(TAG, "Failed to subscribe to department topic: $topic", task.exception)
-                }
-            }
-    }
-    
+
     private fun getAppVersion(): String {
         return try {
             val packageInfo = packageManager.getPackageInfo(packageName, 0)
@@ -375,32 +347,5 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                 logger.error(TAG, "Failed to sync after deleted messages", e)
             }
         }
-    }
-
-    private fun scheduleNotificationSave(
-        title: String,
-        message: String,
-        type: NotificationType,
-        actionRoute: String? = null,
-        department: String? = null,
-        imageUrl: String? = null,
-        isFromAdmin: Boolean = false
-    ) {
-        val workData = workDataOf(
-            SaveNotificationWorker.KEY_TITLE to title,
-            SaveNotificationWorker.KEY_MESSAGE to message,
-            SaveNotificationWorker.KEY_TYPE to type.name,
-            SaveNotificationWorker.KEY_ACTION_ROUTE to actionRoute,
-            SaveNotificationWorker.KEY_DEPARTMENT to department,
-            SaveNotificationWorker.KEY_IMAGE_URL to imageUrl,
-            SaveNotificationWorker.KEY_IS_FROM_ADMIN to isFromAdmin
-        )
-
-        val workRequest = OneTimeWorkRequestBuilder<SaveNotificationWorker>()
-            .setInputData(workData)
-            .build()
-
-        WorkManager.getInstance(this).enqueue(workRequest)
-        logger.debug(TAG, "Scheduled background notification save: $title")
     }
 }

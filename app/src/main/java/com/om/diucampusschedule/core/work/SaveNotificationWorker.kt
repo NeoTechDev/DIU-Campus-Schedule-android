@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.om.diucampusschedule.core.events.NotificationEventBroadcaster
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.data.repository.NotificationRepository
 import com.om.diucampusschedule.domain.model.NotificationType
@@ -18,6 +19,7 @@ class SaveNotificationWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val notificationRepository: NotificationRepository,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val notificationEventBroadcaster: NotificationEventBroadcaster,
     private val logger: AppLogger
 ) : CoroutineWorker(context, workerParams) {
 
@@ -67,6 +69,10 @@ class SaveNotificationWorker @AssistedInject constructor(
 
                 if (result.isSuccess) {
                     logger.info(TAG, "Background notification saved successfully for user: ${user.id}")
+                    
+                    // Broadcast notification received event for real-time UI updates
+                    notificationEventBroadcaster.broadcastNotificationReceived()
+                    
                     Result.success()
                 } else {
                     logger.error(TAG, "Failed to save background notification", result.exceptionOrNull())

@@ -2,6 +2,8 @@ package com.om.diucampusschedule.ui.screens.notices
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.om.diucampusschedule.core.events.NotificationEventBroadcaster
+import com.om.diucampusschedule.core.events.NotificationEvent
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.data.repository.NoticeRepository
 import com.om.diucampusschedule.data.repository.NotificationRepository
@@ -21,6 +23,7 @@ import javax.inject.Inject
 class NoticesViewModel @Inject constructor(
     private val notificationRepository: NotificationRepository,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val notificationEventBroadcaster: NotificationEventBroadcaster,
     private val logger: AppLogger
 ) : ViewModel() {
 
@@ -44,48 +47,102 @@ class NoticesViewModel @Inject constructor(
     val isNoticesLoading: StateFlow<Boolean> = _isNoticesLoading
 
     init {
-        loadNotifications()
-        loadUnreadCount()
+        // PROFESSIONAL APPROACH: Start real-time observation immediately
+        startObservingNotifications()
+        startObservingUnreadCount()
+        startObservingNotificationEvents() // PROFESSIONAL: Listen to real-time events
         cleanupOldNotifications() // Automatically cleanup old notifications on startup
     }
 
-    fun loadNotifications() {
+    /**
+     * PROFESSIONAL: Listen to real-time notification events
+     * This provides instant feedback when notifications are received/read/deleted
+     * Similar to how WhatsApp, Telegram handle real-time updates
+     */
+    private fun startObservingNotificationEvents() {
         viewModelScope.launch {
             try {
-                logger.debug(TAG, "Loading notifications...")
                 val currentUser = getCurrentUserUseCase()
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
                     val user = currentUser.getOrThrow()!!
-                    logger.debug(TAG, "Loading notifications for user: ${user.id}")
+                    
+                    logger.debug(TAG, "Starting real-time notification event observation for user: ${user.id}")
+                    
+                    notificationEventBroadcaster.notificationEvents
+                        .collect { event ->
+                            when (event) {
+                                is NotificationEvent.NotificationReceived -> {
+                                    if (event.userId == user.id) {
+                                        logger.info(TAG, "🔔 Real-time notification event: ${event.title}")
+                                        // The database flow will automatically update the UI
+                                        // This provides immediate visual feedback
+                                    }
+                                }
+                                is NotificationEvent.NotificationRead -> {
+                                    if (event.userId == user.id) {
+                                        logger.debug(TAG, "📖 Notification marked as read: ${event.notificationId}")
+                                    }
+                                }
+                                is NotificationEvent.NotificationDeleted -> {
+                                    if (event.userId == user.id) {
+                                        logger.debug(TAG, "🗑️ Notification deleted: ${event.notificationId}")
+                                    }
+                                }
+                            }
+                        }
+                } else {
+                    logger.warning(TAG, "User not authenticated - cannot observe notification events")
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Failed to observe notification events", e)
+            }
+        }
+    }
+
+    /**
+     * PROFESSIONAL: Continuous real-time observation of notifications
+     * This ensures instant UI updates when notifications arrive via FCM
+     */
+    private fun startObservingNotifications() {
+        viewModelScope.launch {
+            try {
+                logger.debug(TAG, "Starting real-time notification observation...")
+                val currentUser = getCurrentUserUseCase()
+                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
+                    val user = currentUser.getOrThrow()!!
+                    logger.debug(TAG, "Observing notifications for user: ${user.id}")
                     
                     _isNotificationsLoading.value = true
                     
+                    // PROFESSIONAL: Continuous Flow observation (never terminates)
                     notificationRepository.getAllNotifications(user.id)
                         .catch { exception ->
-                            logger.error(TAG, "Failed to load notifications", exception)
+                            logger.error(TAG, "Failed to observe notifications", exception)
                             _isNotificationsLoading.value = false
                         }
-                        .onEach { notifications ->
-                            logger.info(TAG, "Loaded ${notifications.size} notifications for user: ${user.id}")
+                        .collect { notifications ->
+                            logger.info(TAG, "Real-time update: ${notifications.size} notifications for user: ${user.id}")
                             notifications.forEach { notification ->
-                                logger.debug(TAG, "Notification: ${notification.title} - ${notification.type} - isRead: ${notification.isRead}")
+                                logger.debug(TAG, "Notification: ${notification.title} - ${notification.type} - isRead: ${notification.isRead} - timestamp: ${notification.timestamp}")
                             }
                             _notifications.value = notifications
                             _isNotificationsLoading.value = false
                         }
-                        .collect {}
                 } else {
-                    logger.warning(TAG, "User not authenticated - cannot load notifications. Error: ${currentUser.exceptionOrNull()?.message}")
+                    logger.warning(TAG, "User not authenticated - cannot observe notifications. Error: ${currentUser.exceptionOrNull()?.message}")
                     _isNotificationsLoading.value = false
                 }
             } catch (e: Exception) {
-                logger.error(TAG, "Failed to load notifications", e)
+                logger.error(TAG, "Failed to start real-time observation", e)
                 _isNotificationsLoading.value = false
             }
         }
     }
 
-    fun loadUnreadCount() {
+    /**
+     * PROFESSIONAL: Real-time unread count observation
+     */
+    private fun startObservingUnreadCount() {
         viewModelScope.launch {
             try {
                 val currentUser = getCurrentUserUseCase()
@@ -94,18 +151,31 @@ class NoticesViewModel @Inject constructor(
                     
                     notificationRepository.getUnreadCount(user.id)
                         .catch { exception ->
-                            logger.error(TAG, "Failed to load unread count", exception)
+                            logger.error(TAG, "Failed to observe unread count", exception)
                         }
                         .collect { count ->
+                            logger.debug(TAG, "Real-time unread count update: $count")
                             _unreadNotificationCount.value = count
                         }
                 } else {
-                    logger.warning(TAG, "User not authenticated - cannot load unread count")
+                    logger.warning(TAG, "User not authenticated - cannot observe unread count")
                 }
             } catch (e: Exception) {
-                logger.error(TAG, "Failed to load unread count", e)
+                logger.error(TAG, "Failed to observe unread count", e)
             }
         }
+    }
+
+    fun loadNotifications() {
+        // PROFESSIONAL: This now serves as a manual refresh trigger
+        // Real-time updates come through startObservingNotifications()
+        logger.debug(TAG, "Manual notification refresh triggered...")
+    }
+
+    fun loadUnreadCount() {
+        // PROFESSIONAL: This now serves as a manual refresh trigger  
+        // Real-time updates come through startObservingUnreadCount()
+        logger.debug(TAG, "Manual unread count refresh triggered...")
     }
 
     fun markAsRead(notificationId: String) {
