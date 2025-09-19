@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
@@ -202,7 +203,8 @@ fun TodayRoutineContent(
                                     startTime = startTime,
                                     endTime = endTime,
                                     formatter12HourUS = robustFormatter,
-                                    isToday = isToday
+                                    isToday = isToday,
+                                    prayerBackgroundImage = R.drawable.prayer_time_bg
                                 )
                             }
                         }

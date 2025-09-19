@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,14 +40,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -651,7 +655,8 @@ fun BreakTimeCard(
     endTime: LocalTime,
     modifier: Modifier = Modifier,
     formatter12HourUS: DateTimeFormatter? = null,
-    isToday: Boolean = false
+    isToday: Boolean = false,
+    prayerBackgroundImage: Int? = null // Add parameter for prayer background image
 ) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -663,6 +668,14 @@ fun BreakTimeCard(
     val isOngoing = isToday && isBreakTimeOngoing(startTime, endTime)
 
     val isPrayerTime = startTime == LocalTime.parse("13:00") && endTime == LocalTime.parse("14:30")
+
+    // Prayer-specific colors
+    val prayerTextColor = Color.White
+    val prayerTextShadow = Shadow(
+        color = Color.Black.copy(alpha = 0.6f),
+        offset = Offset(1f, 1f),
+        blurRadius = 2f
+    )
 
     // Create pulsating animation for the Now tag
     val infiniteTransition = rememberInfiniteTransition(label = "nowTag")
@@ -686,6 +699,19 @@ fun BreakTimeCard(
                 shape = RoundedCornerShape(20.dp)
             )
     ) {
+        // Background image for prayer time
+        if (isPrayerTime && prayerBackgroundImage != null) {
+            Image(
+                painter = painterResource(id = prayerBackgroundImage),
+                contentDescription = "Prayer background",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(20.dp)),
+                alpha = 1f
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -696,7 +722,10 @@ fun BreakTimeCard(
                     .width(70.dp)
                     .height(90.dp)
                     .background(
-                        color = if(isPrayerTime) Color(0xFF102C57) else BreakBackgroundColor,
+                        color = if(isPrayerTime) {
+                            if (prayerBackgroundImage != null) Color.Transparent
+                            else Color(0xFF102C57)
+                        } else BreakBackgroundColor,
                         shape = RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp)
                     )
             ) {
@@ -719,8 +748,9 @@ fun BreakTimeCard(
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White.copy(alpha = 0.8f),
-                                fontFamily = customFontFamily()
+                                color = if(isPrayerTime) prayerTextColor else Color.White.copy(alpha = 0.95f),
+                                fontFamily = customFontFamily(),
+                                shadow = if(isPrayerTime) prayerTextShadow else null
                             ),
                             textAlign = TextAlign.Start,
                             lineHeight = 14.sp,
@@ -732,7 +762,7 @@ fun BreakTimeCard(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Vertical gradient divider line
+                    // Vertical divider
                     AnimatedVisibility(
                         visible = visible,
                         enter = fadeIn(animationSpec = tween(300, delayMillis = 100))
@@ -742,7 +772,7 @@ fun BreakTimeCard(
                                 .width(4.dp)
                                 .height(28.dp)
                                 .background(
-                                    Color.White.copy(alpha = 0.8f),
+                                    if(isPrayerTime) prayerTextColor else Color.White.copy(alpha = 0.9f),
                                     shape = RoundedCornerShape(2.dp)
                                 )
                                 .align(Alignment.Start)
@@ -763,8 +793,9 @@ fun BreakTimeCard(
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White.copy(alpha = 0.8f),
-                                fontFamily = customFontFamily()
+                                color = if(isPrayerTime) prayerTextColor else Color.White.copy(alpha = 0.95f),
+                                fontFamily = customFontFamily(),
+                                shadow = if(isPrayerTime) prayerTextShadow else null
                             ),
                             lineHeight = 14.sp,
                             letterSpacing = (-0.5).sp,
@@ -776,7 +807,7 @@ fun BreakTimeCard(
                 }
             }
 
-            // White divider between sections
+            // Divider
             Box(
                 modifier = Modifier
                     .width(8.dp)
@@ -790,8 +821,11 @@ fun BreakTimeCard(
                     .weight(1f)
                     .height(90.dp)
                     .background(
-                        if(isPrayerTime) Color(0xFF102C57) else BreakBackgroundColor,
-                        RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp)
+                        color = if(isPrayerTime) {
+                            if (prayerBackgroundImage != null) Color.Transparent
+                            else Color(0xFF102C57)
+                        } else BreakBackgroundColor,
+                        shape = RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp)
                     )
             ) {
                 Row(
@@ -801,7 +835,7 @@ fun BreakTimeCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Left content (icon and text)
+                    // Left content
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -814,16 +848,16 @@ fun BreakTimeCard(
                             Icon(
                                 imageVector = if(isPrayerTime) ImageVector.vectorResource(id = R.drawable.mosque_24) else Icons.Outlined.Coffee,
                                 contentDescription = "Break Icon",
-                                tint = BreakTextColor,
+                                tint = if (isPrayerTime && prayerBackgroundImage != null) prayerTextColor else BreakTextColor,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
 
-                        // Content Column
+                        // Title + Subtext
                         Column(
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            // Break Title
+                            // Title
                             AnimatedVisibility(
                                 visible = visible,
                                 enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
@@ -837,13 +871,14 @@ fun BreakTimeCard(
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 16.sp,
                                         letterSpacing = 0.5.sp,
-                                        fontFamily = customFontFamily()
+                                        fontFamily = customFontFamily(),
+                                        shadow = if(isPrayerTime) prayerTextShadow else null
                                     ),
-                                    color = BreakTextColor
+                                    color = if (isPrayerTime && prayerBackgroundImage != null) prayerTextColor else BreakTextColor
                                 )
                             }
 
-                            // Sub-text
+                            // Sub-text (only for non-prayer breaks)
                             if(!isPrayerTime){
                                 AnimatedVisibility(
                                     visible = visible,
@@ -866,7 +901,7 @@ fun BreakTimeCard(
                         }
                     }
 
-                    // Right side - Duration display
+                    // Duration
                     val duration = Duration.between(startTime, endTime)
                     val hours = duration.toHours()
                     val minutes = duration.toMinutes() % 60
@@ -885,14 +920,15 @@ fun BreakTimeCard(
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 10.sp,
-                                fontFamily = customFontFamily()
+                                fontFamily = customFontFamily(),
+                                shadow = if(isPrayerTime) prayerTextShadow else null
                             ),
                             lineHeight = 10.sp,
                             textAlign = TextAlign.Center,
-                            color = BreakTextColor,
+                            color = if (isPrayerTime && prayerBackgroundImage != null) Color.White else BreakTextColor,
                             modifier = Modifier
                                 .background(
-                                    color = BreakTextColor.copy(alpha = 0.2f),
+                                    color = if(isPrayerTime) Color.Black.copy(alpha = 0.2f) else BreakTextColor.copy(alpha = 0.2f),
                                     shape = RoundedCornerShape(18.dp)
                                 )
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -902,7 +938,7 @@ fun BreakTimeCard(
             }
         }
 
-        // Now tag in upper right corner for ongoing breaks
+        // Now tag
         if (isOngoing) {
             Box(
                 modifier = Modifier
@@ -914,7 +950,7 @@ fun BreakTimeCard(
                         scaleY = tagAnimation.value
                     }
                     .background(
-                        Color(0xFF4CAF50), // Green color for break time
+                        Color(0xFF4CAF50),
                         RoundedCornerShape(20.dp)
                     )
                     .padding(horizontal = 4.dp, vertical = 2.dp)
@@ -925,7 +961,12 @@ fun BreakTimeCard(
                         color = Color.White,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = customFontFamily()
+                        fontFamily = customFontFamily(),
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            offset = Offset(1f, 1f),
+                            blurRadius = 2f
+                        )
                     )
                 )
             }
