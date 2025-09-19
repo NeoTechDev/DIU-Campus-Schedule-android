@@ -93,6 +93,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -687,21 +690,77 @@ fun RoomCard(roomNumber: String, modifier: Modifier = Modifier) {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 12.dp)
+                    .padding(start = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp) // Tight spacing between texts
             ) {
+                // "Room" label - small
                 Text(
                     text = "Room",
                     fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = MaterialTheme.typography.labelMedium.lineHeight * 0.9f // Tighter line height
                 )
 
+                // Room number - largest
                 Text(
                     text = roomNumber,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = MaterialTheme.typography.titleLarge.lineHeight * 0.85f // Tighter line height
                 )
+
+                // Lab info and building info - medium size
+                val normalizedRoom = roomNumber.trim().uppercase()
+
+                val labRooms = setOf(
+                    "610", "616", "710", "711A", "711B", "814A", "903",
+                    "AB3-104", "AB3-106", "AB3-107"
+                )
+                val firstLine: String? = when (normalizedRoom) {
+                    "601" -> "(DS Lab)"
+                    "613" -> "(Robotics Lab)"
+                    "614" -> "(Cyber Security Lab)"
+                    else -> if (labRooms.contains(normalizedRoom)) "(Lab Room)" else null
+                }
+                val isAb3 = normalizedRoom.contains("AB3")
+
+                if (firstLine != null || isAb3) {
+                    // Balanced sizing for smooth visual flow
+                    val bodyMediumSize = MaterialTheme.typography.bodyMedium.fontSize
+                    val bodySmallSize = MaterialTheme.typography.bodySmall.fontSize
+
+                    val annotated = buildAnnotatedString {
+                        if (firstLine != null) {
+                            withStyle(
+                                SpanStyle(
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = bodyMediumSize // Medium size for better flow
+                                )
+                            ) {
+                                append(firstLine)
+                            }
+                        }
+                        if (isAb3) {
+                            if (firstLine != null) append("\n")
+                            withStyle(
+                                SpanStyle(
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = bodySmallSize // Consistent with medium sizing
+                                )
+                            ) {
+                                append("(Academic Building 3)")
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = annotated,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 16.sp // Tight line height for compact look
+                    )
+                }
             }
         }
     }
