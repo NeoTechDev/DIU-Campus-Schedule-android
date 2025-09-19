@@ -1,15 +1,13 @@
 package com.om.diucampusschedule.data.repository
 
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.MetadataChanges
+import com.google.firebase.firestore.Query
 import com.om.diucampusschedule.core.logging.AppLogger
-import com.om.diucampusschedule.data.remote.dto.UniversalNotificationDto
-import com.om.diucampusschedule.data.remote.dto.UserNotificationStateDto
 import com.om.diucampusschedule.data.remote.dto.NotificationWithStateDto
+import com.om.diucampusschedule.data.remote.dto.UniversalNotificationDto
 import com.om.diucampusschedule.data.remote.dto.UniversalNotificationPaths
+import com.om.diucampusschedule.data.remote.dto.UserNotificationStateDto
 import com.om.diucampusschedule.data.remote.dto.toUniversalDto
 import com.om.diucampusschedule.domain.model.Notification
 import com.om.diucampusschedule.domain.model.NotificationType
@@ -55,7 +53,7 @@ class UniversalNotificationRepository @Inject constructor(
         return combine(notificationsFlow, userStatesFlow) { notifications, userStates ->
             logger.debug(TAG, "Combining ${notifications.size} notifications with ${userStates.size} user states")
             
-            notifications
+            val result = notifications
                 .filter { notification ->
                     // Filter based on target audience
                     when {
@@ -82,6 +80,9 @@ class UniversalNotificationRepository @Inject constructor(
                         userState = userStates[notification.id]
                     ).toDomainModel()
                 }
+
+            logger.debug(TAG, "Final combined result: ${result.size} notifications")
+            result
         }
     }
 
@@ -97,6 +98,7 @@ class UniversalNotificationRepository @Inject constructor(
             .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
                 if (error != null) {
                     logger.error(TAG, "Error in universal notifications listener", error)
+                    // Don't close the flow on error - let it try to reconnect
                     return@addSnapshotListener
                 }
                 
@@ -130,6 +132,7 @@ class UniversalNotificationRepository @Inject constructor(
             .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
                 if (error != null) {
                     logger.error(TAG, "Error in user states listener", error)
+                    // Don't close the flow on error - let it try to reconnect
                     return@addSnapshotListener
                 }
                 
@@ -137,13 +140,14 @@ class UniversalNotificationRepository @Inject constructor(
                     val userStates = snapshot.documents.mapNotNull { document ->
                         try {
                             val state = document.toObject(UserNotificationStateDto::class.java)
-                            state?.copy(notificationId = document.id)
+                            val finalState = state?.copy(notificationId = document.id)
+                            finalState
                         } catch (e: Exception) {
                             logger.error(TAG, "Failed to parse user state: ${document.id}", e)
                             null
                         }
                     }.associateBy { it.notificationId }
-                    
+
                     logger.debug(TAG, "User states updated: ${userStates.size}")
                     trySend(userStates)
                 }
@@ -248,6 +252,7 @@ class UniversalNotificationRepository @Inject constructor(
             )
             
             val updates = mapOf(
+                "notificationId" to notificationId,
                 "isRead" to true,
                 "readTimestamp" to com.google.firebase.Timestamp.now(),
                 "lastModified" to com.google.firebase.firestore.FieldValue.serverTimestamp()
@@ -295,11 +300,11 @@ class UniversalNotificationRepository @Inject constructor(
                     }
                     
                     if (appliesTo) {
-                        val stateDoc = firestore.document(
-                            UniversalNotificationPaths.getUserNotificationStatePath(userId, notification.id)
-                        )
+                        val statePath = UniversalNotificationPaths.getUserNotificationStatePath(userId, notification.id)
+                        val stateDoc = firestore.document(statePath)
                         
                         val updates = mapOf(
+                            "notificationId" to notification.id,
                             "isRead" to true,
                             "readTimestamp" to timestamp,
                             "lastModified" to com.google.firebase.firestore.FieldValue.serverTimestamp()
@@ -309,7 +314,7 @@ class UniversalNotificationRepository @Inject constructor(
                     }
                 }
             }
-            
+
             batch.commit().await()
             
             logger.debug(TAG, "All notifications marked as read for user: $userId")

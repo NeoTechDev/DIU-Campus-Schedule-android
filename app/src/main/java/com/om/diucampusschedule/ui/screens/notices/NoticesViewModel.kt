@@ -43,10 +43,12 @@ class NoticesViewModel @Inject constructor(
     val isNoticesLoading: StateFlow<Boolean> = _isNoticesLoading
 
     init {
+        logger.debug(TAG, "NoticesViewModel init started")
         // FACEBOOK-STYLE APPROACH: Start real-time observation immediately
         startObservingNotifications()
         startObservingUnreadCount()
         cleanupOldNotifications() // Automatically cleanup old notifications on startup
+        logger.debug(TAG, "NoticesViewModel init completed")
     }
 
     /**
@@ -69,6 +71,7 @@ class NoticesViewModel @Inject constructor(
                         .catch { exception ->
                             logger.error(TAG, "Failed to observe notifications", exception)
                             _isNotificationsLoading.value = false
+                            // Don't rethrow - keep the flow alive for future updates
                         }
                         .collect { notifications ->
                             logger.info(TAG, "Real-time update: ${notifications.size} notifications for user: ${user.id}")
@@ -77,6 +80,7 @@ class NoticesViewModel @Inject constructor(
                             }
                             _notifications.value = notifications
                             _isNotificationsLoading.value = false
+                            logger.debug(TAG, "StateFlow updated with ${notifications.size} notifications")
                         }
                 } else {
                     logger.warning(TAG, "User not authenticated - cannot observe notifications. Error: ${currentUser.exceptionOrNull()?.message}")
@@ -102,10 +106,12 @@ class NoticesViewModel @Inject constructor(
                     universalNotificationRepository.getUnreadCount(user.id)
                         .catch { exception ->
                             logger.error(TAG, "Failed to observe unread count", exception)
+                            // Don't rethrow - keep the flow alive for future updates
                         }
                         .collect { count ->
                             logger.debug(TAG, "Real-time unread count update: $count")
                             _unreadNotificationCount.value = count
+                            logger.debug(TAG, "StateFlow unread count updated to: $count")
                         }
                 } else {
                     logger.warning(TAG, "User not authenticated - cannot observe unread count")
@@ -131,9 +137,11 @@ class NoticesViewModel @Inject constructor(
     fun markAsRead(notificationId: String) {
         viewModelScope.launch {
             try {
+                logger.debug(TAG, "markAsRead called for notification: $notificationId")
                 val currentUser = getCurrentUserUseCase()
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
                     val user = currentUser.getOrThrow()!!
+                    logger.debug(TAG, "Marking notification as read for user: ${user.id}")
                     
                     val result = universalNotificationRepository.markAsRead(user.id, notificationId)
                     if (result.isSuccess) {
@@ -176,9 +184,11 @@ class NoticesViewModel @Inject constructor(
     fun deleteNotification(notificationId: String) {
         viewModelScope.launch {
             try {
+                logger.debug(TAG, "deleteNotification called for notification: $notificationId")
                 val currentUser = getCurrentUserUseCase()
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
                     val user = currentUser.getOrThrow()!!
+                    logger.debug(TAG, "Deleting notification for user: ${user.id}")
                     
                     val result = universalNotificationRepository.hideNotification(user.id, notificationId)
                     if (result.isSuccess) {
@@ -221,9 +231,11 @@ class NoticesViewModel @Inject constructor(
     fun markAllAsRead() {
         viewModelScope.launch {
             try {
+                logger.debug(TAG, "markAllAsRead called")
                 val currentUser = getCurrentUserUseCase()
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
                     val user = currentUser.getOrThrow()!!
+                    logger.debug(TAG, "Marking all notifications as read for user: ${user.id}")
                     
                     val result = universalNotificationRepository.markAllAsRead(user.id)
                     if (result.isSuccess) {
@@ -255,56 +267,6 @@ class NoticesViewModel @Inject constructor(
                 _notices.value = emptyList()
             } finally {
                 _isNoticesLoading.value = false
-            }
-        }
-    }
-
-    // Test method to add sample notifications - remove in production
-    fun addTestNotifications() {
-        viewModelScope.launch {
-            try {
-                val currentUser = getCurrentUserUseCase()
-                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
-                    val user = currentUser.getOrThrow()!!
-                    
-                    // Add test admin notification
-                    universalNotificationRepository.insertNotificationFromFCM(
-                        title = "Test Admin Message",
-                        message = "This is a test admin notification to verify the system works properly",
-                        type = com.om.diucampusschedule.domain.model.NotificationType.ADMIN_MESSAGE,
-                        targetAudience = "ALL",
-                        department = "CSE",
-                        isFromAdmin = true,
-                        createdBy = user.id
-                    )
-                    
-                    // Add test routine update notification
-                    universalNotificationRepository.insertNotificationFromFCM(
-                        title = "Schedule Updated",
-                        message = "Your class schedule has been updated for tomorrow",
-                        type = com.om.diucampusschedule.domain.model.NotificationType.ROUTINE_UPDATE,
-                        targetAudience = "DEPARTMENT:CSE",
-                        actionRoute = "routine",
-                        isFromAdmin = false,
-                        createdBy = user.id
-                    )
-                    
-                    // Add test general notification
-                    universalNotificationRepository.insertNotificationFromFCM(
-                        title = "General Notice",
-                        message = "This is a general notification for testing purposes",
-                        type = com.om.diucampusschedule.domain.model.NotificationType.GENERAL,
-                        targetAudience = "ALL",
-                        isFromAdmin = false,
-                        createdBy = user.id
-                    )
-                    
-                    logger.info(TAG, "Test notifications added successfully")
-                } else {
-                    logger.error(TAG, "User not authenticated - cannot add test notifications")
-                }
-            } catch (e: Exception) {
-                logger.error(TAG, "Failed to add test notifications", e)
             }
         }
     }

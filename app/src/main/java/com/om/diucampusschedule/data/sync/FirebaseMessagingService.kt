@@ -230,16 +230,6 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
-    /**
-     * Get unique device identifier for Firestore notification tracking
-     */
-    private fun getUniqueDeviceId(): String {
-        return android.provider.Settings.Secure.getString(
-            contentResolver,
-            android.provider.Settings.Secure.ANDROID_ID
-        ) ?: "unknown_device"
-    }
-
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         logger.info(TAG, "FCM token refreshed")

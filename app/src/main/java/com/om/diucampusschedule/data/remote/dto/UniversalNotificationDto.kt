@@ -1,5 +1,6 @@
 package com.om.diucampusschedule.data.remote.dto
 
+import com.google.firebase.firestore.PropertyName
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.ServerTimestamp
@@ -14,37 +15,42 @@ import java.time.ZoneId
  */
 data class UniversalNotificationDto(
     @DocumentId
-    val id: String = "",
-    val title: String = "",
-    val message: String = "",
-    val type: String = "GENERAL",
+    var id: String = "",
+    var title: String = "",
+    var message: String = "",
+    var type: String = "GENERAL",
     @ServerTimestamp
-    val timestamp: Timestamp? = null,
-    val actionRoute: String? = null,
-    val department: String? = null,
-    val imageUrl: String? = null,
-    val isFromAdmin: Boolean = false,
+    var timestamp: Timestamp? = null,
+    var actionRoute: String? = null,
+    var department: String? = null,
+    var imageUrl: String? = null,
+    var isFromAdmin: Boolean = false,
     // Targeting - who should see this notification
-    val targetAudience: String = "ALL", // "ALL", "DEPARTMENT:{dept}", "USER:{userId}"
-    val priority: String = "NORMAL", // HIGH, NORMAL, LOW
-    val expiryTimestamp: Timestamp? = null,
-    val createdBy: String? = null, // Admin/system that created this
+    var targetAudience: String = "ALL", // "ALL", "DEPARTMENT:{dept}", "USER:{userId}"
+    var priority: String = "NORMAL", // HIGH, NORMAL, LOW
+    var expiryTimestamp: Timestamp? = null,
+    var createdBy: String? = null, // Admin/system that created this
     @ServerTimestamp
-    val createdAt: Timestamp? = null
+    var createdAt: Timestamp? = null
 )
 
 /**
  * User-specific notification state - tracks read/hidden status per user
  */
 data class UserNotificationStateDto(
-    @DocumentId
-    val notificationId: String = "",
-    val isRead: Boolean = false,
-    val isHidden: Boolean = false, // Soft delete
-    val readTimestamp: Timestamp? = null,
-    val hiddenTimestamp: Timestamp? = null,
+    @get:PropertyName("notificationId") @set:PropertyName("notificationId")
+    var notificationId: String = "",
+    @get:PropertyName("isRead") @set:PropertyName("isRead")
+    var isRead: Boolean = false,
+    @get:PropertyName("isHidden") @set:PropertyName("isHidden")
+    var isHidden: Boolean = false, // Soft delete
+    @get:PropertyName("readTimestamp") @set:PropertyName("readTimestamp")
+    var readTimestamp: Timestamp? = null,
+    @get:PropertyName("hiddenTimestamp") @set:PropertyName("hiddenTimestamp")
+    var hiddenTimestamp: Timestamp? = null,
     @ServerTimestamp
-    val lastModified: Timestamp? = null
+    @get:PropertyName("lastModified") @set:PropertyName("lastModified")
+    var lastModified: Timestamp? = null
 )
 
 /**
@@ -55,6 +61,8 @@ data class NotificationWithStateDto(
     val userState: UserNotificationStateDto?
 ) {
     fun toDomainModel(): Notification {
+        val isReadValue = userState?.isRead ?: false
+        
         return Notification(
             id = notification.id,
             title = notification.title,
@@ -66,7 +74,7 @@ data class NotificationWithStateDto(
             },
             timestamp = notification.timestamp?.toDate()?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalDateTime() 
                 ?: LocalDateTime.now(),
-            isRead = userState?.isRead ?: false,
+            isRead = isReadValue,
             actionRoute = notification.actionRoute,
             department = notification.department,
             imageUrl = notification.imageUrl,
