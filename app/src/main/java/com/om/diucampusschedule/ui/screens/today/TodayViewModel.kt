@@ -10,7 +10,7 @@ import com.om.diucampusschedule.core.service.CourseNameService
 import com.om.diucampusschedule.data.repository.NoticeRepository
 import com.om.diucampusschedule.data.repository.RoutineRepository
 import com.om.diucampusschedule.data.repository.TaskRepository
-import com.om.diucampusschedule.data.repository.NotificationRepository
+import com.om.diucampusschedule.data.repository.UniversalNotificationRepository
 import com.om.diucampusschedule.domain.model.Notice
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.Task
@@ -68,7 +68,7 @@ class TodayViewModel @Inject constructor(
     private val courseNameService: CourseNameService,
     private val taskRepository: TaskRepository,
     private val routineRepository: RoutineRepository,
-    private val notificationRepository: NotificationRepository,
+    private val universalNotificationRepository: UniversalNotificationRepository,
     private val classReminderScheduler: ClassReminderScheduler,
     private val widgetManager: WidgetManager,
     private val logger: AppLogger,
@@ -733,7 +733,7 @@ class TodayViewModel @Inject constructor(
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
                     val user = currentUser.getOrThrow()!!
                     
-                    notificationRepository.getUnreadCount(user.id)
+                    universalNotificationRepository.getUnreadCount(user.id)
                         .catch { exception ->
                             logger.error(TAG, "Failed to observe unread notification count", exception)
                         }

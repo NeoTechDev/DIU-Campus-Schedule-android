@@ -7,14 +7,10 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.core.notification.NotificationManager
-import com.om.diucampusschedule.core.work.SaveNotificationWorker
 import com.om.diucampusschedule.domain.usecase.routine.SyncRoutineUseCase
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
-import com.om.diucampusschedule.data.repository.NotificationRepository
+import com.om.diucampusschedule.data.repository.UniversalNotificationRepository
 import com.om.diucampusschedule.domain.model.NotificationType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.workDataOf
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +30,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
     lateinit var getCurrentUserUseCase: GetCurrentUserUseCase
 
     @Inject
-    lateinit var notificationRepository: NotificationRepository
+    lateinit var universalNotificationRepository: UniversalNotificationRepository
 
     @Inject
     lateinit var logger: AppLogger
@@ -52,9 +48,9 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         logger.debug(TAG, "FCM notification: ${remoteMessage.notification?.title} - ${remoteMessage.notification?.body}")
 
         try {
-            // PROFESSIONAL APPROACH: Always save notification to database first
-            // This ensures delivery regardless of app state (foreground/background/killed)
-            saveNotificationToDatabase(remoteMessage)
+            // FACEBOOK-STYLE APPROACH: Save notification to Firestore immediately
+            // This ensures instant delivery and real-time sync across all devices
+            saveFCMNotificationToFirestore(remoteMessage)
             
             // Then handle UI updates based on app state
             handleUIBasedOnAppState(remoteMessage)
@@ -65,47 +61,76 @@ class FirebaseMessagingService : FirebaseMessagingService() {
     }
     
     /**
-     * PROFESSIONAL: Save notification to database immediately
-     * This ensures persistence regardless of app state
+     * FACEBOOK-STYLE: Save FCM notification to Firestore for real-time sync
+     * This replaces the old Room DB + WorkManager approach
      */
-    private fun saveNotificationToDatabase(remoteMessage: RemoteMessage) {
-        // Extract notification data
-        val title = remoteMessage.notification?.title 
-            ?: remoteMessage.data["title"] 
-            ?: "DIU Campus Schedule"
-            
-        val message = remoteMessage.notification?.body 
-            ?: remoteMessage.data["message"] 
-            ?: remoteMessage.data["body"] 
-            ?: "You have a new notification"
-            
-        val messageType = remoteMessage.data["type"] ?: "general"
-        val actionRoute = remoteMessage.data["action_route"]
-        val department = remoteMessage.data["department"]
-        val imageUrl = remoteMessage.data["image_url"]
-        
-        // Determine notification type and admin status
-        val notificationType = when (messageType) {
-            "routine_update" -> NotificationType.ROUTINE_UPDATE
-            "maintenance" -> NotificationType.MAINTENANCE
-            "admin_message" -> NotificationType.ADMIN_MESSAGE
-            "class_reminder" -> NotificationType.GENERAL
-            else -> NotificationType.GENERAL
+    private fun saveFCMNotificationToFirestore(remoteMessage: RemoteMessage) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val currentUser = getCurrentUserUseCase()
+                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
+                    val user = currentUser.getOrThrow()!!
+                    
+                    // Extract notification data
+                    val title = remoteMessage.notification?.title 
+                        ?: remoteMessage.data["title"] 
+                        ?: "DIU Campus Schedule"
+                        
+                    val message = remoteMessage.notification?.body 
+                        ?: remoteMessage.data["message"] 
+                        ?: remoteMessage.data["body"] 
+                        ?: "You have a new notification"
+                        
+                    val messageType = remoteMessage.data["type"] ?: "general"
+                    val actionRoute = remoteMessage.data["action_route"]
+                    val department = remoteMessage.data["department"]
+                    val imageUrl = remoteMessage.data["image_url"]
+                    
+                    // Determine notification type and admin status
+                    val notificationType = when (messageType) {
+                        "routine_update" -> NotificationType.ROUTINE_UPDATE
+                        "maintenance" -> NotificationType.MAINTENANCE
+                        "admin_message" -> NotificationType.ADMIN_MESSAGE
+                        "class_reminder" -> NotificationType.GENERAL
+                        else -> NotificationType.GENERAL
+                    }
+                    val isFromAdmin = (messageType == "admin_message" || messageType == "maintenance" || messageType == "routine_update")
+                    
+                    // Determine target audience based on message data
+                    val targetAudience = when {
+                        department != null -> "DEPARTMENT:$department"
+                        messageType == "maintenance" || messageType == "admin_message" -> "ALL"
+                        remoteMessage.data["target_user"] != null -> "USER:${remoteMessage.data["target_user"]}"
+                        else -> "ALL"
+                    }
+                    
+                    logger.info(TAG, "Saving FCM notification to Firestore - Type: $messageType, Title: $title, Target: $targetAudience")
+                    
+                    // Save to universal Firestore (storage efficient)
+                    val result = universalNotificationRepository.insertNotificationFromFCM(
+                        title = title,
+                        message = message,
+                        type = notificationType,
+                        targetAudience = targetAudience,
+                        actionRoute = actionRoute,
+                        department = department,
+                        imageUrl = imageUrl,
+                        isFromAdmin = isFromAdmin,
+                        createdBy = "FCM_SYSTEM"
+                    )
+                    
+                    if (result.isSuccess) {
+                        logger.info(TAG, "FCM notification saved to universal Firestore successfully with target: $targetAudience")
+                    } else {
+                        logger.error(TAG, "Failed to save FCM notification to universal Firestore", result.exceptionOrNull())
+                    }
+                } else {
+                    logger.warning(TAG, "User not authenticated - FCM notification not saved")
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Error saving FCM notification to Firestore", e)
+            }
         }
-        val isFromAdmin = (messageType == "admin_message" || messageType == "maintenance" || messageType == "routine_update")
-        
-        logger.info(TAG, "Saving FCM notification to database - Type: $messageType, Title: $title")
-        
-        // Use WorkManager for guaranteed background execution (Google's recommended approach)
-        scheduleNotificationSave(
-            title = title,
-            message = message,
-            type = notificationType,
-            actionRoute = actionRoute,
-            department = department,
-            imageUrl = imageUrl,
-            isFromAdmin = isFromAdmin
-        )
     }
     
     /**
@@ -206,34 +231,13 @@ class FirebaseMessagingService : FirebaseMessagingService() {
     }
 
     /**
-     * PROFESSIONAL: Enhanced WorkManager scheduling with better error handling
+     * Get unique device identifier for Firestore notification tracking
      */
-    private fun scheduleNotificationSave(
-        title: String,
-        message: String,
-        type: NotificationType,
-        actionRoute: String? = null,
-        department: String? = null,
-        imageUrl: String? = null,
-        isFromAdmin: Boolean = false
-    ) {
-        val workData = workDataOf(
-            SaveNotificationWorker.KEY_TITLE to title,
-            SaveNotificationWorker.KEY_MESSAGE to message,
-            SaveNotificationWorker.KEY_TYPE to type.name,
-            SaveNotificationWorker.KEY_ACTION_ROUTE to actionRoute,
-            SaveNotificationWorker.KEY_DEPARTMENT to department,
-            SaveNotificationWorker.KEY_IMAGE_URL to imageUrl,
-            SaveNotificationWorker.KEY_IS_FROM_ADMIN to isFromAdmin
-        )
-
-        val workRequest = OneTimeWorkRequestBuilder<SaveNotificationWorker>()
-            .setInputData(workData)
-            .addTag("fcm_notification_save")
-            .build()
-
-        WorkManager.getInstance(this).enqueue(workRequest)
-        logger.info(TAG, "Scheduled background notification save via WorkManager: $title")
+    private fun getUniqueDeviceId(): String {
+        return android.provider.Settings.Secure.getString(
+            contentResolver,
+            android.provider.Settings.Secure.ANDROID_ID
+        ) ?: "unknown_device"
     }
 
     override fun onNewToken(token: String) {

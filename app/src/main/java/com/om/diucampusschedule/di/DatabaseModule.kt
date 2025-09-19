@@ -7,7 +7,6 @@ import com.om.diucampusschedule.data.local.dao.RoutineDao
 import com.om.diucampusschedule.data.local.dao.UserDao
 import com.om.diucampusschedule.data.local.dao.TaskDao
 import com.om.diucampusschedule.data.local.dao.TaskGroupDao
-import com.om.diucampusschedule.data.local.dao.NotificationDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -49,10 +48,5 @@ object DatabaseModule {
     @Provides
     fun provideTaskGroupDao(database: AppDatabase): TaskGroupDao {
         return database.taskGroupDao()
-    }
-
-    @Provides
-    fun provideNotificationDao(database: AppDatabase): NotificationDao {
-        return database.notificationDao()
     }
 }

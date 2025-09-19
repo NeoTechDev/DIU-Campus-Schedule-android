@@ -2,11 +2,9 @@ package com.om.diucampusschedule.ui.screens.notices
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.om.diucampusschedule.core.events.NotificationEventBroadcaster
-import com.om.diucampusschedule.core.events.NotificationEvent
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.data.repository.NoticeRepository
-import com.om.diucampusschedule.data.repository.NotificationRepository
+import com.om.diucampusschedule.data.repository.UniversalNotificationRepository
 import com.om.diucampusschedule.domain.model.Notice
 import com.om.diucampusschedule.domain.model.Notification
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
@@ -15,15 +13,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class NoticesViewModel @Inject constructor(
-    private val notificationRepository: NotificationRepository,
+    private val universalNotificationRepository: UniversalNotificationRepository, // New universal system
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
-    private val notificationEventBroadcaster: NotificationEventBroadcaster,
     private val logger: AppLogger
 ) : ViewModel() {
 
@@ -47,60 +43,14 @@ class NoticesViewModel @Inject constructor(
     val isNoticesLoading: StateFlow<Boolean> = _isNoticesLoading
 
     init {
-        // PROFESSIONAL APPROACH: Start real-time observation immediately
+        // FACEBOOK-STYLE APPROACH: Start real-time observation immediately
         startObservingNotifications()
         startObservingUnreadCount()
-        startObservingNotificationEvents() // PROFESSIONAL: Listen to real-time events
         cleanupOldNotifications() // Automatically cleanup old notifications on startup
     }
 
     /**
-     * PROFESSIONAL: Listen to real-time notification events
-     * This provides instant feedback when notifications are received/read/deleted
-     * Similar to how WhatsApp, Telegram handle real-time updates
-     */
-    private fun startObservingNotificationEvents() {
-        viewModelScope.launch {
-            try {
-                val currentUser = getCurrentUserUseCase()
-                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
-                    val user = currentUser.getOrThrow()!!
-                    
-                    logger.debug(TAG, "Starting real-time notification event observation for user: ${user.id}")
-                    
-                    notificationEventBroadcaster.notificationEvents
-                        .collect { event ->
-                            when (event) {
-                                is NotificationEvent.NotificationReceived -> {
-                                    if (event.userId == user.id) {
-                                        logger.info(TAG, "🔔 Real-time notification event: ${event.title}")
-                                        // The database flow will automatically update the UI
-                                        // This provides immediate visual feedback
-                                    }
-                                }
-                                is NotificationEvent.NotificationRead -> {
-                                    if (event.userId == user.id) {
-                                        logger.debug(TAG, "📖 Notification marked as read: ${event.notificationId}")
-                                    }
-                                }
-                                is NotificationEvent.NotificationDeleted -> {
-                                    if (event.userId == user.id) {
-                                        logger.debug(TAG, "🗑️ Notification deleted: ${event.notificationId}")
-                                    }
-                                }
-                            }
-                        }
-                } else {
-                    logger.warning(TAG, "User not authenticated - cannot observe notification events")
-                }
-            } catch (e: Exception) {
-                logger.error(TAG, "Failed to observe notification events", e)
-            }
-        }
-    }
-
-    /**
-     * PROFESSIONAL: Continuous real-time observation of notifications
+     * FACEBOOK-STYLE: Continuous real-time observation of notifications
      * This ensures instant UI updates when notifications arrive via FCM
      */
     private fun startObservingNotifications() {
@@ -114,8 +64,8 @@ class NoticesViewModel @Inject constructor(
                     
                     _isNotificationsLoading.value = true
                     
-                    // PROFESSIONAL: Continuous Flow observation (never terminates)
-                    notificationRepository.getAllNotifications(user.id)
+                    // FACEBOOK-STYLE: Continuous Flow observation (never terminates)
+                    universalNotificationRepository.getAllNotifications(user.id)
                         .catch { exception ->
                             logger.error(TAG, "Failed to observe notifications", exception)
                             _isNotificationsLoading.value = false
@@ -140,7 +90,7 @@ class NoticesViewModel @Inject constructor(
     }
 
     /**
-     * PROFESSIONAL: Real-time unread count observation
+     * FACEBOOK-STYLE: Real-time unread count observation
      */
     private fun startObservingUnreadCount() {
         viewModelScope.launch {
@@ -149,7 +99,7 @@ class NoticesViewModel @Inject constructor(
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
                     val user = currentUser.getOrThrow()!!
                     
-                    notificationRepository.getUnreadCount(user.id)
+                    universalNotificationRepository.getUnreadCount(user.id)
                         .catch { exception ->
                             logger.error(TAG, "Failed to observe unread count", exception)
                         }
@@ -181,12 +131,19 @@ class NoticesViewModel @Inject constructor(
     fun markAsRead(notificationId: String) {
         viewModelScope.launch {
             try {
-                val result = notificationRepository.markAsRead(notificationId)
-                if (result.isSuccess) {
-                    logger.debug(TAG, "Notification marked as read: $notificationId")
-                    // The flow will automatically update the UI
+                val currentUser = getCurrentUserUseCase()
+                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
+                    val user = currentUser.getOrThrow()!!
+                    
+                    val result = universalNotificationRepository.markAsRead(user.id, notificationId)
+                    if (result.isSuccess) {
+                        logger.debug(TAG, "Notification marked as read: $notificationId")
+                        // The flow will automatically update the UI
+                    } else {
+                        logger.error(TAG, "Failed to mark notification as read: $notificationId", result.exceptionOrNull())
+                    }
                 } else {
-                    logger.error(TAG, "Failed to mark notification as read: $notificationId", result.exceptionOrNull())
+                    logger.error(TAG, "User not authenticated - cannot mark notification as read")
                 }
             } catch (e: Exception) {
                 logger.error(TAG, "Failed to mark notification as read: $notificationId", e)
@@ -197,11 +154,18 @@ class NoticesViewModel @Inject constructor(
     fun cleanupOldNotifications() {
         viewModelScope.launch {
             try {
-                val result = notificationRepository.cleanupOldNotifications(120) // Keep 4 months
-                if (result.isSuccess) {
-                    logger.debug(TAG, "Old notifications cleaned up")
+                val currentUser = getCurrentUserUseCase()
+                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
+                    val user = currentUser.getOrThrow()!!
+                    
+                    val result = universalNotificationRepository.cleanupOldNotifications(120) // Keep 4 months
+                    if (result.isSuccess) {
+                        logger.debug(TAG, "Old notifications cleaned up")
+                    } else {
+                        logger.error(TAG, "Failed to cleanup old notifications", result.exceptionOrNull())
+                    }
                 } else {
-                    logger.error(TAG, "Failed to cleanup old notifications", result.exceptionOrNull())
+                    logger.error(TAG, "User not authenticated - cannot cleanup notifications")
                 }
             } catch (e: Exception) {
                 logger.error(TAG, "Failed to cleanup old notifications", e)
@@ -212,14 +176,21 @@ class NoticesViewModel @Inject constructor(
     fun deleteNotification(notificationId: String) {
         viewModelScope.launch {
             try {
-                val result = notificationRepository.deleteNotification(notificationId)
-                if (result.isSuccess) {
-                    logger.debug(TAG, "Notification deleted: $notificationId")
+                val currentUser = getCurrentUserUseCase()
+                if (currentUser.isSuccess && currentUser.getOrNull() != null) {
+                    val user = currentUser.getOrThrow()!!
+                    
+                    val result = universalNotificationRepository.hideNotification(user.id, notificationId)
+                    if (result.isSuccess) {
+                        logger.debug(TAG, "Notification hidden: $notificationId")
+                    } else {
+                        logger.error(TAG, "Failed to hide notification: $notificationId", result.exceptionOrNull())
+                    }
                 } else {
-                    logger.error(TAG, "Failed to delete notification: $notificationId", result.exceptionOrNull())
+                    logger.error(TAG, "User not authenticated - cannot hide notification")
                 }
             } catch (e: Exception) {
-                logger.error(TAG, "Failed to delete notification: $notificationId", e)
+                logger.error(TAG, "Failed to hide notification: $notificationId", e)
             }
         }
     }
@@ -231,19 +202,18 @@ class NoticesViewModel @Inject constructor(
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
                     val user = currentUser.getOrThrow()!!
                     
-                    val result = notificationRepository.deleteAllUserNotifications(user.id)
+                    val result = universalNotificationRepository.hideAllNotifications(user.id)
                     if (result.isSuccess) {
-                        logger.debug(TAG, "All notifications deleted for user: ${user.id}")
-                        loadNotifications() // Refresh the notifications list
-                        loadUnreadCount() // Refresh the unread count
+                        logger.debug(TAG, "All notifications hidden for user: ${user.id}")
+                        // Real-time updates will automatically refresh the UI
                     } else {
-                        logger.error(TAG, "Failed to delete all notifications", result.exceptionOrNull())
+                        logger.error(TAG, "Failed to hide all notifications", result.exceptionOrNull())
                     }
                 } else {
-                    logger.error(TAG, "User not authenticated - cannot delete notifications")
+                    logger.error(TAG, "User not authenticated - cannot hide notifications")
                 }
             } catch (e: Exception) {
-                logger.error(TAG, "Failed to delete all notifications", e)
+                logger.error(TAG, "Failed to hide all notifications", e)
             }
         }
     }
@@ -255,10 +225,10 @@ class NoticesViewModel @Inject constructor(
                 if (currentUser.isSuccess && currentUser.getOrNull() != null) {
                     val user = currentUser.getOrThrow()!!
                     
-                    val result = notificationRepository.markAllAsRead(user.id)
+                    val result = universalNotificationRepository.markAllAsRead(user.id)
                     if (result.isSuccess) {
                         logger.debug(TAG, "All notifications marked as read")
-                        loadUnreadCount() // Refresh the unread count
+                        // Real-time updates will automatically refresh the UI
                     } else {
                         logger.error(TAG, "Failed to mark all notifications as read", result.exceptionOrNull())
                     }
@@ -298,32 +268,35 @@ class NoticesViewModel @Inject constructor(
                     val user = currentUser.getOrThrow()!!
                     
                     // Add test admin notification
-                    notificationRepository.insertNotificationFromFCM(
+                    universalNotificationRepository.insertNotificationFromFCM(
                         title = "Test Admin Message",
                         message = "This is a test admin notification to verify the system works properly",
                         type = com.om.diucampusschedule.domain.model.NotificationType.ADMIN_MESSAGE,
-                        userId = user.id,
+                        targetAudience = "ALL",
                         department = "CSE",
-                        isFromAdmin = true
+                        isFromAdmin = true,
+                        createdBy = user.id
                     )
                     
                     // Add test routine update notification
-                    notificationRepository.insertNotificationFromFCM(
+                    universalNotificationRepository.insertNotificationFromFCM(
                         title = "Schedule Updated",
                         message = "Your class schedule has been updated for tomorrow",
                         type = com.om.diucampusschedule.domain.model.NotificationType.ROUTINE_UPDATE,
-                        userId = user.id,
+                        targetAudience = "DEPARTMENT:CSE",
                         actionRoute = "routine",
-                        isFromAdmin = false
+                        isFromAdmin = false,
+                        createdBy = user.id
                     )
                     
                     // Add test general notification
-                    notificationRepository.insertNotificationFromFCM(
+                    universalNotificationRepository.insertNotificationFromFCM(
                         title = "General Notice",
                         message = "This is a general notification for testing purposes",
                         type = com.om.diucampusschedule.domain.model.NotificationType.GENERAL,
-                        userId = user.id,
-                        isFromAdmin = false
+                        targetAudience = "ALL",
+                        isFromAdmin = false,
+                        createdBy = user.id
                     )
                     
                     logger.info(TAG, "Test notifications added successfully")
