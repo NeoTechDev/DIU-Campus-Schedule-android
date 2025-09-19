@@ -16,16 +16,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -36,8 +40,8 @@ import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.screens.tasks.TaskCard
-import com.om.diucampusschedule.ui.viewmodel.ClassStatus
 import com.om.diucampusschedule.ui.utils.TimeFormatterUtils
+import com.om.diucampusschedule.ui.viewmodel.ClassStatus
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -72,7 +76,8 @@ fun TodayRoutineContent(
     isMaintenanceMode: Boolean = false,
     maintenanceMessage: String? = null,
     isSemesterBreak: Boolean = false,
-    updateType: String? = null
+    updateType: String? = null,
+    selectedDate: LocalDate
 ) {
     // Only show loading if we haven't loaded once and are currently loading
     val shouldShowLoading = isLoading && !hasLoadedOnce
@@ -92,7 +97,9 @@ fun TodayRoutineContent(
             NoContentToday(
                 noContentImage = noContentImage,
                 message = noScheduleMessages,
-                subMessage = noScheduleSubMessage
+                subMessage = noScheduleSubMessage,
+                selectedDate = selectedDate,
+                user = currentUser
             )
         }
     } else {
@@ -299,7 +306,9 @@ private fun LoadingContent() {
 private fun NoContentToday(
     noContentImage: Painter,
     message: String? = null,
-    subMessage: String? = null
+    subMessage: String? = null,
+    selectedDate: LocalDate,
+    user: User?
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -313,11 +322,30 @@ private fun NoContentToday(
             verticalArrangement = Arrangement.Center
         ) {
 
-            Image(
-                painter = noContentImage,
-                contentDescription = "No Schedule",
-                modifier = Modifier.size(180.dp)
-            )
+           if(user?.role == UserRole.STUDENT){
+               // Get random meme for students - changes every time app opens
+               val memeData = remember { getRandomMeme(selectedDate) }
+
+               Card(
+                   modifier = Modifier.size(250.dp),
+                   shape = RoundedCornerShape(20.dp),
+                   colors = CardDefaults.cardColors(
+                       containerColor = MaterialTheme.colorScheme.surface
+                   ),
+               ){
+                   Image(
+                       painter = painterResource(id = memeData.imageRes),
+                       contentDescription = memeData.description,
+                       modifier = Modifier.size(250.dp)
+                   )
+               }
+           } else @Composable {
+               Image(
+                   painter = noContentImage,
+                   contentDescription = "No Schedule",
+                   modifier = Modifier.size(180.dp)
+               )
+           }
 
             Spacer(modifier = Modifier.height(24.dp))
 

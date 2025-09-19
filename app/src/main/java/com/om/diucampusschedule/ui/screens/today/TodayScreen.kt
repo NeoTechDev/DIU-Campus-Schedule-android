@@ -84,7 +84,6 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.om.diucampusschedule.R
-import com.om.diucampusschedule.domain.model.Notice
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.components.AddTaskBottomSheet
@@ -328,7 +327,8 @@ fun TodayScreen(
                             isMaintenanceMode = animatedTodayState.isMaintenanceMode,
                             maintenanceMessage = animatedTodayState.maintenanceMessage,
                             isSemesterBreak = animatedTodayState.isSemesterBreak,
-                            updateType = animatedTodayState.updateType
+                            updateType = animatedTodayState.updateType,
+                            selectedDate = animatedDate
                         )
                     }
                 }
