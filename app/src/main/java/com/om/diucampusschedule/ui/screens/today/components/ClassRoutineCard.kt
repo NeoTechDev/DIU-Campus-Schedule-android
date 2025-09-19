@@ -46,7 +46,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -660,6 +662,8 @@ fun BreakTimeCard(
     // Check if break is currently ongoing
     val isOngoing = isToday && isBreakTimeOngoing(startTime, endTime)
 
+    val isPrayerTime = startTime == LocalTime.parse("13:00") && endTime == LocalTime.parse("14:30")
+
     // Create pulsating animation for the Now tag
     val infiniteTransition = rememberInfiniteTransition(label = "nowTag")
     val tagAnimation = infiniteTransition.animateFloat(
@@ -692,7 +696,7 @@ fun BreakTimeCard(
                     .width(70.dp)
                     .height(90.dp)
                     .background(
-                        color = BreakBackgroundColor,
+                        color = if(isPrayerTime) Color(0xFF102C57) else BreakBackgroundColor,
                         shape = RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp)
                     )
             ) {
@@ -786,7 +790,7 @@ fun BreakTimeCard(
                     .weight(1f)
                     .height(90.dp)
                     .background(
-                        BreakBackgroundColor,
+                        if(isPrayerTime) Color(0xFF102C57) else BreakBackgroundColor,
                         RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp)
                     )
             ) {
@@ -808,7 +812,7 @@ fun BreakTimeCard(
                             enter = fadeIn(animationSpec = tween(300))
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Coffee,
+                                imageVector = if(isPrayerTime) ImageVector.vectorResource(id = R.drawable.mosque_24) else Icons.Outlined.Coffee,
                                 contentDescription = "Break Icon",
                                 tint = BreakTextColor,
                                 modifier = Modifier.size(32.dp)
@@ -828,7 +832,7 @@ fun BreakTimeCard(
                                 )
                             ) {
                                 Text(
-                                    text = breakText.uppercase(),
+                                    text = if(isPrayerTime) "PRAYER TIME" else breakText.uppercase(),
                                     style = MaterialTheme.typography.titleSmall.copy(
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 16.sp,
@@ -840,22 +844,24 @@ fun BreakTimeCard(
                             }
 
                             // Sub-text
-                            AnimatedVisibility(
-                                visible = visible,
-                                enter = fadeIn(animationSpec = tween(300, delayMillis = 100))
-                            ) {
-                                Text(
-                                    text = subText,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 14.sp,
-                                        fontFamily = customFontFamily()
-                                    ),
-                                    lineHeight = 14.sp,
-                                    color = BreakTextColor.copy(alpha = 0.7f),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                            if(!isPrayerTime){
+                                AnimatedVisibility(
+                                    visible = visible,
+                                    enter = fadeIn(animationSpec = tween(300, delayMillis = 100))
+                                ) {
+                                    Text(
+                                        text = subText,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 14.sp,
+                                            fontFamily = customFontFamily()
+                                        ),
+                                        lineHeight = 14.sp,
+                                        color = BreakTextColor.copy(alpha = 0.7f),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                     }
