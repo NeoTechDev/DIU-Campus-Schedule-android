@@ -721,7 +721,7 @@ fun RoomCard(roomNumber: String, modifier: Modifier = Modifier) {
                 val firstLine: String? = when (normalizedRoom) {
                     "601" -> "(DS Lab)"
                     "613" -> "(Robotics Lab)"
-                    "614" -> "(Cyber Security Lab)"
+                    "614" -> "(CS Lab)"
                     else -> if (labRooms.contains(normalizedRoom)) "(Lab Room)" else null
                 }
                 val isAb3 = normalizedRoom.contains("AB3")
@@ -943,12 +943,52 @@ fun RoomSearchResults(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column {
-                    Text(
-                        text = "Room $roomNumber",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = "Room - $roomNumber",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        // Lab info and building info - medium size
+                        val normalizedRoom = roomNumber.trim().uppercase()
+
+                        val labRooms = setOf(
+                            "610", "616", "710", "711A", "711B", "814A", "903",
+                            "AB3-104", "AB3-106", "AB3-107"
+                        )
+                        val firstLine: String? = when (normalizedRoom) {
+                            "601" -> "(DS Lab)"
+                            "613" -> "(Robotics Lab)"
+                            "614" -> "(CS Lab)"
+                            else -> if (labRooms.contains(normalizedRoom)) "(LAB)" else null
+                        }
+
+                        if (firstLine != null) {
+                            // Balanced sizing for smooth visual flow
+                            val bodyMediumSize = MaterialTheme.typography.bodyMedium.fontSize
+
+                            val annotated = buildAnnotatedString {
+                                withStyle(
+                                    SpanStyle(
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = bodyMediumSize // Medium size for better flow
+                                    )
+                                ) {
+                                    append(firstLine)
+                                }
+                            }
+
+                            Text(
+                                text = annotated,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                lineHeight = 16.sp // Tight line height for compact look
+                            )
+                        }
+                    }
 
                     Text(
                         text = if (availability.isNotEmpty())
