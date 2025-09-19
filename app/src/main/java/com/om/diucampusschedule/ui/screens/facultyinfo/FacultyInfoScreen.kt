@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -132,7 +133,7 @@ fun FacultyInfoScreen(
         enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic))
     ) {
         Scaffold(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding(), // Add navigation bar padding to prevent overlap
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(

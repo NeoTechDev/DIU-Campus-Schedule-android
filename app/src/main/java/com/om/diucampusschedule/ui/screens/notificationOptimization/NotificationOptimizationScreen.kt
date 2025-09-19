@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.om.diucampusschedule.R
+import com.om.diucampusschedule.ui.utils.ScreenConfig
+import com.om.diucampusschedule.ui.utils.ScreenConfig.withTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +55,9 @@ fun NotificationOptimizationScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .navigationBarsPadding() // Add navigation bar padding to prevent overlap
             .background(MaterialTheme.colorScheme.background)
+            .run { ScreenConfig.run { withTopAppBar() } }
     ) {
         // Material You style top bar
         CenterAlignedTopAppBar(
@@ -71,7 +76,8 @@ fun NotificationOptimizationScreen(
             },
             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                 containerColor = MaterialTheme.colorScheme.surface
-            )
+            ),
+            windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true)
         )
         HorizontalDivider(
             thickness = 1.dp,
