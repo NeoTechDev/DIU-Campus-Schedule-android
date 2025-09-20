@@ -1,5 +1,6 @@
 package com.om.diucampusschedule.ui.screens.notices
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,7 +51,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -381,8 +385,10 @@ fun CompactNotificationCard(
     onClick: () -> Unit,
     onDelete: () -> Unit = {}
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
+
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = if (notification.isRead)
             MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
         else
@@ -398,8 +404,12 @@ fun CompactNotificationCard(
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() }
+            .clip(RoundedCornerShape(20.dp))
+            .clickable {
+                isExpanded = !isExpanded
+                onClick()
+            }
+            .animateContentSize()
     ) {
         Row(
             modifier = Modifier
@@ -492,9 +502,7 @@ fun CompactNotificationCard(
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f) // Slightly dimmed for read
                     else
                         MaterialTheme.colorScheme.onSurface, // Full opacity for unread
-                    fontWeight = if (notification.isRead) FontWeight.Medium else FontWeight.Bold, // Bold for unread
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    fontWeight = if (notification.isRead) FontWeight.Medium else FontWeight.Bold
                 )
                 Text(
                     text = notification.message,
@@ -503,6 +511,8 @@ fun CompactNotificationCard(
                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f) // More dimmed for read
                     else
                         MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (isExpanded) Int.MAX_VALUE else 2,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp)
                 )
                 Row(
@@ -576,12 +586,12 @@ fun CompactNoticeCard(
     onClick: () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .clickable { onClick() }
     ) {
         Row(

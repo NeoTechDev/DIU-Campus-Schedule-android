@@ -670,12 +670,7 @@ fun BreakTimeCard(
     val isPrayerTime = startTime == LocalTime.parse("13:00") && endTime == LocalTime.parse("14:30")
 
     // Prayer-specific colors
-    val prayerTextColor = Color.White
-    val prayerTextShadow = Shadow(
-        color = Color.Black.copy(alpha = 0.6f),
-        offset = Offset(1f, 1f),
-        blurRadius = 2f
-    )
+    val prayerTextColor = Color.White.copy(alpha = 0.9f)
 
     // Create pulsating animation for the Now tag
     val infiniteTransition = rememberInfiniteTransition(label = "nowTag")
@@ -749,8 +744,7 @@ fun BreakTimeCard(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if(isPrayerTime) prayerTextColor else Color.White.copy(alpha = 0.95f),
-                                fontFamily = customFontFamily(),
-                                shadow = if(isPrayerTime) prayerTextShadow else null
+                                fontFamily = customFontFamily()
                             ),
                             textAlign = TextAlign.Start,
                             lineHeight = 14.sp,
@@ -794,8 +788,7 @@ fun BreakTimeCard(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if(isPrayerTime) prayerTextColor else Color.White.copy(alpha = 0.95f),
-                                fontFamily = customFontFamily(),
-                                shadow = if(isPrayerTime) prayerTextShadow else null
+                                fontFamily = customFontFamily()
                             ),
                             lineHeight = 14.sp,
                             letterSpacing = (-0.5).sp,
@@ -871,8 +864,7 @@ fun BreakTimeCard(
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 16.sp,
                                         letterSpacing = 0.5.sp,
-                                        fontFamily = customFontFamily(),
-                                        shadow = if(isPrayerTime) prayerTextShadow else null
+                                        fontFamily = customFontFamily()
                                     ),
                                     color = if (isPrayerTime && prayerBackgroundImage != null) prayerTextColor else BreakTextColor
                                 )
@@ -920,12 +912,11 @@ fun BreakTimeCard(
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 10.sp,
-                                fontFamily = customFontFamily(),
-                                shadow = if(isPrayerTime) prayerTextShadow else null
+                                fontFamily = customFontFamily()
                             ),
                             lineHeight = 10.sp,
                             textAlign = TextAlign.Center,
-                            color = if (isPrayerTime && prayerBackgroundImage != null) Color.White else BreakTextColor,
+                            color = if (isPrayerTime && prayerBackgroundImage != null) prayerTextColor else BreakTextColor,
                             modifier = Modifier
                                 .background(
                                     color = if(isPrayerTime) Color.Black.copy(alpha = 0.2f) else BreakTextColor.copy(alpha = 0.2f),
