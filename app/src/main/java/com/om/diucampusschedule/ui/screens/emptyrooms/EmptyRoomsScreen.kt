@@ -43,6 +43,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Room
@@ -357,6 +358,12 @@ fun EmptyRoomsScreen() {
                                 isSearchMode = true
                                 showSearchSuggestions = false
                             },
+                            onBackClick = if (isSearchMode) {
+                                {
+                                    isSearchMode = false
+                                    showSearchSuggestions = false
+                                }
+                            } else null,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -775,12 +782,14 @@ fun RoomSearchBar(
     onSearch: () -> Unit,
     suggestions: List<String>,
     onSuggestionClick: (String) -> Unit,
+    onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
     Box(
+        modifier = modifier
     ) {
         Surface(
             modifier = Modifier
@@ -805,12 +814,23 @@ fun RoomSearchBar(
                     )
                 },
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search Icon",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    if (onBackClick != null) {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search Icon",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 },
                 trailingIcon = {
                     AnimatedVisibility(
