@@ -92,14 +92,14 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -316,13 +316,13 @@ fun EmptyRoomsScreen() {
                 ) {
                     Column {
                         // Search section title
-                        Text(
+                        /*Text(
                             text = "Search an empty room",
                             fontWeight = FontWeight.Medium,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 2.dp)
-                        )
+                        )*/
 
                         RoomSearchBar(
                             query = searchQuery,
@@ -407,7 +407,7 @@ fun EmptyRoomsScreen() {
                             Column {
                                 // Day selector - horizontal pills
                                 Text(
-                                    text = "See Available Rooms by Day and Time",
+                                    text = "Search by Day and Time",
                                     fontWeight = FontWeight.Medium,
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -781,12 +781,10 @@ fun RoomSearchBar(
     val focusManager = LocalFocusManager.current
 
     Box(
-        modifier = modifier.padding(vertical = 4.dp)
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp)
                 .shadow(
                     elevation = 8.dp,
                     shape = RoundedCornerShape(24.dp),
