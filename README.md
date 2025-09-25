@@ -344,14 +344,14 @@ For bug reports and feature requests, please use our [issue tracker](https://git
 <td align="center">
 <img src="https://github.com/user-attachments/assets/179d7df8-a527-491b-ba7e-789c1ad2e218" width="100px;" alt="Ismam Hasan Ovi"/><br />
 <sub><b>Ismam Hasan Ovi</b></sub><br />
-<sub>Lead Developer & Architect</sub><br />
+<sub>Lead Developer, Architect & Designer</sub><br />
 <sub>BSc in Software Engineering</sub><br />
 <sub>6th Semester, DIU</sub>
 </td>
 <td align="center">
 <img src="https://github.com/user-attachments/assets/32a2016b-e7fe-49ac-987d-e047e533e586" width="100px;" alt="Maruf Rayhan"/><br />
 <sub><b>Maruf Rayhan</b></sub><br />
-<sub>Co-Developer & Designer</sub><br />
+<sub>Co-Developer</sub><br />
 <sub>BSc in Software Engineering</sub><br />
 <sub>6th Semester, DIU</sub>
 </td>
