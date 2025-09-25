@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![DIU Campus Schedule Banner](https://github.com/user-attachments/assets/d326ad72-e9fc-4ffa-a621-6f4402ce1f19)
+![DIU Campus Schedule Banner](https://github.com/user-attachments/assets/ccd0afd9-facf-41a1-ab2e-83dd56e1ea72)
 
 [![Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg)](https://kotlinlang.org)
@@ -46,12 +46,12 @@ DIU Campus Schedule is a feature-rich Android application designed to streamline
 
 - **Today's Schedule**: Clean, organized view of daily classes with live status indicators
 - **Calendar Navigation**: Quick date selection with bottom sheet interface
-- **Quick Access Bar**: Direct shortcuts to frequently used features
-- **Smart Notifications**: Automatic reminders 30 minutes before classes
+- **Find Course**: Find course details easily
+- **Users Notifications**: Real-Time facebook styled notifications
 
-| Today's Schedule | No Schedule | Calendar Navigation | Quick Access Bar |
-|------------------|-------------|---------------------|------------------|
-| ![Today](https://github.com/user-attachments/assets/d326ad72-e9fc-4ffa-a621-6f4402ce1f19) | ![No Schedule](https://github.com/user-attachments/assets/53ed35d8-c9e1-4bf7-abea-ce6516597f51) | ![Calendar](https://github.com/user-attachments/assets/ba0fe492-5137-4ab2-b13f-845a68dd4082) | ![Quick Access](https://github.com/user-attachments/assets/655e540f-b516-48d7-9f06-1f6535270526) |
+| Today's Schedule | No Schedule | Calendar Navigation | Users Notifications | Find Course |
+|------------------|-------------|---------------------|---------------------|-------------|
+| ![Today](https://github.com/user-attachments/assets/a66923ea-4f5e-4d9e-bed2-2a7034802638) | ![No Schedule](https://github.com/user-attachments/assets/171451a3-edf9-4737-b66b-d4548cbc460d) | ![Calendar](https://github.com/user-attachments/assets/059cb25b-75f9-44bb-8907-30d9318f792c) | ![Users Notifications](https://github.com/user-attachments/assets/2e603d8f-b870-476c-802c-ce7e25888b51) | ![Find Course](https://github.com/user-attachments/assets/186b6c47-b911-4f5c-9313-4ab17c77a7d4) |
 
 </details>
 
@@ -80,7 +80,7 @@ DIU Campus Schedule is a feature-rich Android application designed to streamline
 
 | Task Management | Add New Task |
 |----------------|--------------|
-| ![Tasks](https://github.com/user-attachments/assets/2b0d06b4-39e1-4539-8486-14b6591370ae) | ![Add Task](https://github.com/user-attachments/assets/981e149d-3bf8-4301-9462-65dc65a4ad43) |
+| ![Tasks](https://github.com/user-attachments/assets/348465d2-1552-407f-8b99-74c03f88f2c7) | ![Add Task](https://github.com/user-attachments/assets/be191b4a-30fb-4b63-87e6-cf98e7390f0b) |
 
 </details>
 
@@ -94,7 +94,7 @@ DIU Campus Schedule is a feature-rich Android application designed to streamline
 
 | Notes Overview | Note Editor |
 |---------------|-------------|
-| ![Notes](https://github.com/user-attachments/assets/d3897bef-65d9-410b-8aa1-a60809deb2ed) | ![Editor](https://github.com/user-attachments/assets/56512dc1-91ce-4740-a053-27f234f81d33) |
+| ![Notes](https://github.com/user-attachments/assets/dcb90779-e2eb-4082-8cd3-331b32a76987) | ![Editor](https://github.com/user-attachments/assets/809db73a-713c-4807-89d3-dc449fcbe93c) |
 
 </details>
 
@@ -106,17 +106,13 @@ DIU Campus Schedule is a feature-rich Android application designed to streamline
 - **Customizable Settings**: Personalized experience for each user
 - **Secure Authentication**: Firebase Auth integration
 
-| Welcome Screen | Student Login | Teacher Login |
+| Welcome Screen | Sign In | Sign Up |
 |---------------|---------------|---------------|
-| ![Welcome](https://github.com/user-attachments/assets/66c01792-5d32-401e-b3ab-3c37b862cf44) | ![Student Login](https://github.com/user-attachments/assets/eb12ed18-dce2-483e-8743-c25e75a2c771) | ![Teacher Login](https://github.com/user-attachments/assets/a1bb1d11-e902-4286-b10d-e7949263bfd1) |
+| ![Welcome](https://github.com/user-attachments/assets/ddb1bf3a-a9b4-455d-aa49-036337d71628) | ![Sign In](https://github.com/user-attachments/assets/6d19a0f4-ec47-4ba4-9134-7694fd13b329) | ![Sign Up](https://github.com/user-attachments/assets/425875de-1ac0-4a3e-b8f9-839e8e88f30e) |
 
-| Student Profile | Teacher Profile |
-|----------------|-----------------|
-| ![Student Profile](https://github.com/user-attachments/assets/26df1b60-0f41-49ed-b2b1-6bd0ff8a98df) | ![Teacher Profile](https://github.com/user-attachments/assets/f58d6a61-fd8a-4e12-b63d-eb93b795c3fe) |
-
-| Student Navigation | Teacher Navigation |
-|-------------------|-------------------|
-| ![Student Nav](https://github.com/user-attachments/assets/dd78a88c-281f-4f19-9a9c-d249b348b82a) | ![Teacher Nav](https://github.com/user-attachments/assets/a9d18729-3d84-4de2-8c1d-2dc207b5cdfb) |
+| Users Profile | Navigation |
+|----------------|-----------|
+| ![Users Profile](https://github.com/user-attachments/assets/1b2ca0ce-a576-4fa2-bb9d-6448501f4c3b) | ![Nav](https://github.com/user-attachments/assets/1c06fd2d-7973-4d6a-a3db-5a378f35a865) |
 
 </details>
 
@@ -129,9 +125,9 @@ DIU Campus Schedule is a feature-rich Android application designed to streamline
 - **Sharing Capabilities**: Easy sharing with classmates and family
 - **Filter & Search**: Find specific classes or time slots quickly
 
-| Weekly Routine | Schedule Status | PDF Export | Empty Classrooms |
+| Weekly Routine | Schedule Status | Export & Share | Empty Classrooms |
 |---------------|----------------|------------|------------------|
-| ![Routine](https://github.com/user-attachments/assets/74ecc015-2cf2-4b84-bf20-9055cbe87e48) | ![Up to Date](https://github.com/user-attachments/assets/aed8e728-8333-4216-a8e5-1fa917092997) | ![PDF Export](https://github.com/user-attachments/assets/5f02bc29-cb39-4f5e-8d9d-528135b45982) | ![Empty Rooms](https://github.com/user-attachments/assets/f2bb0ddd-ddd5-4122-af01-3077a5c1d3f3) |
+| ![Routine](https://github.com/user-attachments/assets/9191bb06-6cc0-4923-a6f8-3a597ab874c0) | ![Up to Date](https://github.com/user-attachments/assets/2c440732-30df-43ef-8561-2103b162fd46) | ![Export](https://github.com/user-attachments/assets/2ceb4867-90a3-42f8-bbcd-7db6346a3386) | ![Empty Rooms](https://github.com/user-attachments/assets/2645100f-ecf2-4c84-ab96-6eabe644f9ff) |
 
 </details>
 
@@ -145,7 +141,7 @@ DIU Campus Schedule is a feature-rich Android application designed to streamline
 
 | Faculty Search | Student Portal | Teacher Portal | BLC Portal | Hall Management |
 |---------------|----------------|----------------|------------|-----------------|
-| ![Faculty](https://github.com/user-attachments/assets/dec0dbac-8333-4d55-bd87-eeb3ef317eb5) | ![Student Portal](https://github.com/user-attachments/assets/6a94ce92-7683-4bd7-b04f-3b1e8bd1e31e) | ![Teacher Portal](https://github.com/user-attachments/assets/ac0b5517-cdf6-4aa5-8e21-187ed944e234) | ![BLC](https://github.com/user-attachments/assets/2506dc6d-9af0-4c99-8ab2-c0f46876f80e) | ![Hall Portal](https://github.com/user-attachments/assets/c1d497f8-a179-4f85-ae7f-89c05b608914) |
+| ![Faculty](https://github.com/user-attachments/assets/058d1ae3-7ede-436c-8309-cb15f8b3242b) | ![Student Portal](https://github.com/user-attachments/assets/6a94ce92-7683-4bd7-b04f-3b1e8bd1e31e) | ![Teacher Portal](https://github.com/user-attachments/assets/ac0b5517-cdf6-4aa5-8e21-187ed944e234) | ![BLC](https://github.com/user-attachments/assets/2506dc6d-9af0-4c99-8ab2-c0f46876f80e) | ![Hall Portal](https://github.com/user-attachments/assets/c1d497f8-a179-4f85-ae7f-89c05b608914) |
 
 </details>
 
@@ -160,7 +156,7 @@ DIU Campus Schedule is a feature-rich Android application designed to streamline
 
 | Home Screen Widget |
 |--------------------|
-| ![Widget](https://github.com/user-attachments/assets/b5f06b50-6303-4c97-a0fb-802c4b4f5eb2) |
+| ![Widget](https://github.com/user-attachments/assets/57b8fc07-ec0f-431f-a2bc-c33071147f98) |
 
 </details>
 
@@ -346,14 +342,14 @@ For bug reports and feature requests, please use our [issue tracker](https://git
 <table>
 <tr>
 <td align="center">
-<img src="https://github.com/user-attachments/assets/default-avatar.png" width="100px;" alt="Ismam Hasan Ovi"/><br />
+<img src="https://github.com/user-attachments/assets/179d7df8-a527-491b-ba7e-789c1ad2e218" width="100px;" alt="Ismam Hasan Ovi"/><br />
 <sub><b>Ismam Hasan Ovi</b></sub><br />
 <sub>Lead Developer & Architect</sub><br />
 <sub>BSc in Software Engineering</sub><br />
 <sub>6th Semester, DIU</sub>
 </td>
 <td align="center">
-<img src="https://github.com/user-attachments/assets/default-avatar.png" width="100px;" alt="Maruf Rayhan"/><br />
+<img src="https://github.com/user-attachments/assets/32a2016b-e7fe-49ac-987d-e047e533e586" width="100px;" alt="Maruf Rayhan"/><br />
 <sub><b>Maruf Rayhan</b></sub><br />
 <sub>Co-Developer & Designer</sub><br />
 <sub>BSc in Software Engineering</sub><br />
