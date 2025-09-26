@@ -1208,7 +1208,7 @@ class RoutineViewModel @Inject constructor(
     fun filterEmptyRooms(): Map<String, Map<String, List<String>>> {
         val allRoutineItems = _uiState.value.fullDatabaseRoutineItems
         val allTimeSlots = _uiState.value.allTimeSlots
-        val workingDays = DayOfWeek.getWorkingDays().map { it.displayName }
+        val workingDays = DayOfWeek.values().map { it.displayName }
         
         // Get all unique rooms from the database
         val allRooms = allRoutineItems

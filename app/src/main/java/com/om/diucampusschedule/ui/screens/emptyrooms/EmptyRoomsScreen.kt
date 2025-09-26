@@ -121,7 +121,7 @@ fun EmptyRoomsScreen() {
 
     // Get data from ViewModel
     val timeSlots = uiState.allTimeSlots
-    val daysOfWeek = DayOfWeek.getWorkingDays().map { it.displayName }
+    val daysOfWeek = DayOfWeek.values().map { it.displayName }
 
     // State for selected day and time and showing all rooms
     var selectedTimeIndex by remember { mutableStateOf(0) }
