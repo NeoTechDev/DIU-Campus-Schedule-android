@@ -376,7 +376,7 @@ For bug reports and feature requests, please use our [issue tracker](https://git
 ```
 MIT License
 
-Copyright (c) 2024 DIU Campus Schedule Development Team
+Copyright (c) 2025 NeoTechDev
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
