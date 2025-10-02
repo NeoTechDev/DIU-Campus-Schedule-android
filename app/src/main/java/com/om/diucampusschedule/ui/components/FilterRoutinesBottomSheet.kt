@@ -23,10 +23,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,9 +35,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -55,6 +50,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,10 +72,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.om.diucampusschedule.R
+import com.om.diucampusschedule.core.validation.DynamicDataValidator
 import com.om.diucampusschedule.ui.viewmodel.FilterType
 import com.om.diucampusschedule.ui.viewmodel.RoutineFilter
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
+import com.om.diucampusschedule.ui.viewmodel.ValidationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,8 +94,22 @@ fun FilterRoutinesBottomSheet(
     var teacherInitial by remember { mutableStateOf("") }
     var room by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
+    // Separate errors for student inputs to avoid cross-field messages
+    var batchError by remember { mutableStateOf("") }
+    var sectionError by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // Collect user and validation data for dynamic validation
+    val routineUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val department = routineUiState.currentUser?.department
+
+    val validationViewModel: ValidationViewModel = hiltViewModel()
+    val validationUiState by validationViewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(department) {
+        department?.let { validationViewModel.loadValidationData(it) }
+    }
 
     val hasInputContent by remember {
         derivedStateOf {
@@ -107,56 +121,63 @@ fun FilterRoutinesBottomSheet(
         }
     }
 
-    // Validation and submit function
+    // Validation and submit function (dynamic validation using actual routine data)
     fun validateAndSubmit() {
-        when(selectedFilterType) {
+        val validationData = validationUiState.validationData
+        errorMessage = ""
+        batchError = ""
+        sectionError = ""
+
+        when (selectedFilterType) {
             FilterType.STUDENT -> {
-                when {
-                    batch.isBlank() -> errorMessage = "Batch cannot be empty"
-                    !batch.all { it.isDigit() } -> errorMessage = "Batch must contain only numbers"
-                    section.isBlank() -> errorMessage = "Section cannot be empty"
-                    else -> {
-                        isLoading = true
-                        val filter = RoutineFilter(
-                            type = FilterType.STUDENT,
-                            batch = batch.trim(),
-                            section = section.trim().uppercase()
-                        )
-                        android.util.Log.d("FilterBottomSheet", "Creating STUDENT filter: batch='${filter.batch}', section='${filter.section}'")
-                        onFilterApplied(filter)
-                        onDismissRequest()
-                    }
+                val batchResult = DynamicDataValidator.validateBatch(batch, validationData)
+                if (!batchResult.isValid) {
+                    batchError = batchResult.errors.firstOrNull() ?: "Invalid batch"
+                    return
                 }
+                val sectionResult = DynamicDataValidator.validateSection(section, batch, validationData)
+                if (!sectionResult.isValid) {
+                    sectionError = sectionResult.errors.firstOrNull() ?: "Invalid section"
+                    return
+                }
+                isLoading = true
+                val filter = RoutineFilter(
+                    type = FilterType.STUDENT,
+                    batch = batch.trim(),
+                    section = section.trim().uppercase()
+                )
+                android.util.Log.d("FilterBottomSheet", "Creating STUDENT filter: batch='${filter.batch}', section='${filter.section}'")
+                onFilterApplied(filter)
+                onDismissRequest()
             }
             FilterType.TEACHER -> {
-                when {
-                    teacherInitial.isBlank() -> errorMessage = "Teacher initial cannot be empty"
-                    else -> {
-                        isLoading = true
-                        val filter = RoutineFilter(
-                            type = FilterType.TEACHER,
-                            teacherInitial = teacherInitial.trim().uppercase()
-                        )
-                        android.util.Log.d("FilterBottomSheet", "Creating TEACHER filter: initial='${filter.teacherInitial}'")
-                        onFilterApplied(filter)
-                        onDismissRequest()
-                    }
+                val initialResult = DynamicDataValidator.validateTeacherInitial(teacherInitial, validationData)
+                if (!initialResult.isValid) {
+                    errorMessage = initialResult.errors.firstOrNull() ?: "Invalid teacher initial"
+                    return
                 }
+                isLoading = true
+                val filter = RoutineFilter(
+                    type = FilterType.TEACHER,
+                    teacherInitial = teacherInitial.trim().uppercase()
+                )
+                android.util.Log.d("FilterBottomSheet", "Creating TEACHER filter: initial='${filter.teacherInitial}'")
+                onFilterApplied(filter)
+                onDismissRequest()
             }
             FilterType.ROOM -> {
-                when {
-                    room.isBlank() -> errorMessage = "Room number cannot be empty"
-                    else -> {
-                        isLoading = true
-                        val filter = RoutineFilter(
-                            type = FilterType.ROOM,
-                            room = room.trim().uppercase()
-                        )
-                        android.util.Log.d("FilterBottomSheet", "Creating ROOM filter: room='${filter.room}'")
-                        onFilterApplied(filter)
-                        onDismissRequest()
-                    }
+                if (room.isBlank()) {
+                    errorMessage = "Room number cannot be empty"
+                    return
                 }
+                isLoading = true
+                val filter = RoutineFilter(
+                    type = FilterType.ROOM,
+                    room = room.trim().uppercase()
+                )
+                android.util.Log.d("FilterBottomSheet", "Creating ROOM filter: room='${filter.room}'")
+                onFilterApplied(filter)
+                onDismissRequest()
             }
         }
     }
@@ -168,6 +189,8 @@ fun FilterRoutinesBottomSheet(
         teacherInitial = ""
         room = ""
         errorMessage = ""
+        batchError = ""
+        sectionError = ""
     }
 
     ModalBottomSheet(
@@ -266,15 +289,16 @@ fun FilterRoutinesBottomSheet(
                         StudentFilterContent(
                             batch = batch,
                             section = section,
-                            errorMessage = errorMessage,
+                            batchErrorMessage = batchError,
+                            sectionErrorMessage = sectionError,
                             isLoading = isLoading,
                             onBatchChange = {
                                 batch = it
-                                if (errorMessage.isNotEmpty()) errorMessage = ""
+                                if (batchError.isNotEmpty()) batchError = ""
                             },
                             onSectionChange = {
                                 section = it.uppercase()
-                                if (errorMessage.isNotEmpty()) errorMessage = ""
+                                if (sectionError.isNotEmpty()) sectionError = ""
                             }
                         )
                     }
@@ -319,7 +343,7 @@ fun FilterRoutinesBottomSheet(
                         onClick = { clearFields() },
                         modifier = Modifier.height(48.dp).weight(1f),
                         shape = RoundedCornerShape(16.dp),
-                        enabled = !isLoading && hasInputContent
+                        enabled = !isLoading && hasInputContent && !validationUiState.isLoading
                     ) {
                         Text(
                             "Clear",
@@ -335,7 +359,7 @@ fun FilterRoutinesBottomSheet(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         ),
-                        enabled = !isLoading && hasInputContent
+                        enabled = !isLoading && hasInputContent && !validationUiState.isLoading
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
@@ -466,7 +490,8 @@ private fun FilterTypeCard(
 private fun StudentFilterContent(
     batch: String,
     section: String,
-    errorMessage: String,
+    batchErrorMessage: String,
+    sectionErrorMessage: String,
     isLoading: Boolean,
     onBatchChange: (String) -> Unit,
     onSectionChange: (String) -> Unit
@@ -486,11 +511,11 @@ private fun StudentFilterContent(
             value = batch,
             onValueChange = onBatchChange,
             placeholder = { Text("e.g. \"44\"") },
-            isError = errorMessage.contains("Batch", ignoreCase = true),
+            isError = batchErrorMessage.isNotEmpty(),
             supportingText = {
-                if (errorMessage.contains("Batch", ignoreCase = true)) {
+                if (batchErrorMessage.isNotEmpty()) {
                     Text(
-                        text = errorMessage,
+                        text = batchErrorMessage,
                         color = MaterialTheme.colorScheme.error
                     )
                 }
@@ -528,11 +553,11 @@ private fun StudentFilterContent(
             value = section,
             onValueChange = onSectionChange,
             placeholder = { Text("e.g. \"A\"") },
-            isError = errorMessage.contains("Section", ignoreCase = true),
+            isError = sectionErrorMessage.isNotEmpty(),
             supportingText = {
-                if (errorMessage.contains("Section", ignoreCase = true)) {
+                if (sectionErrorMessage.isNotEmpty()) {
                     Text(
-                        text = errorMessage,
+                        text = sectionErrorMessage,
                         color = MaterialTheme.colorScheme.error
                     )
                 }
