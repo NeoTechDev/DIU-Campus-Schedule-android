@@ -166,8 +166,9 @@ fun FilterRoutinesBottomSheet(
                 onDismissRequest()
             }
             FilterType.ROOM -> {
-                if (room.isBlank()) {
-                    errorMessage = "Room number cannot be empty"
+                val roomResult = DynamicDataValidator.validateRoom(room, validationData)
+                if (!roomResult.isValid) {
+                    errorMessage = roomResult.errors.firstOrNull() ?: "Invalid room number"
                     return
                 }
                 isLoading = true

@@ -127,6 +127,23 @@ object DynamicDataValidator {
         
         return DataValidator.ValidationResult(errors.isEmpty(), errors)
     }
+
+    /**
+     * Validate room number using actual routine data
+     */
+    fun validateRoom(room: String?, validationData: ValidationData): DataValidator.ValidationResult {
+        val errors = mutableListOf<String>()
+        val trimmed = room?.trim()?.uppercase()
+
+        when {
+            trimmed.isNullOrEmpty() -> errors.add("Room number cannot be empty")
+            validationData.validRooms.isNotEmpty() && !validationData.isRoomValid(trimmed) -> {
+                errors.add("Invalid room number. Please enter a correct room")
+            }
+        }
+
+        return DataValidator.ValidationResult(errors.isEmpty(), errors)
+    }
     
     /**
      * Comprehensive user profile validation using dynamic data
@@ -204,7 +221,8 @@ object DynamicDataValidator {
             "batches" to validationData.validBatches.sorted(),
             "departments" to validationData.validDepartments.sorted(),
             "teacherInitials" to validationData.validTeacherInitials.sorted(),
-            "labSections" to validationData.validLabSections.sorted()
+            "labSections" to validationData.validLabSections.sorted(),
+            "rooms" to validationData.validRooms.sorted()
         )
     }
 

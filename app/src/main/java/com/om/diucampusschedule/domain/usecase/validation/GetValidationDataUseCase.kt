@@ -56,6 +56,7 @@ class GetValidationDataUseCase @Inject constructor(
         val labSections = mutableSetOf<String>()
         val teacherInitials = mutableSetOf<String>()
         val departments = mutableSetOf<String>()
+        val rooms = mutableSetOf<String>()
         
         routineItems.forEach { item ->
             // Extract batches
@@ -87,6 +88,12 @@ class GetValidationDataUseCase @Inject constructor(
             if (department.isNotBlank()) {
                 departments.add(department)
             }
+
+            // Extract room numbers
+            val room = item.room.trim().uppercase()
+            if (room.isNotBlank()) {
+                rooms.add(room)
+            }
         }
         
         // Log extracted data for debugging
@@ -95,13 +102,15 @@ class GetValidationDataUseCase @Inject constructor(
         android.util.Log.d("ValidationData", "Extracted lab sections: $labSections")
         android.util.Log.d("ValidationData", "Extracted teacher initials: $teacherInitials")
         android.util.Log.d("ValidationData", "Extracted departments: $departments")
+        android.util.Log.d("ValidationData", "Extracted rooms: $rooms")
         
         return ValidationData(
             validBatches = batches,
             validSectionsForBatch = sectionsForBatch.mapValues { it.value.toSet() },
             validLabSections = labSections,
             validTeacherInitials = teacherInitials,
-            validDepartments = departments
+            validDepartments = departments,
+            validRooms = rooms
         )
     }
 }

@@ -8,7 +8,8 @@ data class ValidationData(
     val validSectionsForBatch: Map<String, Set<String>> = emptyMap(),
     val validLabSections: Set<String> = emptySet(),
     val validTeacherInitials: Set<String> = emptySet(),
-    val validDepartments: Set<String> = emptySet()
+    val validDepartments: Set<String> = emptySet(),
+    val validRooms: Set<String> = emptySet()
 ) {
     /**
      * Get valid sections for a specific batch
@@ -51,6 +52,13 @@ data class ValidationData(
      */
     fun isDepartmentValid(department: String): Boolean {
         return validDepartments.contains(department.trim())
+    }
+
+    /**
+     * Check if a room is valid
+     */
+    fun isRoomValid(room: String): Boolean {
+        return validRooms.contains(room.trim().uppercase())
     }
     
     /**
