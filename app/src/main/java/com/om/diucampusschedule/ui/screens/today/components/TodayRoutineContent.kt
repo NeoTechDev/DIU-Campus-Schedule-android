@@ -85,22 +85,33 @@ fun TodayRoutineContent(
     if (shouldShowLoading) {
         LoadingContent()
     } else if (routineItems.isEmpty() && tasks.isEmpty()) {
-        // Check if we need to show maintenance message for class routines specifically
-        if (isMaintenanceMode) {
-            EmptyClassRoutineContent(
-                isMaintenanceMode = isMaintenanceMode,
-                maintenanceMessage = maintenanceMessage,
-                isSemesterBreak = isSemesterBreak,
-                updateType = updateType
-            )
-        } else {
-            NoContentToday(
-                noContentImage = noContentImage,
-                message = noScheduleMessages,
-                subMessage = noScheduleSubMessage,
-                selectedDate = selectedDate,
-                user = currentUser
-            )
+        // Wrap empty content in LazyColumn to enable pull-to-refresh
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(horizontal = 6.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            item {
+                // Check if we need to show maintenance message for class routines specifically
+                if (isMaintenanceMode) {
+                    EmptyClassRoutineContent(
+                        isMaintenanceMode = isMaintenanceMode,
+                        maintenanceMessage = maintenanceMessage,
+                        isSemesterBreak = isSemesterBreak,
+                        updateType = updateType
+                    )
+                } else {
+                    NoContentToday(
+                        noContentImage = noContentImage,
+                        message = noScheduleMessages,
+                        subMessage = noScheduleSubMessage,
+                        selectedDate = selectedDate,
+                        user = currentUser
+                    )
+                }
+            }
         }
     } else {
         val scheduleItems = if (routineItems.isNotEmpty()) {
