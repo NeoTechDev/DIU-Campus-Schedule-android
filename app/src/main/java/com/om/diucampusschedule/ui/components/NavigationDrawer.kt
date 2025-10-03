@@ -452,7 +452,7 @@ private fun DrawerFooter(appVersion: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(4.dp),
+            .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(

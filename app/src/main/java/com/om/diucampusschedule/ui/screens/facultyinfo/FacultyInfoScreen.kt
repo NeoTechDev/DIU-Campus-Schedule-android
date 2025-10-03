@@ -80,9 +80,9 @@ import androidx.navigation.compose.rememberNavController
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.Faculty
 import com.om.diucampusschedule.ui.theme.EaseInOutCubic
+import com.om.diucampusschedule.ui.utils.FacultyUtils
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
-import com.om.diucampusschedule.ui.utils.FacultyUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -318,6 +318,7 @@ fun FacultyInfoScreen(
                                 ) {
                                     if (isLoadingMore) {
                                         Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.Center
                                         ) {
@@ -394,6 +395,7 @@ fun FacultyCard(faculty: Faculty, contactNumber: String) {
                                 style = MaterialTheme.typography.titleMedium,
                                 color = if(!isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.Bold,
+                                lineHeight = 16.sp,
                                 maxLines = 2
                             )
                         }
@@ -406,6 +408,7 @@ fun FacultyCard(faculty: Faculty, contactNumber: String) {
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp,
+                                lineHeight = 14.sp,
                                 maxLines = 2
                             )
                         }

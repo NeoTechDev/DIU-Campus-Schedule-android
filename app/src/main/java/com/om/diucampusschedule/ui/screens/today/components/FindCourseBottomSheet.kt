@@ -262,6 +262,7 @@ private fun SimpleCourseListItem(
                     text = courseName,
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleMedium,
+                    lineHeight = 16.sp,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )

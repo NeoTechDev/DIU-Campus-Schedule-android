@@ -39,18 +39,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.om.diucampusschedule.R
+import com.om.diucampusschedule.domain.model.User
+import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.theme.AccentGreen
 import com.om.diucampusschedule.ui.theme.AccentOrange
 import com.om.diucampusschedule.ui.theme.AccentPurple
+import com.om.diucampusschedule.ui.theme.AccentRed
 import com.om.diucampusschedule.ui.theme.AccentTeal
 
 @Composable
 fun TodayActionButton(
+    user: User?,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     onFindCourseClick: () -> Unit,
     onAddTaskClick: () -> Unit,
-    onFacultyInfoClick: () -> Unit
+    onFacultyInfoClick: () -> Unit,
+    onStudentPortalClick: () -> Unit,
+    onTeacherPortalClick: () -> Unit,
+    onBlcClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.End,
@@ -90,6 +97,51 @@ fun TodayActionButton(
                     label = "Faculty Info",
                     tint = AccentGreen,
                     onClick = onFacultyInfoClick
+                )
+
+                when(user?.role){
+                    UserRole.STUDENT -> {
+                        // Student Portal
+                        ActionMenuItem(
+                            icon = R.drawable.student_portal,
+                            label = "Student Portal",
+                            tint = AccentTeal,
+                            onClick = onStudentPortalClick
+                        )
+                    }
+                    UserRole.TEACHER -> {
+                        // Teacher Portal
+                        ActionMenuItem(
+                            icon = R.drawable.teacher_portal,
+                            label = "Teacher Portal",
+                            tint = AccentTeal,
+                            onClick = onTeacherPortalClick
+                        )
+                    }
+                    else -> {
+                        // Student Portal
+                        ActionMenuItem(
+                            icon = R.drawable.student_portal,
+                            label = "Student Portal",
+                            tint = AccentTeal,
+                            onClick = onStudentPortalClick
+                        )
+                        // Teacher Portal
+                        ActionMenuItem(
+                            icon = R.drawable.teacher_portal,
+                            label = "Teacher Portal",
+                            tint = AccentTeal,
+                            onClick = onTeacherPortalClick
+                        )
+                    }
+                }
+
+                // BLC
+                ActionMenuItem(
+                    icon = R.drawable.blc,
+                    label = "BLC",
+                    tint = AccentRed,
+                    onClick = onBlcClick
                 )
             }
         }

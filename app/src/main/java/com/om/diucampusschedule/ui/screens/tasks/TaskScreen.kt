@@ -276,7 +276,7 @@ fun TaskScreen(navController: NavController) {
 
                             // Share Tasks action
                             ActionMenuItem(
-                                icon = R.drawable.share_square_24,
+                                icon = R.drawable.share_solid_full,
                                 label = "Share Tasks",
                                 tint = AccentTeal,
                                 onClick = {
@@ -342,10 +342,10 @@ fun TaskScreen(navController: NavController) {
                                 modifier = Modifier.padding(horizontal = 12.dp)
                             ) {
                                 Icon(
-                                    painter = painterResource(R.drawable.share_square_24),
+                                    painter = painterResource(R.drawable.share_solid_full),
                                     contentDescription = "Share Selected",
                                     tint = MaterialTheme.colorScheme.onSecondary,
-                                    modifier = Modifier.size(25.dp)
+                                    modifier = Modifier.size(30.dp)
                                 )
 
                                 Spacer(modifier = Modifier.width(8.dp))

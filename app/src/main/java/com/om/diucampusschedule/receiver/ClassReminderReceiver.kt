@@ -143,7 +143,7 @@ class ClassReminderReceiver : BroadcastReceiver() {
         val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.app_notification_logo) // Calendar icon like in image
             .setContentTitle("Upcoming Class: $courseName") // Main title: "Class Reminder: Object Oriented Design"
-            .setContentText("Time: $timeComponents") // Subtitle showing time
+            .setContentText("Time: $timeComponents | Room: $room") // Subtitle showing time
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)

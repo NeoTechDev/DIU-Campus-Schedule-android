@@ -101,6 +101,8 @@ import com.om.diucampusschedule.ui.screens.today.components.MiniCalendar
 import com.om.diucampusschedule.ui.screens.today.components.TodayActionButton
 import com.om.diucampusschedule.ui.screens.today.components.TodayRoutineContent
 import com.om.diucampusschedule.ui.screens.today.components.calculateDailyEventCounts
+import com.om.diucampusschedule.ui.screens.webview.PortalTitles
+import com.om.diucampusschedule.ui.screens.webview.PortalUrls
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -352,6 +354,7 @@ fun TodayScreen(
                         .padding(16.dp)
                 ) {
                     TodayActionButton(
+                        user = authState.user,
                         isExpanded = isActionButtonExpanded,
                         onToggleExpand = { isActionButtonExpanded = !isActionButtonExpanded },
                         onFindCourseClick = {
@@ -366,6 +369,18 @@ fun TodayScreen(
                         onFacultyInfoClick = {
                             isActionButtonExpanded = false
                             navController.navigate(Screen.FacultyInfo.route)
+                        },
+                        onStudentPortalClick = {
+                            isActionButtonExpanded = false
+                            navController.navigate(Screen.WebView.createRoute(PortalUrls.STUDENT_PORTAL, PortalTitles.STUDENT_PORTAL))
+                        },
+                        onTeacherPortalClick = {
+                            isActionButtonExpanded = false
+                            navController.navigate(Screen.WebView.createRoute(PortalUrls.TEACHER_PORTAL, PortalTitles.TEACHER_PORTAL))
+                        },
+                        onBlcClick = {
+                            isActionButtonExpanded = false
+                            navController.navigate(Screen.WebView.createRoute(PortalUrls.BLC, PortalTitles.BLC))
                         }
                     )
                 }
@@ -642,7 +657,7 @@ private fun CustomTopAppBar(
                                 onClick = onMenuClick
                             ) {
                                 Icon(
-                                    imageVector = ImageVector.vectorResource(id = R.drawable.apps),
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.bars_staggered),
                                     contentDescription = "Menu",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
