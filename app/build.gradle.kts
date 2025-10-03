@@ -17,8 +17,8 @@ android {
         applicationId = "com.om.diucampusschedule"
         minSdk = 26
         targetSdk = 35
-        versionCode = 33
-        versionName = "5.3.3-Beta"
+        versionCode = 34
+        versionName = "5.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
