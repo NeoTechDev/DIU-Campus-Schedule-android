@@ -104,6 +104,12 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.DayOfWeek
 import com.om.diucampusschedule.ui.theme.InterFontFamily
 import com.om.diucampusschedule.ui.utils.ScreenConfig
@@ -296,11 +302,37 @@ fun EmptyRoomsScreen() {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Loading empty rooms data...",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        // Lottie Animation
+                        val composition by rememberLottieComposition(
+                            spec = LottieCompositionSpec.RawRes(
+                                resId = R.raw.loading
+                            )
+                        )
+                        val progress by animateLottieCompositionAsState(
+                            composition,
+                            isPlaying = true,
+                            iterations = LottieConstants.IterateForever
+                        )
+
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Loading empty rooms data...",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
                 return@Column
             }
@@ -315,14 +347,6 @@ fun EmptyRoomsScreen() {
                     ) + fadeIn(tween(600, delayMillis = 100))
                 ) {
                     Column {
-                        // Search section title
-                        /*Text(
-                            text = "Search an empty room",
-                            fontWeight = FontWeight.Medium,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )*/
 
                         RoomSearchBar(
                             query = searchQuery,

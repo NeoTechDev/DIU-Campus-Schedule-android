@@ -8,7 +8,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.EaseInOut
-import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearEasing
@@ -18,7 +17,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -54,7 +52,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -92,6 +89,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
@@ -105,7 +107,6 @@ import com.om.diucampusschedule.ui.components.generateRoutinePdf
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.theme.RobotoFontFamily
 import com.om.diucampusschedule.ui.utils.ScreenConfig
-import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.FilterType
 import com.om.diucampusschedule.ui.viewmodel.RoutineFilter
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
@@ -204,7 +205,7 @@ fun RoutineScreen(
                 .run { ScreenConfig.run { withTopAppBar() } }
         ) {
             // Clean Top App Bar - only essential info
-            CleanRoutineTopAppBar(
+            RoutineTopAppBar(
                 user = uiState.currentUser,
                 onRefreshClick = { viewModel.refreshRoutine() },
                 isRefreshing = uiState.isRefreshing,
@@ -216,6 +217,14 @@ fun RoutineScreen(
                 thickness = 1.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
             )
+
+            // Refresh indicator
+            if (uiState.isRefreshing) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
 
             // Offline indicator below top app bar
             if (uiState.isOffline) {
@@ -334,16 +343,10 @@ fun RoutineScreen(
                         "Showing RoutineContent with ${uiState.routineItems.size} items"
                     )
                     RoutineContent(
-                        allDays = uiState.allDays,
-                        activeDays = uiState.activeDays,
-                        selectedDay = uiState.selectedDay,
                         routineItems = viewModel.getDisplayRoutineItems(), // Use filtered or all routine items
                         allTimeSlots = uiState.allTimeSlots, // Pass the sorted time slots
-                        isRefreshing = uiState.isRefreshing,
                         currentUser = uiState.currentUser,
                         currentFilter = uiState.currentFilter,
-                        onDaySelected = { day -> viewModel.selectDay(day) },
-                        onRefresh = { viewModel.refreshRoutine() },
                         onCourseClick = handleCourseClick
                     )
                 }
@@ -540,16 +543,31 @@ private fun LoadingContent() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(48.dp),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 4.dp
+            // Lottie Animation
+            val composition by rememberLottieComposition(
+                spec = LottieCompositionSpec.RawRes(
+                    resId = R.raw.loading
+                )
+            )
+            val progress by animateLottieCompositionAsState(
+                composition,
+                isPlaying = true,
+                iterations = LottieConstants.IterateForever
+            )
+
+            LottieAnimation(
+                composition = composition,
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Loading your routine...",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
@@ -717,28 +735,16 @@ private fun EmptyContent(
 
 @Composable
 private fun RoutineContent(
-    allDays: List<String>,
-    activeDays: List<String>,
-    selectedDay: String,
     routineItems: List<RoutineItem>,
     allTimeSlots: List<String>,
-    isRefreshing: Boolean,
     currentUser: User?,
     currentFilter: RoutineFilter?,
-    onDaySelected: (String) -> Unit,
-    onRefresh: () -> Unit,
     onCourseClick: (String) -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Refresh indicator
-        if (isRefreshing) {
-            LinearProgressIndicator(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
+
 
         // Table-style routine display - shows full weekly routine
         TableRoutineView(
@@ -753,7 +759,7 @@ private fun RoutineContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CleanRoutineTopAppBar(
+private fun RoutineTopAppBar(
     user: User?,
     onRefreshClick: () -> Unit,
     isRefreshing: Boolean,
