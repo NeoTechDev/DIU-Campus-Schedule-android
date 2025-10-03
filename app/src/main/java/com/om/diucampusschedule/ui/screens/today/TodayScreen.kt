@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Badge
@@ -84,6 +85,7 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.om.diucampusschedule.R
+import com.om.diucampusschedule.core.network.rememberConnectivityState
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.components.AddTaskBottomSheet
@@ -122,6 +124,7 @@ fun TodayScreen(
     val todayState by todayViewModel.uiState.collectAsStateWithLifecycle()
     val taskGroups by taskViewModel.taskGroups.collectAsState(initial = emptyList())
     val unreadNotificationCount by todayViewModel.unreadNotificationCount.collectAsState()
+    val isConnected = rememberConnectivityState()
 
     val focusManager = LocalFocusManager.current
     
@@ -225,7 +228,8 @@ fun TodayScreen(
                 onCalendarClick = {
                     currentCalendarMonth = YearMonth.from(selectedDate)
                     showFullCalendarBottomSheet = true
-                }
+                },
+                isConnected = isConnected
             )
 
             Box(
@@ -514,7 +518,8 @@ private fun CustomTopAppBar(
     onProfileClick: () -> Unit,
     onNotificationClick: () -> Unit,
     onMenuClick: () -> Unit,
-    onCalendarClick: () -> Unit
+    onCalendarClick: () -> Unit,
+    isConnected: Boolean
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -533,113 +538,134 @@ private fun CustomTopAppBar(
             )
             .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
     ) {
-        // Original TopAppBar
-        TopAppBar(
-            title = {
-                // Left side: User profile section only
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .clickable { onProfileClick() },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Clean profile picture
-                    ProfilePicture(
-                        user = user,
-                        size = 36.dp
-                    )
-                    
-                    Spacer(modifier = Modifier.width(10.dp))
-                    
-                    // Clean user info
-                    UserInfoSection(
-                        user = user,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            },
-            actions = {
-                // "Back to Today" button - only show when not on current date
-                if (selectedDate != LocalDate.now()) {
-                    Box(
+        // Original TopAppBar wrapped in Box to overlay offline icon
+        Box(modifier = Modifier.fillMaxWidth()) {
+            TopAppBar(
+                title = {
+                    // Left side: User profile section only
+                    Row(
                         modifier = Modifier
-                            .padding(start = 4.dp)
+                            .fillMaxWidth()
                             .clip(RoundedCornerShape(20.dp))
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                            )
-                            .clickable {
-                                todayViewModel.selectDate(LocalDate.now())
-                            }
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                            .clickable { onProfileClick() },
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = ImageVector.vectorResource(id = R.drawable.undo_24px),
-                                contentDescription = "Back to Today",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "Today",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                }
-                
-                // Right side: Notification + Menu icons
-                IconButton(
-                    onClick = onNotificationClick
-                ) {
-                    BadgedBox(
-                        badge = {
-                            if (unreadNotificationCount > 0) {
-                                Badge(
-                                    containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = MaterialTheme.colorScheme.onError
-                                ) {
-                                    Text(
-                                        text = if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString(),
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notifications",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(topbarIconSize)
+                        // Clean profile picture
+                        ProfilePicture(
+                            user = user,
+                            size = 36.dp
+                        )
+                        
+                        Spacer(modifier = Modifier.width(10.dp))
+                        
+                        // Clean user info
+                        UserInfoSection(
+                            user = user,
+                            modifier = Modifier.weight(1f)
                         )
                     }
-                }
+                },
+                actions = {
+                    // "Back to Today" button - only show when not on current date
+                    if (selectedDate != LocalDate.now()) {
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                )
+                                .clickable {
+                                    todayViewModel.selectDate(LocalDate.now())
+                                }
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.undo_24px),
+                                    contentDescription = "Back to Today",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "Today",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Right side: Notification + Menu icons
+                    IconButton(
+                        onClick = onNotificationClick
+                    ) {
+                        BadgedBox(
+                            badge = {
+                                if (unreadNotificationCount > 0) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.error,
+                                        contentColor = MaterialTheme.colorScheme.onError
+                                    ) {
+                                        Text(
+                                            text = if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString(),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(topbarIconSize)
+                            )
+                        }
+                    }
 
-                IconButton(
-                    onClick = onMenuClick
+                    IconButton(
+                        onClick = onMenuClick
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.apps),
+                            contentDescription = "Menu",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true)
+            )
+
+            if (!isConnected) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 50.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f))
+                        .padding(4.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = ImageVector.vectorResource(id = R.drawable.apps),
-                        contentDescription = "Menu",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
+                        imageVector = Icons.Default.CloudOff,
+                        contentDescription = "Offline",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true)
-        )
+            }
+        }
         
         // Header with "Today's Schedule" and Date
         Row(
