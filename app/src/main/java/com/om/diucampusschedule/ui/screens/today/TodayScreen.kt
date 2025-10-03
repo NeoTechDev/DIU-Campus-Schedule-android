@@ -11,6 +11,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -468,8 +472,6 @@ fun TodayScreen(
             )
         }
     }
-    
-    // Notices ModalSheet removed; handled by navigation to NoticesScreen
 }
 
 /**
@@ -482,7 +484,7 @@ private fun calculateDailyEventCountsForCalendar(
 ): Map<LocalDate, Pair<Int, Int>> {
     var dailyEventCounts by remember(yearMonth) { mutableStateOf<Map<LocalDate, Pair<Int, Int>>>(emptyMap()) }
     var isLoading by remember(yearMonth) { mutableStateOf(false) }
-    
+
     LaunchedEffect(yearMonth) {
         isLoading = true
         try {
@@ -490,10 +492,10 @@ private fun calculateDailyEventCountsForCalendar(
             coroutineScope {
                 val routineDeferred = async { todayViewModel.getAllWeekRoutineItems() }
                 val tasksDeferred = async { todayViewModel.getAllTasksForMonth(yearMonth) }
-                
+
                 val allRoutineItems = routineDeferred.await()
                 val allTasks = tasksDeferred.await()
-                
+
                 dailyEventCounts = calculateDailyEventCounts(
                     routineItems = allRoutineItems,
                     tasks = allTasks,
@@ -504,7 +506,7 @@ private fun calculateDailyEventCountsForCalendar(
             isLoading = false
         }
     }
-    
+
     return dailyEventCounts
 }
 
@@ -566,6 +568,10 @@ private fun CustomTopAppBar(
                     }
                 },
                 actions = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy((-6).dp)
+                    ){
                     // "Back to Today" button - only show when not on current date
                     if (selectedDate != LocalDate.now()) {
                         Box(
@@ -599,44 +605,50 @@ private fun CustomTopAppBar(
                             }
                         }
                     }
-                    
-                    // Right side: Notification + Menu icons
-                    IconButton(
-                        onClick = onNotificationClick
-                    ) {
-                        BadgedBox(
-                            badge = {
-                                if (unreadNotificationCount > 0) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.error,
-                                        contentColor = MaterialTheme.colorScheme.onError
-                                    ) {
-                                        Text(
-                                            text = if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString(),
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy((-10).dp)
+                        ) {
+                            // Right side: Notification + Menu icons
+                            IconButton(
+                                onClick = onNotificationClick
+                            ) {
+                                BadgedBox(
+                                    badge = {
+                                        if (unreadNotificationCount > 0) {
+                                            Badge(
+                                                containerColor = MaterialTheme.colorScheme.error,
+                                                contentColor = MaterialTheme.colorScheme.onError
+                                            ) {
+                                                Text(
+                                                    text = if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString(),
+                                                    style = MaterialTheme.typography.labelSmall
+                                                )
+                                            }
+                                        }
                                     }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = "Notifications",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(topbarIconSize)
+                                    )
                                 }
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifications",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(topbarIconSize)
-                            )
-                        }
-                    }
 
-                    IconButton(
-                        onClick = onMenuClick
-                    ) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.apps),
-                            contentDescription = "Menu",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
+                            IconButton(
+                                onClick = onMenuClick
+                            ) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.apps),
+                                    contentDescription = "Menu",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -647,13 +659,23 @@ private fun CustomTopAppBar(
                 windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true)
             )
 
-            if (!isConnected) {
+            // Animated visibility for offline indicator
+            androidx.compose.animation.AnimatedVisibility(
+                visible = !isConnected,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 20.dp),
+                enter = fadeIn(animationSpec = tween(220)) +
+                        scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = 0.8f)) +
+                        slideInVertically(initialOffsetY = { -20 }, animationSpec = tween(220)),
+                exit = fadeOut(animationSpec = tween(180)) +
+                        scaleOut(targetScale = 0.9f, animationSpec = spring(dampingRatio = 1.0f)) +
+                        slideOutVertically(targetOffsetY = { -10 }, animationSpec = tween(180))
+            ) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 50.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f))
+                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f))
                         .padding(4.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -753,7 +775,7 @@ private fun ProfilePicture(
         animationSpec = tween(100),
         label = "profile_scale"
     )
-    
+
     // Dynamic background color animation
     val backgroundColor by animateColorAsState(
         targetValue = if (user?.role?.name == "STUDENT") {
