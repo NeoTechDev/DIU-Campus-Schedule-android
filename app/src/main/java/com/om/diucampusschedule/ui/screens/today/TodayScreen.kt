@@ -212,11 +212,15 @@ fun TodayScreen(
                 todayViewModel = todayViewModel,
                 unreadNotificationCount = unreadNotificationCount,
                 onProfileClick = {
-                    onOpenDrawer() // Open drawer instead of navigating to profile
+//                    onOpenDrawer() // Open drawer instead of navigating to profile
+                    navController.navigate(Screen.Profile.route)
                 },
                 onNotificationClick = {
                     noticesViewModel.fetchNotices()
                     navController.navigate(Screen.Notices.route)
+                },
+                onMenuClick = {
+                    onOpenDrawer()
                 },
                 onCalendarClick = {
                     currentCalendarMonth = YearMonth.from(selectedDate)
@@ -509,6 +513,7 @@ private fun CustomTopAppBar(
     unreadNotificationCount: Int,
     onProfileClick: () -> Unit,
     onNotificationClick: () -> Unit,
+    onMenuClick: () -> Unit,
     onCalendarClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -615,6 +620,17 @@ private fun CustomTopAppBar(
                             modifier = Modifier.size(topbarIconSize)
                         )
                     }
+                }
+
+                IconButton(
+                    onClick = onMenuClick
+                ) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.apps),
+                        contentDescription = "Menu",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
