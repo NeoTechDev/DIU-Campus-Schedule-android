@@ -51,6 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -198,14 +199,23 @@ fun TodayScreen(
     // Main content area with pull-to-refresh and swipe gesture support
     PullToRefreshBox(
         isRefreshing = isRefreshing,
+        modifier = Modifier.fillMaxSize(),
         onRefresh = {
             isRefreshing = true
             todayViewModel.refreshCurrentData()
             // Reset refresh state after a delay (in real implementation, this would be set when data loading completes)
             // You should set isRefreshing = false when todayState.isLoading changes to false
         },
+        contentAlignment = Alignment.TopCenter,
         state = pullToRefreshState,
-        modifier = Modifier.fillMaxSize()
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = pullToRefreshState,
+                isRefreshing = isRefreshing,
+                containerColor = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
     ) {
 
         Column(

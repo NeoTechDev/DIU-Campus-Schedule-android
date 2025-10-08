@@ -59,10 +59,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.om.diucampusschedule.R
+import com.om.diucampusschedule.core.network.rememberConnectivityState
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
@@ -80,6 +85,7 @@ fun NoticesScreen(
     val notifications by noticesViewModel.notifications.collectAsState()
     val isNotificationsLoading by noticesViewModel.isNotificationsLoading.collectAsState()
     val unreadNotificationCount by noticesViewModel.unreadNotificationCount.collectAsState()
+    val isConnected = rememberConnectivityState()
 
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
@@ -220,7 +226,8 @@ fun NoticesScreen(
                     isLoading = isNoticesLoading,
                     onNoticeClick = { notice ->
                         onNavigateToWebView(notice.link, notice.title)
-                    }
+                    },
+                    isConnected = isConnected
                 )
             }
         }
@@ -339,40 +346,62 @@ fun NotificationsTab(
 fun DepartmentNoticesTab(
     notices: List<com.om.diucampusschedule.domain.model.Notice>,
     isLoading: Boolean,
-    onNoticeClick: (com.om.diucampusschedule.domain.model.Notice) -> Unit
+    onNoticeClick: (com.om.diucampusschedule.domain.model.Notice) -> Unit,
+    isConnected: Boolean
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else if (notices.isEmpty()) {
+        if(!isConnected){
             Column(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.Article,
+                    imageVector = ImageVector.vectorResource(id = R.drawable.wifi_slash),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(72.dp)
                 )
                 Text(
-                    "No notices found",
+                    "Check your internet connection",
                     style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 12.dp)
                 )
             }
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(notices) { notice ->
-                    CompactNoticeCard(
-                        notice = notice,
-                        onClick = { onNoticeClick(notice) }
+        }else{
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (notices.isEmpty()) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.Article,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(48.dp)
                     )
+                    Text(
+                        "No notices found",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(notices) { notice ->
+                        CompactNoticeCard(
+                            notice = notice,
+                            onClick = { onNoticeClick(notice) }
+                        )
+                    }
                 }
             }
         }
@@ -629,9 +658,9 @@ fun CompactNoticeCard(
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Medium,
+                    lineHeight = 16.sp,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = MaterialTheme.typography.titleSmall.lineHeight
+                    overflow = TextOverflow.Ellipsis
                 )
                 Row(
                     modifier = Modifier.padding(top = 4.dp),
