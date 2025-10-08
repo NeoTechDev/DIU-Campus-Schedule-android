@@ -11,15 +11,14 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -32,8 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,11 +38,6 @@ import androidx.compose.ui.unit.sp
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
-import com.om.diucampusschedule.ui.theme.AccentGreen
-import com.om.diucampusschedule.ui.theme.AccentOrange
-import com.om.diucampusschedule.ui.theme.AccentPurple
-import com.om.diucampusschedule.ui.theme.AccentRed
-import com.om.diucampusschedule.ui.theme.AccentTeal
 
 @Composable
 fun TodayActionButton(
@@ -79,7 +71,6 @@ fun TodayActionButton(
                 ActionMenuItem(
                     icon = R.drawable.search_course,
                     label = "Find Course",
-                    tint = AccentPurple,
                     onClick = onFindCourseClick
                 )
 
@@ -87,7 +78,6 @@ fun TodayActionButton(
                 ActionMenuItem(
                     icon = R.drawable.add_task,
                     label = "Add Task",
-                    tint = AccentOrange,
                     onClick = onAddTaskClick
                 )
 
@@ -95,7 +85,6 @@ fun TodayActionButton(
                 ActionMenuItem(
                     icon = R.drawable.faculty_info,
                     label = "Faculty Info",
-                    tint = AccentGreen,
                     onClick = onFacultyInfoClick
                 )
 
@@ -105,7 +94,6 @@ fun TodayActionButton(
                         ActionMenuItem(
                             icon = R.drawable.student_portal,
                             label = "Student Portal",
-                            tint = AccentTeal,
                             onClick = onStudentPortalClick
                         )
                     }
@@ -114,7 +102,6 @@ fun TodayActionButton(
                         ActionMenuItem(
                             icon = R.drawable.teacher_portal,
                             label = "Teacher Portal",
-                            tint = AccentTeal,
                             onClick = onTeacherPortalClick
                         )
                     }
@@ -123,14 +110,12 @@ fun TodayActionButton(
                         ActionMenuItem(
                             icon = R.drawable.student_portal,
                             label = "Student Portal",
-                            tint = AccentTeal,
                             onClick = onStudentPortalClick
                         )
                         // Teacher Portal
                         ActionMenuItem(
                             icon = R.drawable.teacher_portal,
                             label = "Teacher Portal",
-                            tint = AccentTeal,
                             onClick = onTeacherPortalClick
                         )
                     }
@@ -140,7 +125,6 @@ fun TodayActionButton(
                 ActionMenuItem(
                     icon = R.drawable.blc,
                     label = "BLC",
-                    tint = AccentRed,
                     onClick = onBlcClick
                 )
             }
@@ -158,14 +142,14 @@ fun TodayActionButton(
 
         FloatingActionButton(
             onClick = onToggleExpand,
-            containerColor = MaterialTheme.colorScheme.primary,
+            containerColor = if(isExpanded) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.shadow(fabElevation, RoundedCornerShape(16.dp))
         ) {
             Icon(
                 painter = if (isExpanded) painterResource(R.drawable.ic_close) else painterResource(R.drawable.rocket),
                 contentDescription = if (isExpanded) "Close menu" else "Open menu",
-                tint = MaterialTheme.colorScheme.onPrimary,
+                tint = if(isExpanded) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .size(24.dp)
                     .rotate(if (isExpanded) 90f else 0f)
@@ -178,7 +162,6 @@ fun TodayActionButton(
 private fun ActionMenuItem(
     icon: Int,
     label: String,
-    tint: Color,
     onClick: () -> Unit
 ) {
     Surface(
@@ -186,42 +169,26 @@ private fun ActionMenuItem(
             .shadow(4.dp, RoundedCornerShape(50))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surface
+        color = MaterialTheme.colorScheme.primary
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = label,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(end = 12.dp)
+                fontSize = 16.sp
             )
-
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                tint,
-                                tint.copy(alpha = 0.9f)
-                            )
-                        ),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = icon),
-                    contentDescription = label,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
         }
     }
 }

@@ -92,7 +92,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
@@ -123,8 +122,7 @@ import com.om.diucampusschedule.ui.components.EditTaskGroupDialog
 import com.om.diucampusschedule.ui.components.MultipleTaskShareDialog
 import com.om.diucampusschedule.ui.components.ShareTaskDialog
 import com.om.diucampusschedule.ui.components.ToastType
-import com.om.diucampusschedule.ui.theme.AccentOrange
-import com.om.diucampusschedule.ui.theme.AccentTeal
+import com.om.diucampusschedule.ui.theme.AccentGreen
 import com.om.diucampusschedule.ui.theme.AppPrimaryColorLight
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.utils.ScreenConfig
@@ -267,7 +265,6 @@ fun TaskScreen(navController: NavController) {
                             ActionMenuItem(
                                 icon = R.drawable.add_task,
                                 label = "Add Task",
-                                tint = AccentOrange,
                                 onClick = {
                                     showBottomSheet = true
                                     isMainFabExpanded = false
@@ -275,32 +272,33 @@ fun TaskScreen(navController: NavController) {
                             )
 
                             // Share Tasks action
-                            ActionMenuItem(
-                                icon = R.drawable.share_solid_full,
-                                label = "Share Tasks",
-                                tint = AccentTeal,
-                                onClick = {
-                                    if (isInSelectionMode) {
-                                        if (selectedTasks.isEmpty()) {
+                            if(selectedTab == 0){
+                                ActionMenuItem(
+                                    icon = R.drawable.share_solid_full,
+                                    label = "Share Tasks",
+                                    onClick = {
+                                        if (isInSelectionMode) {
+                                            if (selectedTasks.isEmpty()) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Select tasks to share",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            } else {
+                                                showMultipleShareConfirmation = true
+                                            }
+                                        } else {
+                                            isInSelectionMode = true
                                             Toast.makeText(
                                                 context,
                                                 "Select tasks to share",
                                                 Toast.LENGTH_SHORT
                                             ).show()
-                                        } else {
-                                            showMultipleShareConfirmation = true
                                         }
-                                    } else {
-                                        isInSelectionMode = true
-                                        Toast.makeText(
-                                            context,
-                                            "Select tasks to share",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        isMainFabExpanded = false
                                     }
-                                    isMainFabExpanded = false
-                                }
-                            )
+                                )
+                            }
                         }
                     }
 
@@ -328,8 +326,10 @@ fun TaskScreen(navController: NavController) {
                             }
                         },
                         containerColor =
-                            if (isInSelectionMode && selectedTasks.isNotEmpty())
+                            if (isInSelectionMode && selectedTasks.isEmpty() || isMainFabExpanded)
                                 MaterialTheme.colorScheme.secondary
+                            else if (isInSelectionMode && selectedTasks.isNotEmpty())
+                                AccentGreen
                             else
                                 MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(16.dp),
@@ -344,7 +344,7 @@ fun TaskScreen(navController: NavController) {
                                 Icon(
                                     painter = painterResource(R.drawable.share_solid_full),
                                     contentDescription = "Share Selected",
-                                    tint = MaterialTheme.colorScheme.onSecondary,
+                                    tint = Color.White,
                                     modifier = Modifier.size(30.dp)
                                 )
 
@@ -352,7 +352,7 @@ fun TaskScreen(navController: NavController) {
 
                                 Text(
                                     text = "Share",
-                                    color = MaterialTheme.colorScheme.onSecondary,
+                                    color = Color.White,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -361,7 +361,7 @@ fun TaskScreen(navController: NavController) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_close),
                                 contentDescription = "Cancel Selection",
-                                tint = MaterialTheme.colorScheme.onPrimary,
+                                tint = MaterialTheme.colorScheme.onSecondary,
                                 modifier = Modifier.size(24.dp)
                             )
                         } else {
@@ -371,7 +371,7 @@ fun TaskScreen(navController: NavController) {
                                 else
                                     painterResource(R.drawable.add),
                                 contentDescription = if (isMainFabExpanded) "Close menu" else "Open menu",
-                                tint = MaterialTheme.colorScheme.onPrimary,
+                                tint = if(isMainFabExpanded) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -520,12 +520,24 @@ fun TaskScreen(navController: NavController) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "${selectedTasks.size} selected",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.White
-                            )
+                            if(pendingTasks.isNotEmpty()) {
+                                Text(
+                                    text = "${selectedTasks.size} selected",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                            }
+                            else{
+                                Text(
+                                    text = "First create a task to select",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White,
+                                    lineHeight = 15.sp,
+                                    maxLines = 2
+                                )
+                            }
 
                             TextButton(
                                 onClick = {
@@ -1028,7 +1040,6 @@ fun EmptyState(imageRes: Int, title: String, message: String) {
 private fun ActionMenuItem(
     icon: Int,
     label: String,
-    tint: Color,
     onClick: () -> Unit
 ) {
     Surface(
@@ -1036,42 +1047,27 @@ private fun ActionMenuItem(
             .shadow(4.dp, RoundedCornerShape(50))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surface
+        color = MaterialTheme.colorScheme.primary
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = label,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 modifier = Modifier.padding(end = 12.dp)
             )
-
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                tint,
-                                tint.copy(alpha = 0.9f)
-                            )
-                        ),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = icon),
-                    contentDescription = label,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
         }
     }
 }
