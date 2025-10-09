@@ -13,19 +13,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -84,7 +86,9 @@ fun TodayRoutineContent(
     maintenanceMessage: String? = null,
     isSemesterBreak: Boolean = false,
     updateType: String? = null,
-    selectedDate: LocalDate
+    selectedDate: LocalDate,
+    // Add scroll state change listener
+    onScrollStateChanged: (Int, Int) -> Unit = { _, _ -> }
 ) {
     // Only show loading if we haven't loaded once and are currently loading
     val shouldShowLoading = isLoading && !hasLoadedOnce
@@ -133,7 +137,20 @@ fun TodayRoutineContent(
         } else emptyList()
         val classRoutines = routineItems.map { it.toClassRoutine() }
         
+        // Create scroll state for tracking
+        val listState = rememberLazyListState()
+
+        // Monitor scroll state changes
+        LaunchedEffect(listState) {
+            snapshotFlow {
+                listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+            }.collect { (index, offset) ->
+                onScrollStateChanged(index, offset)
+            }
+        }
+
         LazyColumn(
+            state = listState,
             modifier = modifier
                 .fillMaxSize()
                 .padding(horizontal = 6.dp),
@@ -569,7 +586,7 @@ private fun EmptyClassRoutineContent(
                     Quadruple(
                         Icons.Default.EventBusy,
                         MaterialTheme.colorScheme.primary,
-                        "Semester Break", 
+                        "Semester Break",
                         maintenanceMessage ?: "Semester break is in progress. New semester routine will be available soon."
                     )
                 }

@@ -176,6 +176,37 @@ fun TodayScreen(
         label = "horizontalOffset"
     )
     
+    // Scroll state for FAB visibility control
+    var isFabVisible by remember { mutableStateOf(true) }
+    var lastScrollIndex by remember { mutableStateOf(0) }
+    var lastScrollOffset by remember { mutableStateOf(0) }
+
+    // Function to handle scroll state changes from TodayRoutineContent
+    val onScrollStateChanged = { firstVisibleItemIndex: Int, firstVisibleItemScrollOffset: Int ->
+        val isScrollingDown = if (firstVisibleItemIndex > lastScrollIndex) {
+            true
+        } else if (firstVisibleItemIndex < lastScrollIndex) {
+            false
+        } else {
+            firstVisibleItemScrollOffset > lastScrollOffset
+        }
+
+        // Update FAB visibility based on scroll direction - reduced threshold for more responsive hiding
+        if (isScrollingDown && isFabVisible && (firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 50)) {
+            isFabVisible = false
+        } else if (!isScrollingDown && !isFabVisible) {
+            isFabVisible = true
+        }
+
+        // Also show FABs when scrolled to top
+        if (firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset < 50) {
+            isFabVisible = true
+        }
+
+        lastScrollIndex = firstVisibleItemIndex
+        lastScrollOffset = firstVisibleItemScrollOffset
+    }
+
     // Handle back button press to close action button
     BackHandler(enabled = isActionButtonExpanded) {
         isActionButtonExpanded = false
@@ -356,7 +387,9 @@ fun TodayScreen(
                             maintenanceMessage = animatedTodayState.maintenanceMessage,
                             isSemesterBreak = animatedTodayState.isSemesterBreak,
                             updateType = animatedTodayState.updateType,
-                            selectedDate = animatedDate
+                            selectedDate = animatedDate,
+                            // Pass scroll state change listener
+                            onScrollStateChanged = onScrollStateChanged
                         )
                     }
                 }
@@ -371,13 +404,13 @@ fun TodayScreen(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // "Back to Today" FAB - only show when not on current date
+                        // "Back to Today" FAB - only show when not on current date and when FABs are visible
                         AnimatedVisibility(
-                            visible = selectedDate != LocalDate.now(),
-                            enter = fadeIn(animationSpec = tween(300)) +
-                                    scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = 0.8f)),
-                            exit = fadeOut(animationSpec = tween(200)) +
-                                    scaleOut(targetScale = 0.8f, animationSpec = spring(dampingRatio = 0.8f))
+                            visible = selectedDate != LocalDate.now() && isFabVisible,
+                            enter = scaleIn(initialScale = 0.0f, animationSpec = tween(100)) +
+                                   fadeIn(animationSpec = tween(50)),
+                            exit = scaleOut(targetScale = 0.0f, animationSpec = tween(80)) +
+                                  fadeOut(animationSpec = tween(50))
                         ) {
                             ExtendedFloatingActionButton(
                                 onClick = { todayViewModel.selectDate(LocalDate.now()) },
@@ -395,6 +428,7 @@ fun TodayScreen(
                                         fontSize = 16.sp
                                     )
                                 },
+                                shape = RoundedCornerShape(20.dp),
                                 containerColor = Color(0xFF00BCD4),
                                 contentColor = Color.Black,
                                 elevation = FloatingActionButtonDefaults.elevation(
@@ -404,38 +438,45 @@ fun TodayScreen(
                             )
                         }
 
-
-                        // Main Quick Access FAB
-                        TodayActionButton(
-                            user = authState.user,
-                            isExpanded = isActionButtonExpanded,
-                            onToggleExpand = { isActionButtonExpanded = !isActionButtonExpanded },
-                            onFindCourseClick = {
-                                isActionButtonExpanded = false
-                                showFindCourseBottomSheet = true
-                            },
-                            onAddTaskClick = {
-                                isActionButtonExpanded = false
-                                taskToEdit = null // Clear any existing task to edit
-                                showTaskBottomSheet = true
-                            },
-                            onFacultyInfoClick = {
-                                isActionButtonExpanded = false
-                                navController.navigate(Screen.FacultyInfo.route)
-                            },
-                            onStudentPortalClick = {
-                                isActionButtonExpanded = false
-                                navController.navigate(Screen.WebView.createRoute(PortalUrls.STUDENT_PORTAL, PortalTitles.STUDENT_PORTAL))
-                            },
-                            onTeacherPortalClick = {
-                                isActionButtonExpanded = false
-                                navController.navigate(Screen.WebView.createRoute(PortalUrls.TEACHER_PORTAL, PortalTitles.TEACHER_PORTAL))
-                            },
-                            onBlcClick = {
-                                isActionButtonExpanded = false
-                                navController.navigate(Screen.WebView.createRoute(PortalUrls.BLC, PortalTitles.BLC))
-                            }
-                        )
+                        // Main Quick Access FAB with scroll-based visibility
+                        AnimatedVisibility(
+                            visible = isFabVisible,
+                            enter = scaleIn(initialScale = 0.0f, animationSpec = tween(100)) +
+                                   fadeIn(animationSpec = tween(50)),
+                            exit = scaleOut(targetScale = 0.0f, animationSpec = tween(80)) +
+                                  fadeOut(animationSpec = tween(50))
+                        ) {
+                            TodayActionButton(
+                                user = authState.user,
+                                isExpanded = isActionButtonExpanded,
+                                onToggleExpand = { isActionButtonExpanded = !isActionButtonExpanded },
+                                onFindCourseClick = {
+                                    isActionButtonExpanded = false
+                                    showFindCourseBottomSheet = true
+                                },
+                                onAddTaskClick = {
+                                    isActionButtonExpanded = false
+                                    taskToEdit = null // Clear any existing task to edit
+                                    showTaskBottomSheet = true
+                                },
+                                onFacultyInfoClick = {
+                                    isActionButtonExpanded = false
+                                    navController.navigate(Screen.FacultyInfo.route)
+                                },
+                                onStudentPortalClick = {
+                                    isActionButtonExpanded = false
+                                    navController.navigate(Screen.WebView.createRoute(PortalUrls.STUDENT_PORTAL, PortalTitles.STUDENT_PORTAL))
+                                },
+                                onTeacherPortalClick = {
+                                    isActionButtonExpanded = false
+                                    navController.navigate(Screen.WebView.createRoute(PortalUrls.TEACHER_PORTAL, PortalTitles.TEACHER_PORTAL))
+                                },
+                                onBlcClick = {
+                                    isActionButtonExpanded = false
+                                    navController.navigate(Screen.WebView.createRoute(PortalUrls.BLC, PortalTitles.BLC))
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -710,7 +751,7 @@ private fun CustomTopAppBar(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CloudOff,
+                        imageVector = ImageVector.vectorResource(id = R.drawable.wifi_slash),
                         contentDescription = "Offline",
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(24.dp)
