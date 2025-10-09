@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -116,14 +117,14 @@ fun FindCourseBottomSheetContent(
                 Text(
                     text = "Search by course code or name",
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 ) 
             },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = Color.Gray
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             trailingIcon = {
@@ -140,9 +141,11 @@ fun FindCourseBottomSheetContent(
             singleLine = true,
             shape = RoundedCornerShape(20.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AppPrimaryColorLight,
-                unfocusedBorderColor = Color.LightGray,
-                cursorColor = AppPrimaryColorLight
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = Color.Transparent,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
             )
         )
         
@@ -227,14 +230,12 @@ private fun SimpleCourseListItem(
     courseName: String,
     credit: Int
 ) {
-    val surfaceVariant = if(isSystemInDarkTheme()) Color(0xFF2F3540) else Color(0xFFF0F5FF)
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(20.dp),
-        color = surfaceVariant,
-        shadowElevation = 1.dp
+        color =  MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -260,7 +261,7 @@ private fun SimpleCourseListItem(
                 // Course Name
                 Text(
                     text = courseName,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.titleMedium,
                     lineHeight = 16.sp,
                     maxLines = 3,

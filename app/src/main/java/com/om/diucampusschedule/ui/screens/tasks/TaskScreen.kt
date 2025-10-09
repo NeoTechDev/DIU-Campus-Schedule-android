@@ -229,18 +229,20 @@ fun TaskScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = if(isSystemInDarkTheme()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                     actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
                 modifier = Modifier.fillMaxWidth()
             )
-            // Subtle divider for modern look
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
-            )
+            if(!isSystemInDarkTheme()){
+                // Subtle divider for modern look
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                )
+            }
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),

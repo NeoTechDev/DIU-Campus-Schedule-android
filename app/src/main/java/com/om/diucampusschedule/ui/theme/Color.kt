@@ -25,10 +25,10 @@ val md_theme_light_onError = Color(0xFFFFFFFF) // Pure White
 val md_theme_light_errorContainer = Color(0xFFFFEAEA) // Light Red Container
 val md_theme_light_onErrorContainer = Color(0xFF8B1538) // Deep Red Text
 
-val md_theme_light_background = Color(0xFFFCFCFF) // Off-White with Blue Hint - Professional
-val md_theme_light_onBackground = Color(0xFF1A1C20) // Dark Gray - Readable Text
-val md_theme_light_surface = Color(0xFFFCFCFF) // Same as background - Consistent
-val md_theme_light_onSurface = Color(0xFF1A1C20) // Dark Gray Text
+val md_theme_light_background = Color(0xFFFFFFFF)      // Pure white - main backdrop
+val md_theme_light_onBackground = Color(0xFF1C1B1F)    // Almost black - primary text
+val md_theme_light_surface = Color(0xFFF1F3F4)         // Light gray - search bars, cards
+val md_theme_light_onSurface = Color(0xFF1C1B1F)       // Almost black - text on surfaces
 
 val md_theme_light_surfaceVariant = Color(0xFFE4E6F0) // Light Blue-Gray - Subtle Variation
 val md_theme_light_onSurfaceVariant = Color(0xFF47495A) // Medium Gray - Good Contrast

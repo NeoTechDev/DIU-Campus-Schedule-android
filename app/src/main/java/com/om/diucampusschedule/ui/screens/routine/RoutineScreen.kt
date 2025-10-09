@@ -104,6 +104,7 @@ import com.om.diucampusschedule.ui.components.GenerationProgressDialog
 import com.om.diucampusschedule.ui.components.SuccessDialog
 import com.om.diucampusschedule.ui.components.generateRoutineImage
 import com.om.diucampusschedule.ui.components.generateRoutinePdf
+import com.om.diucampusschedule.ui.theme.AccentGreen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.theme.RobotoFontFamily
 import com.om.diucampusschedule.ui.utils.ScreenConfig
@@ -212,11 +213,14 @@ fun RoutineScreen(
                 refreshRotation = refreshRotation,
                 onDownloadClick = { showDownloadSheet = true }
             )
-            // Subtle divider for modern look
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
-            )
+
+            if(!isSystemInDarkTheme()){
+                // Subtle divider for modern look
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                )
+            }
 
             // Refresh indicator
             if (uiState.isRefreshing) {
@@ -809,7 +813,7 @@ private fun RoutineTopAppBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = if(isSystemInDarkTheme()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.background,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
@@ -833,8 +837,7 @@ private fun RoutineInfoBar(
             .padding(horizontal = 8.dp)
             .padding(top= 8.dp),
         color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(20.dp),
-        tonalElevation = 1.dp
+        shape = RoundedCornerShape(20.dp)
     ) {
         Row(
             modifier = Modifier
@@ -856,7 +859,7 @@ private fun RoutineInfoBar(
                     } else {
                         "Showing: ${defaultFilterText.uppercase()}"
                     },
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
@@ -868,7 +871,7 @@ private fun RoutineInfoBar(
                 if (!effectiveFrom.isNullOrBlank()) {
                     Text(
                         text = "Effective From: $effectiveFrom",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = AccentGreen,
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.SemiBold
                         ),

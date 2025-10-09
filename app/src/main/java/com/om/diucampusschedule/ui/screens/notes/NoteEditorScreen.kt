@@ -100,6 +100,7 @@ import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
 import com.om.diucampusschedule.ui.theme.InterFontFamily
 import com.om.diucampusschedule.ui.theme.md_theme_light_primary
 import com.om.diucampusschedule.ui.utils.ScreenConfig
+import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.NoteViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -642,7 +643,8 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
                                 contentDescription = "Back",
-                                tint = iconTint
+                                tint = iconTint,
+                                modifier = Modifier.size(topbarIconSize)
                             )
                         }
                     },
@@ -660,7 +662,7 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                                     } else {
                                         MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
                                     },
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(topbarIconSize)
                                 )
                             }
                         }

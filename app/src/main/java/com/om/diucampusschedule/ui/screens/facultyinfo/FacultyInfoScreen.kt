@@ -1,15 +1,19 @@
 package com.om.diucampusschedule.ui.screens.facultyinfo
 
 import android.content.Intent
+import android.graphics.Color
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -32,14 +36,18 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -82,6 +90,7 @@ import com.om.diucampusschedule.domain.model.Faculty
 import com.om.diucampusschedule.ui.theme.EaseInOutCubic
 import com.om.diucampusschedule.ui.utils.FacultyUtils
 import com.om.diucampusschedule.ui.utils.ScreenConfig
+import com.om.diucampusschedule.ui.utils.TopAppBarIconSize
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -136,71 +145,18 @@ fun FacultyInfoScreen(
             modifier = Modifier.fillMaxWidth().navigationBarsPadding(), // Add navigation bar padding to prevent overlap
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
-                TopAppBar(
+                CenterAlignedTopAppBar(
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
+                        containerColor = if(isSystemInDarkTheme()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.background,
                         titleContentColor = MaterialTheme.colorScheme.onSurface,
                     ),
                     title = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Crossfade(
-                                targetState = isSearchActive,
-                                animationSpec = tween(300)
-                            ) { searching ->
-                                when (searching) {
-                                    true -> {
-                                        TextField(
-                                            value = searchQuery,
-                                            onValueChange = { searchQuery = it },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .focusRequester(focusRequester),
-                                            colors = TextFieldDefaults.colors(
-                                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                                disabledContainerColor = MaterialTheme.colorScheme.surface,
-                                                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
-                                                cursorColor = MaterialTheme.colorScheme.primary
-                                            ),
-                                            placeholder = {
-                                                Text(
-                                                    "Search faculty by name or initial...",
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            },
-                                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                            keyboardActions = KeyboardActions(
-                                                onSearch = {
-                                                    keyboardController?.hide()
-                                                }
-                                            ),
-                                            singleLine = true,
-                                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        )
-                                    }
-
-                                    false -> {
-                                        AnimatedVisibility(
-                                            visible = true,
-                                            enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic)) + slideInHorizontally(animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic))
-                                        ) {
-                                            Text(
-                                                "Faculty Information",
-                                                style = MaterialTheme.typography.titleLarge,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        Text(
+                            "Faculty Information",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     },
                     navigationIcon = {
                         AnimatedVisibility(
@@ -242,7 +198,7 @@ fun FacultyInfoScreen(
                                     imageVector = ImageVector.vectorResource(id = R.drawable.search_24),
                                     contentDescription = "Search",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(topbarIconSize)
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -260,10 +216,69 @@ fun FacultyInfoScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
-                )
+                if(!isSystemInDarkTheme()){
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                    )
+                }
+
+
+                AnimatedVisibility(
+                    visible = isSearchActive,
+                    enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic)) +
+                            slideInVertically(initialOffsetY = { -it }),
+                    exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic)) +
+                            slideOutVertically(targetOffsetY = { -it }),
+                ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+                            horizontalArrangement = Arrangement.Center
+                        ){
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor =  MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor =  MaterialTheme.colorScheme.surface,
+                                    disabledContainerColor =  MaterialTheme.colorScheme.surface,
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
+                                    cursorColor = MaterialTheme.colorScheme.primary
+                                ),
+                                shape = RoundedCornerShape(24.dp),
+                                placeholder = {
+                                    Text(
+                                        "Search faculty by name or initial...",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search",
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = {
+                                        keyboardController?.hide()
+                                    }
+                                ),
+                                singleLine = true,
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                        }
+                    }
+
 
                 AnimatedVisibility(
                     visible = filteredFacultyList.isEmpty() && searchQuery.isNotEmpty(),
@@ -365,7 +380,7 @@ fun FacultyCard(faculty: Faculty, contactNumber: String) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(28.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
@@ -505,7 +520,7 @@ fun FacultyInfoRow(label: String, value: String) {
                     Text(
                         text = value,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.End,
                         fontWeight = FontWeight.Bold,
                         maxLines = 2

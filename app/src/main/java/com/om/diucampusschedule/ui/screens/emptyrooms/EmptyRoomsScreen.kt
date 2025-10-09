@@ -19,6 +19,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -272,18 +273,20 @@ fun EmptyRoomsScreen() {
                         )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
+                        containerColor = if(isSystemInDarkTheme()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.background,
                         titleContentColor = MaterialTheme.colorScheme.onSurface,
                         actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
                     windowInsets = ScreenConfig.getTopAppBarWindowInsets(handleStatusBar = true),
                     modifier = Modifier.fillMaxWidth()
                 )
-                // Divider below TopBar
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
-                )
+                if(!isSystemInDarkTheme()){
+                    // Divider below TopBar
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                    )
+                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -823,7 +826,7 @@ fun RoomSearchBar(
                     spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                 ),
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.background,
+            color = MaterialTheme.colorScheme.surface,
             tonalElevation = 4.dp
         ) {
             OutlinedTextField(
@@ -886,10 +889,10 @@ fun RoomSearchBar(
                 shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    unfocusedBorderColor = Color.Transparent,
                     cursorColor = MaterialTheme.colorScheme.primary,
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = Color.Transparent
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1379,14 +1382,23 @@ fun TimeSlotDropdown(
             },
             textStyle = MaterialTheme.typography.bodyLarge,
             colors = OutlinedTextFieldDefaults.colors(
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = Color.Transparent,
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
-                cursorColor = MaterialTheme.colorScheme.primary
-            )
+                cursorColor = MaterialTheme.colorScheme.primary,
+                unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            shape = RoundedCornerShape(24.dp)
         )
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
+            shape = RoundedCornerShape(24.dp),
             modifier = Modifier.background(MaterialTheme.colorScheme.surface)
         ) {
             timeSlots.forEachIndexed { index, timeSlot ->
