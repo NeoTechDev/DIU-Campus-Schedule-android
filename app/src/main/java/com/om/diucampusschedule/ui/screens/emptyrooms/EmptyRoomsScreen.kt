@@ -47,6 +47,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.Room
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CalendarToday
@@ -101,6 +102,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -698,101 +700,97 @@ private fun EmptySearchView() {
 @Composable
 fun RoomCard(roomNumber: String, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        modifier = modifier.height(120.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp
+        )
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
+            // Top section - Room label and icon
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.MeetingRoom,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .padding(start = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp) // Tight spacing between texts
-            ) {
-                // "Room" label - small
                 Text(
                     text = "Room",
-                    fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = MaterialTheme.typography.labelMedium.lineHeight * 0.9f // Tighter line height
+                    fontWeight = FontWeight.Medium
                 )
 
-                // Room number - largest
+                Surface(
+                    modifier = Modifier.size(32.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    tonalElevation = 2.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.MeetingRoom,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            // Bottom section - Room number and lab info
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Room number
                 Text(
                     text = roomNumber,
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = MaterialTheme.typography.titleLarge.lineHeight * 0.85f // Tighter line height
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
-                // Lab info and building info - medium size
+                // Lab info chip
                 val normalizedRoom = roomNumber.trim().uppercase()
-
                 val labRooms = setOf(
                     "610", "616", "710", "711A", "711B", "814A", "903",
                     "AB3-104", "AB3-106", "AB3-107"
                 )
-                val firstLine: String? = when (normalizedRoom) {
-                    "601" -> "(DS Lab)"
-                    "613" -> "(Robotics Lab)"
-                    "614" -> "(CS Lab)"
-                    else -> if (labRooms.contains(normalizedRoom)) "(Lab Room)" else null
+
+                val labInfo = when (normalizedRoom) {
+                    "601" -> "DS Lab"
+                    "613" -> "Robotics Lab"
+                    "614" -> "CS Lab"
+                    else -> if (labRooms.contains(normalizedRoom)) "Lab Room" else null
                 }
-                val isAb3 = normalizedRoom.contains("AB3")
 
-                if (firstLine != null || isAb3) {
-                    // Balanced sizing for smooth visual flow
-                    val bodyMediumSize = MaterialTheme.typography.bodyMedium.fontSize
-                    val bodySmallSize = MaterialTheme.typography.bodySmall.fontSize
-
-                    val annotated = buildAnnotatedString {
-                        if (firstLine != null) {
-                            withStyle(
-                                SpanStyle(
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = bodyMediumSize // Medium size for better flow
-                                )
-                            ) {
-                                append(firstLine)
-                            }
-                        }
-                        if (isAb3) {
-                            if (firstLine != null) append("\n")
-                            withStyle(
-                                SpanStyle(
-                                    fontWeight = FontWeight.Normal,
-                                    fontSize = bodySmallSize // Consistent with medium sizing
-                                )
-                            ) {
-                                append("(Academic Building 3)")
-                            }
-                        }
+                if (labInfo != null) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = labInfo,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
-
-                    Text(
-                        text = annotated,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 16.sp // Tight line height for compact look
-                    )
+                } else {
+                    // Empty spacer to maintain consistent card height
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
             }
         }

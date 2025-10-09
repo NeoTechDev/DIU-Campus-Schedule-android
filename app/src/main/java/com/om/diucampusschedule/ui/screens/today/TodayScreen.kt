@@ -595,7 +595,7 @@ private fun CustomTopAppBar(
                 actions = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy((-6).dp)
+                        horizontalArrangement = Arrangement.spacedBy((6).dp)
                     ){
                     // "Back to Today" button - only show when not on current date
                     if (selectedDate != LocalDate.now()) {
@@ -633,7 +633,7 @@ private fun CustomTopAppBar(
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy((-10).dp)
+                            horizontalArrangement = Arrangement.spacedBy((6).dp)
                         ) {
                             // Right side: Notification + Menu icons
                             IconButton(
