@@ -4,6 +4,7 @@ package com.om.diucampusschedule.ui.screens.today
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -43,6 +44,8 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -104,6 +107,7 @@ import com.om.diucampusschedule.ui.screens.today.components.TodayRoutineContent
 import com.om.diucampusschedule.ui.screens.today.components.calculateDailyEventCounts
 import com.om.diucampusschedule.ui.screens.webview.PortalTitles
 import com.om.diucampusschedule.ui.screens.webview.PortalUrls
+import com.om.diucampusschedule.ui.theme.AccentGreen
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -363,36 +367,76 @@ fun TodayScreen(
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
                 ) {
-                    TodayActionButton(
-                        user = authState.user,
-                        isExpanded = isActionButtonExpanded,
-                        onToggleExpand = { isActionButtonExpanded = !isActionButtonExpanded },
-                        onFindCourseClick = {
-                            isActionButtonExpanded = false
-                            showFindCourseBottomSheet = true
-                        },
-                        onAddTaskClick = {
-                            isActionButtonExpanded = false
-                            taskToEdit = null // Clear any existing task to edit
-                            showTaskBottomSheet = true
-                        },
-                        onFacultyInfoClick = {
-                            isActionButtonExpanded = false
-                            navController.navigate(Screen.FacultyInfo.route)
-                        },
-                        onStudentPortalClick = {
-                            isActionButtonExpanded = false
-                            navController.navigate(Screen.WebView.createRoute(PortalUrls.STUDENT_PORTAL, PortalTitles.STUDENT_PORTAL))
-                        },
-                        onTeacherPortalClick = {
-                            isActionButtonExpanded = false
-                            navController.navigate(Screen.WebView.createRoute(PortalUrls.TEACHER_PORTAL, PortalTitles.TEACHER_PORTAL))
-                        },
-                        onBlcClick = {
-                            isActionButtonExpanded = false
-                            navController.navigate(Screen.WebView.createRoute(PortalUrls.BLC, PortalTitles.BLC))
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // "Back to Today" FAB - only show when not on current date
+                        AnimatedVisibility(
+                            visible = selectedDate != LocalDate.now(),
+                            enter = fadeIn(animationSpec = tween(300)) +
+                                    scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = 0.8f)),
+                            exit = fadeOut(animationSpec = tween(200)) +
+                                    scaleOut(targetScale = 0.8f, animationSpec = spring(dampingRatio = 0.8f))
+                        ) {
+                            ExtendedFloatingActionButton(
+                                onClick = { todayViewModel.selectDate(LocalDate.now()) },
+                                icon = {
+                                    Icon(
+                                        imageVector = ImageVector.vectorResource(id = R.drawable.undo_24px),
+                                        contentDescription = "Back to Today"
+                                    )
+                                },
+                                text = {
+                                    Text(
+                                        text = "Today",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 16.sp
+                                    )
+                                },
+                                containerColor = Color(0xFF00BCD4),
+                                contentColor = Color.Black,
+                                elevation = FloatingActionButtonDefaults.elevation(
+                                    defaultElevation = 6.dp,
+                                    pressedElevation = 8.dp
+                                )
+                            )
                         }
-                    )
+
+
+                        // Main Quick Access FAB
+                        TodayActionButton(
+                            user = authState.user,
+                            isExpanded = isActionButtonExpanded,
+                            onToggleExpand = { isActionButtonExpanded = !isActionButtonExpanded },
+                            onFindCourseClick = {
+                                isActionButtonExpanded = false
+                                showFindCourseBottomSheet = true
+                            },
+                            onAddTaskClick = {
+                                isActionButtonExpanded = false
+                                taskToEdit = null // Clear any existing task to edit
+                                showTaskBottomSheet = true
+                            },
+                            onFacultyInfoClick = {
+                                isActionButtonExpanded = false
+                                navController.navigate(Screen.FacultyInfo.route)
+                            },
+                            onStudentPortalClick = {
+                                isActionButtonExpanded = false
+                                navController.navigate(Screen.WebView.createRoute(PortalUrls.STUDENT_PORTAL, PortalTitles.STUDENT_PORTAL))
+                            },
+                            onTeacherPortalClick = {
+                                isActionButtonExpanded = false
+                                navController.navigate(Screen.WebView.createRoute(PortalUrls.TEACHER_PORTAL, PortalTitles.TEACHER_PORTAL))
+                            },
+                            onBlcClick = {
+                                isActionButtonExpanded = false
+                                navController.navigate(Screen.WebView.createRoute(PortalUrls.BLC, PortalTitles.BLC))
+                            }
+                        )
+                    }
                 }
             }
 
@@ -594,85 +638,46 @@ private fun CustomTopAppBar(
                 },
                 actions = {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy((6).dp)
-                    ){
-                    // "Back to Today" button - only show when not on current date
-                    if (selectedDate != LocalDate.now()) {
-                        Box(
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                                )
-                                .clickable {
-                                    todayViewModel.selectDate(LocalDate.now())
-                                }
-                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Right side: Notification + Menu icons
+                        IconButton(
+                            onClick = onNotificationClick,
+                            modifier = Modifier.size(60.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            BadgedBox(
+                                badge = {
+                                    if (unreadNotificationCount > 0) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.error,
+                                            contentColor = MaterialTheme.colorScheme.onError
+                                        ) {
+                                            Text(
+                                                text = if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString(),
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        }
+                                    }
+                                }
                             ) {
                                 Icon(
-                                    imageVector = ImageVector.vectorResource(id = R.drawable.undo_24px),
-                                    contentDescription = "Back to Today",
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = "Today",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    fontWeight = FontWeight.SemiBold
+                                    imageVector = Icons.Default.Notifications,
+                                    contentDescription = "Notifications",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(topbarIconSize)
                                 )
                             }
                         }
-                    }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy((6).dp)
+                        IconButton(
+                            onClick = onMenuClick
                         ) {
-                            // Right side: Notification + Menu icons
-                            IconButton(
-                                onClick = onNotificationClick
-                            ) {
-                                BadgedBox(
-                                    badge = {
-                                        if (unreadNotificationCount > 0) {
-                                            Badge(
-                                                containerColor = MaterialTheme.colorScheme.error,
-                                                contentColor = MaterialTheme.colorScheme.onError
-                                            ) {
-                                                Text(
-                                                    text = if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString(),
-                                                    style = MaterialTheme.typography.labelSmall
-                                                )
-                                            }
-                                        }
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Notifications,
-                                        contentDescription = "Notifications",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(topbarIconSize)
-                                    )
-                                }
-                            }
-
-                            IconButton(
-                                onClick = onMenuClick
-                            ) {
-                                Icon(
-                                    imageVector = ImageVector.vectorResource(id = R.drawable.bars_staggered),
-                                    contentDescription = "Menu",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            Icon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.bars_staggered),
+                                contentDescription = "Menu",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                 },

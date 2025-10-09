@@ -413,7 +413,7 @@ fun CalendarViewComponent(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = "Select",
+                        text = "Go",
                         color = MaterialTheme.colorScheme.onPrimary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,

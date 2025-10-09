@@ -53,7 +53,7 @@ fun TodayActionButton(
 ) {
     Column(
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         // Animated menu items
         AnimatedVisibility(
@@ -63,7 +63,7 @@ fun TodayActionButton(
         ) {
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.padding(bottom = 8.dp, end = 4.dp)
             ) {
 
