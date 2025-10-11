@@ -16,7 +16,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -52,7 +51,6 @@ import androidx.compose.material.icons.filled.Room
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
@@ -96,7 +94,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -114,7 +111,6 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.DayOfWeek
-import com.om.diucampusschedule.ui.theme.InterFontFamily
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.ScreenConfig.Modifiers.mainAppScreen
 import com.om.diucampusschedule.ui.viewmodel.RoutineViewModel
@@ -833,8 +829,7 @@ fun RoomSearchBar(
                 placeholder = {
                     Text(
                         text = "Search by room number...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = InterFontFamily
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 leadingIcon = {
@@ -883,7 +878,7 @@ fun RoomSearchBar(
                         focusManager.clearFocus()
                     }
                 ),
-                textStyle = TextStyle(fontFamily = InterFontFamily),
+                textStyle = MaterialTheme.typography.bodyLarge,
                 shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,

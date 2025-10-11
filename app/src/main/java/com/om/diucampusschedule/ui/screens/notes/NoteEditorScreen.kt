@@ -97,7 +97,6 @@ import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditorDefaults
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
-import com.om.diucampusschedule.ui.theme.InterFontFamily
 import com.om.diucampusschedule.ui.theme.md_theme_light_primary
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
@@ -611,8 +610,7 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                             text = if (existingNote == null) "New Note" else "Edit Note",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = contentColor,
-                            fontFamily = InterFontFamily
+                            color = contentColor
                         )
                     },
                     navigationIcon = {
@@ -990,11 +988,7 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                         ){
                             Text(
                                 text = existingNote?.lastEditedTime?.let { "Last edited: $it" } ?: "",
-                                style = TextStyle(
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Normal
-                                ),
-                                fontFamily = InterFontFamily,
+                                style = MaterialTheme.typography.bodySmall,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.padding(8.dp)
                             )
@@ -1014,7 +1008,16 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                     TextField(
                         value = editorState.title,
                         onValueChange = { updateEditorState(title = it) },
-                        placeholder = { Text(text = "Title", color = Color.Gray, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, fontFamily = InterFontFamily) },
+                        placeholder = {
+                            Text(
+                                text = "Title",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            )
+                        },
                         colors = TextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -1026,10 +1029,9 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                             unfocusedIndicatorColor = Color.Transparent,
                             cursorColor = MaterialTheme.colorScheme.primary
                         ),
-                        textStyle = TextStyle(
-                            fontSize = 20.sp,
+                        textStyle = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.SemiBold,
-                            fontFamily = InterFontFamily
+                            fontSize = 20.sp
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1039,15 +1041,17 @@ fun NoteEditorScreen(navController: NavController, noteId: Int?) {
                     // Rich Text Editor
                     RichTextEditor(
                         state = richTextState,
-                        placeholder = { Text(text = "Content", color = Color.Gray, fontFamily = InterFontFamily) },
+                        placeholder = {
+                            Text(
+                                text = "Content",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        },
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 8.dp),
-                        textStyle = TextStyle(
-                            fontFamily = InterFontFamily,
-                            fontSize = 16.sp,
-                            lineHeight = 24.sp
-                        ),
+                        textStyle = MaterialTheme.typography.bodyLarge,
                         colors =  RichTextEditorDefaults.richTextEditorColors(
                             textColor = Color.Black,
                             containerColor = Color.Transparent,

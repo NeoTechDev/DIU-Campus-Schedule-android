@@ -94,7 +94,6 @@ import com.mohamedrejeb.richeditor.ui.BasicRichText
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.model.Note
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
-import com.om.diucampusschedule.ui.theme.InterFontFamily
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.NoteViewModel
@@ -160,7 +159,6 @@ fun NotesScreen(navController: NavController) {
                         title = {
                             Text(
                                 "${selectedNotes.size} selected",
-                                fontFamily = InterFontFamily,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium)
                             )
                         },
@@ -326,7 +324,7 @@ fun NotesScreen(navController: NavController) {
                                 .fillMaxWidth()
                                 .padding(start = 16.dp, end = 16.dp, top = 12.dp)
                                 .clip(RoundedCornerShape(24.dp)),
-                            placeholder = { Text("Search notes...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = InterFontFamily) },
+                            placeholder = { Text("Search notes...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             leadingIcon = {
                                 Icon(Icons.Default.Search, "Search Icon", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             },
@@ -337,7 +335,7 @@ fun NotesScreen(navController: NavController) {
                                     }
                                 }
                             },
-                            textStyle = TextStyle(fontFamily = InterFontFamily),
+                            textStyle = MaterialTheme.typography.bodyLarge,
                             colors = TextFieldDefaults.colors(
                                 focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                                 unfocusedIndicatorColor = Color.Transparent,
@@ -471,8 +469,7 @@ fun DeleteConfirmationDialog(
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         "Delete Notes",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontFamily = InterFontFamily
+                        style = MaterialTheme.typography.titleLarge
                     )
                 }
 
@@ -485,8 +482,7 @@ fun DeleteConfirmationDialog(
                 Text(
                     message,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    fontFamily = InterFontFamily
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -501,7 +497,7 @@ fun DeleteConfirmationDialog(
                             contentColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Text("CANCEL", fontFamily = InterFontFamily)
+                        Text("CANCEL")
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -512,7 +508,7 @@ fun DeleteConfirmationDialog(
                             containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("DELETE", fontFamily = InterFontFamily)
+                        Text("DELETE")
                     }
                 }
             }
@@ -637,7 +633,6 @@ fun NoteCard(
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
                         maxLines = 2,
-                        fontFamily = InterFontFamily,
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -656,7 +651,6 @@ fun NoteCard(
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.DarkGray,
                             maxLines = 5,
-                            fontFamily = InterFontFamily,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
@@ -675,7 +669,6 @@ fun NoteCard(
                         Text(
                             text = formatDisplayTime(it),
                             style = MaterialTheme.typography.bodySmall,
-                            fontFamily = InterFontFamily,
                             color = Color.DarkGray.copy(alpha = 0.7f)
                         )
                     }
@@ -756,16 +749,14 @@ fun EmptyNotesState() {
             fontSize = 20.sp,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-            fontFamily = InterFontFamily
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             "Create your first note now!",
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            textAlign = TextAlign.Center,
-            fontFamily = InterFontFamily
+            textAlign = TextAlign.Center
         )
     }
 }

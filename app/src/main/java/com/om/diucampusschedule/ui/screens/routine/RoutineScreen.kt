@@ -106,7 +106,6 @@ import com.om.diucampusschedule.ui.components.generateRoutineImage
 import com.om.diucampusschedule.ui.components.generateRoutinePdf
 import com.om.diucampusschedule.ui.theme.AccentGreen
 import com.om.diucampusschedule.ui.theme.DIUCampusScheduleTheme
-import com.om.diucampusschedule.ui.theme.RobotoFontFamily
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.viewmodel.FilterType
 import com.om.diucampusschedule.ui.viewmodel.RoutineFilter
@@ -242,7 +241,6 @@ fun RoutineScreen(
                 ) {
                     Text(
                         text = "Offline Mode",
-                        fontFamily = RobotoFontFamily,
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Medium,
                         fontSize = 12.sp,
