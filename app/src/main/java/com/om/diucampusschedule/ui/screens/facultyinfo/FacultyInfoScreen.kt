@@ -18,12 +18,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,17 +35,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +73,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -374,7 +382,8 @@ fun FacultyCard(faculty: Faculty, contactNumber: String) {
     val context = LocalContext.current
     AnimatedVisibility(
         visible = true,
-        enter = fadeIn(animationSpec = tween(durationMillis = 400, easing = EaseInOutCubic)) + slideInVertically(animationSpec = tween(durationMillis = 400, easing = EaseInOutCubic))
+        enter = fadeIn(animationSpec = tween(durationMillis = 400, easing = EaseInOutCubic)) +
+                slideInVertically(animationSpec = tween(durationMillis = 400, easing = EaseInOutCubic))
     ) {
         Card(
             modifier = Modifier
@@ -394,12 +403,13 @@ fun FacultyCard(faculty: Faculty, contactNumber: String) {
                         .background(MaterialTheme.colorScheme.primaryContainer)
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.Start
                 ) {
                     // Circular avatar with first letter of the faculty's name
                     Column(
                         modifier = Modifier
-                            .width(200.dp)
+                            .weight(1f)
+                            .padding(top = 4.dp)
                     ) {
                         AnimatedVisibility(
                             visible = true,
@@ -428,64 +438,74 @@ fun FacultyCard(faculty: Faculty, contactNumber: String) {
                             )
                         }
                     }
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn(animationSpec = tween(durationMillis = 600, easing = EaseInOutCubic))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxHeight(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ){
-                            //Phone Call icon
-                            Icon(
-                                painter = painterResource(id = R.drawable.call),
-                                contentDescription = "Call Faculty",
-                                tint = if(!isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(35.dp)
-                                    .clickable(
-                                        onClick = {
-                                            // Launch the phone dialer with the contact number pre-filled
-                                            val intent = Intent(Intent.ACTION_DIAL,
-                                                "tel:$contactNumber".toUri())
-                                            context.startActivity(intent)
-                                        }
-                                    )
-                            )
-
-                            //Gmail icon
-                            Icon(
-                                painter = painterResource(id = R.drawable.envelope_24),
-                                contentDescription = "Email Faculty",
-                                tint = if(!isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(30.dp)
-                                    .clickable(
-                                        onClick = {
-                                            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                                data = "mailto:${faculty.email}".toUri()
-                                            }
-                                            try {
-                                                ContextCompat.startActivity(context, intent, null)
-                                            } catch (e: Exception) {
-                                                Toast.makeText(context, "No email app found.", Toast.LENGTH_SHORT).show()
-                                                e.printStackTrace()
-                                            }
-                                        }
-                                    )
-                            )
-                        }
-                    }
                 }
 
                 // Details section with faculty information
                 Column(modifier = Modifier.padding(16.dp)) {
                     FacultyInfoRow(label = "Initial:", value = faculty.faculty_initial)
-                    FacultyInfoRow(label = "ID:", value = faculty.employee_id)
+                  /*  FacultyInfoRow(label = "ID:", value = faculty.employee_id)*/
                     FacultyInfoRow(label = "Contact:", value = faculty.contact_number)
                     FacultyInfoRow(label = "Email:", value = faculty.email)
                     FacultyInfoRow(label = "Room:", value = faculty.room_no.ifEmpty { "N/A" })
-                    FacultyInfoRow(label = "Course:", value = faculty.course.ifEmpty { "N/A" })
+                    /*FacultyInfoRow(label = "Course:", value = faculty.course.ifEmpty { "N/A" })*/
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        FilledTonalButton(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_DIAL, "tel:$contactNumber".toUri())
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            contentPadding = PaddingValues(vertical = 12.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.call),
+                                contentDescription = "Call",
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Call", style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        FilledTonalButton(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                    data = "mailto:${faculty.email}".toUri()
+                                }
+                                try {
+                                    ContextCompat.startActivity(context, intent, null)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "No email app found", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            contentPadding = PaddingValues(vertical = 12.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.envelope_24),
+                                contentDescription = "Email",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Email", style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
                 }
             }
         }
