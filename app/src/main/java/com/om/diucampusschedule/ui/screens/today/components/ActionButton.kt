@@ -2,9 +2,13 @@ package com.om.diucampusschedule.ui.screens.today.components
 
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -53,7 +57,7 @@ fun TodayActionButton(
 ) {
     Column(
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         // Animated menu items
         AnimatedVisibility(
@@ -64,7 +68,7 @@ fun TodayActionButton(
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.padding(bottom = 8.dp, end = 4.dp)
+                modifier = Modifier.padding(bottom = 4.dp, end = 4.dp)
             ) {
 
                 // Find Course
@@ -140,21 +144,47 @@ fun TodayActionButton(
             label = "fabElevation"
         )
 
+        val transition = updateTransition(targetState = isExpanded, label = "FAB Transition")
+
+        val fabSize by transition.animateDp(label = "FAB Size") { expanded ->
+            if (expanded) 48.dp else 56.dp // smaller when expanded
+        }
+
+        val fabShape by transition.animateDp(label = "FAB Shape") { expanded ->
+            if (expanded) 28.dp else 16.dp // round when expanded
+        }
+
+        val containerColor by transition.animateColor(label = "FAB Color") { expanded ->
+            if (expanded) MaterialTheme.colorScheme.secondary
+            else MaterialTheme.colorScheme.primary
+        }
+
+        val iconRotation by transition.animateFloat(label = "Icon Rotation") { expanded ->
+            if (expanded) 90f else 0f
+        }
+
         FloatingActionButton(
             onClick = onToggleExpand,
-            containerColor = if(isExpanded) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.shadow(fabElevation, RoundedCornerShape(16.dp))
+            containerColor = containerColor,
+            shape = RoundedCornerShape(fabShape),
+            modifier = Modifier
+                .size(fabSize)
+                .shadow(fabElevation, RoundedCornerShape(fabShape))
         ) {
             Icon(
-                painter = if (isExpanded) painterResource(R.drawable.ic_close) else painterResource(R.drawable.rocket),
+                painter = if (isExpanded)
+                    painterResource(R.drawable.ic_close)
+                else painterResource(R.drawable.rocket),
                 contentDescription = if (isExpanded) "Close menu" else "Open menu",
-                tint = if(isExpanded) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary,
+                tint = if (isExpanded)
+                    MaterialTheme.colorScheme.onSecondary
+                else MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .size(24.dp)
-                    .rotate(if (isExpanded) 90f else 0f)
+                    .rotate(iconRotation)
             )
         }
+
     }
 }
 

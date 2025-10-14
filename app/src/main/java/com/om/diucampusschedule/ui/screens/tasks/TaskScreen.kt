@@ -4,13 +4,17 @@ import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -90,6 +94,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -250,7 +255,7 @@ fun TaskScreen(navController: NavController) {
             floatingActionButton = {
                 Column(
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     // Animated menu items
                     AnimatedVisibility(
@@ -261,7 +266,7 @@ fun TaskScreen(navController: NavController) {
                         Column(
                             horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(bottom = 8.dp, end = 4.dp)
+                            modifier = Modifier.padding(bottom = 4.dp, end = 4.dp)
                         ) {
                             // Add Task action
                             ActionMenuItem(
@@ -314,6 +319,29 @@ fun TaskScreen(navController: NavController) {
                         label = "fabElevation"
                     )
 
+                    val transition = updateTransition(targetState = isMainFabExpanded, label = "FAB Transition")
+
+                    val fabSize by transition.animateDp(label = "FAB Size") { expanded ->
+                        if (expanded) 48.dp else 56.dp // smaller when expanded
+                    }
+
+                    val fabShape by transition.animateDp(label = "FAB Shape") { expanded ->
+                        if (expanded) 28.dp else 16.dp // round when expanded
+                    }
+
+                    val containerColor by transition.animateColor(label = "FAB Color") { expanded ->
+                        if (isInSelectionMode && selectedTasks.isEmpty() || isMainFabExpanded)
+                            MaterialTheme.colorScheme.secondary
+                        else if (isInSelectionMode && selectedTasks.isNotEmpty())
+                            AccentGreen
+                        else
+                            MaterialTheme.colorScheme.primary
+                    }
+
+                    val iconRotation by transition.animateFloat(label = "Icon Rotation") { expanded ->
+                        if (expanded) 90f else 0f
+                    }
+
                     FloatingActionButton(
                         onClick = {
                             if (isInSelectionMode && selectedTasks.isEmpty()) {
@@ -327,15 +355,11 @@ fun TaskScreen(navController: NavController) {
                                 isMainFabExpanded = !isMainFabExpanded
                             }
                         },
-                        containerColor =
-                            if (isInSelectionMode && selectedTasks.isEmpty() || isMainFabExpanded)
-                                MaterialTheme.colorScheme.secondary
-                            else if (isInSelectionMode && selectedTasks.isNotEmpty())
-                                AccentGreen
-                            else
-                                MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.shadow(fabElevation, RoundedCornerShape(16.dp))
+                        containerColor = containerColor,
+                        shape = RoundedCornerShape(fabShape),
+                        modifier = Modifier
+                            .size(fabSize)
+                            .shadow(fabElevation, RoundedCornerShape(fabShape))
                     ) {
                         if (isInSelectionMode && selectedTasks.isNotEmpty()) {
                             Row(
@@ -374,7 +398,9 @@ fun TaskScreen(navController: NavController) {
                                     painterResource(R.drawable.add),
                                 contentDescription = if (isMainFabExpanded) "Close menu" else "Open menu",
                                 tint = if(isMainFabExpanded) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .rotate(iconRotation)
                             )
                         }
                     }
