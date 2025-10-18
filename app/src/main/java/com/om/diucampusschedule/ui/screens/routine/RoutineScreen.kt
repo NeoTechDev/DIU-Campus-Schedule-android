@@ -20,6 +20,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -79,6 +80,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -338,15 +340,40 @@ fun RoutineScreen(
                 }
 
                 // Check exam mode AFTER maintenance mode
-                uiState.isExamMode && uiState.currentUser?.role == UserRole.STUDENT -> {
-                    android.util.Log.d(
-                        "RoutineScreen",
-                        "Showing Enhanced ExamRoutineContent with exam routine: ${uiState.examRoutine?.examType}"
-                    )
-                    ExamRoutineContent(
-                        examRoutine = uiState.examRoutine,
-                        user = uiState.currentUser
-                    )
+                uiState.isExamMode -> {
+                    if(uiState.currentUser?.role == UserRole.STUDENT){
+                        android.util.Log.d(
+                            "RoutineScreen",
+                            "Showing Enhanced ExamRoutineContent with exam routine: ${uiState.examRoutine?.examType}"
+                        )
+                        ExamRoutineContent(
+                            examRoutine = uiState.examRoutine,
+                            user = uiState.currentUser
+                        )
+                    }
+                    else{
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ){
+                            Image(
+                                painter = painterResource(id = R.drawable.exam),
+                                contentDescription = null,
+                                modifier = Modifier.size(200.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "${uiState.examRoutine?.examType} of ${uiState.examRoutine?.semester} are currently in progress from ${uiState.examRoutine?.startDate} to ${uiState.examRoutine?.endDate}. Please wait until examination period concludes.",
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
                 }
 
                 uiState.activeDays.isEmpty() && !uiState.isExamMode -> {
@@ -809,7 +836,7 @@ private fun RoutineTopAppBar(
             // Simple clean title section
             Column {
                 Text(
-                    text = if (isExamMode) "Exam Routine" else "Class Routine",
+                    text = if (isExamMode && user?.role == UserRole.STUDENT) "Exam Routine" else "Class Routine",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -822,7 +849,7 @@ private fun RoutineTopAppBar(
             }
         },
         actions = {
-            if(isExamMode){
+            if(!isExamMode){
                 // Routine Generate Button
                 IconButton(onClick = onDownloadClick) {
                     Icon(
