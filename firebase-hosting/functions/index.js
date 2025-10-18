@@ -409,3 +409,275 @@ exports.setSemesterBreak = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', `Failed to set semester break: ${error.message}`);
   }
 });
+
+// Helper function to transform exam routine from schedule format to days format
+function transformExamRoutineForFirebase(rawData) {
+  try {
+    console.log('Transforming exam routine format from schedule to days');
+    
+    if (!rawData || !rawData.schedule || !Array.isArray(rawData.schedule)) {
+      throw new Error('Invalid rawData: schedule array is required');
+    }
+    
+    console.log(`Processing ${rawData.schedule.length} days`);
+    
+    const days = rawData.schedule.map((daySchedule, dayIndex) => {
+      try {
+        if (!daySchedule.courses || !Array.isArray(daySchedule.courses)) {
+          console.warn(`Day ${dayIndex} has no courses array, skipping`);
+          return {
+            date: daySchedule.date || 'Unknown',
+            dayName: daySchedule.weekday || 'Unknown',
+            courses: []
+          };
+        }
+        
+        console.log(`Processing ${daySchedule.courses.length} courses for day ${dayIndex}`);
+        
+        return {
+          date: daySchedule.date,
+          dayName: daySchedule.weekday,
+          courses: daySchedule.courses.map((course, courseIndex) => {
+            try {
+              // Get actual time from slots if available
+              let time = course.slot || 'TBA';
+              if (rawData.slots && rawData.slots[course.slot]) {
+                time = rawData.slots[course.slot];
+              }
+              
+              return {
+                courseCode: course.code || 'UNKNOWN',
+                courseTitle: course.name || 'Unknown Course',
+                time: time,
+                room: course.room || 'TBA',
+                teacher: course.teacher || 'TBA',
+                batches: course.batch ? [course.batch.toString()] : []
+              };
+            } catch (courseError) {
+              console.error(`Error processing course ${courseIndex} on day ${dayIndex}:`, courseError);
+              throw courseError;
+            }
+          })
+        };
+      } catch (dayError) {
+        console.error(`Error processing day ${dayIndex}:`, dayError);
+        throw dayError;
+      }
+    });
+    
+    console.log(`Transformation completed: ${days.length} days processed`);
+  } catch (transformError) {
+    console.error('Error in transformExamRoutineForFirebase:', transformError);
+    throw transformError;
+  }
+  
+  return {
+    days: days,
+    semester: rawData.semester || 'Unknown',
+    examType: rawData.exam_type || 'Exam',
+    startDate: rawData.start_date,
+    endDate: rawData.end_date
+  };
+}
+
+// HTTP function to upload exam routine (admin only)
+exports.uploadExamRoutine = functions.https.onCall(async (data, context) => {
+  console.log('Upload exam routine function started - SIMPLE VERSION');
+  
+  try {
+    // Extract exam routine data - get the actual JSON data
+    let examRoutineData;
+    
+    if (data.examRoutineData) {
+      examRoutineData = data.examRoutineData;
+    } else if (data.data && data.data.examRoutineData) {
+      examRoutineData = data.data.examRoutineData;
+    } else if (data.data) {
+      examRoutineData = data.data;
+    } else {
+      examRoutineData = data;
+    }
+    
+    if (!examRoutineData) {
+      throw new functions.https.HttpsError('invalid-argument', 'No exam routine data provided');
+    }
+    
+    console.log('BEFORE STORAGE - Raw data keys:', Object.keys(examRoutineData));
+    console.log('BEFORE STORAGE - Has schedule:', !!examRoutineData.schedule);
+    console.log('BEFORE STORAGE - Has days:', !!examRoutineData.days);
+    
+    // Create Firestore document
+    const examRoutineRef = db.collection('exam_routines').doc();
+    
+    // Store EXACTLY the same data as received - NO CHANGES AT ALL
+    await examRoutineRef.set(examRoutineData);
+    
+    console.log('STORED SUCCESSFULLY - Document ID:', examRoutineRef.id);
+    
+    return { 
+      success: true, 
+      message: 'Exam routine uploaded successfully',
+      documentId: examRoutineRef.id
+    };
+    
+  } catch (error) {
+    console.error('Error uploading exam routine:', error);
+    throw new functions.https.HttpsError('internal', `Failed to upload exam routine: ${error.message}`);
+  }
+});
+
+// HTTP function to get exam routines (admin only)
+exports.getExamRoutines = functions.https.onCall(async (data, context) => {
+  console.log('Get exam routines function started - SIMPLE VERSION');
+  
+  try {
+    const examRoutinesSnapshot = await db.collection('exam_routines').get();
+    
+    if (examRoutinesSnapshot.empty) {
+      console.log('No exam routines found');
+      return { success: true, examRoutines: [] };
+    }
+    
+    const examRoutines = [];
+    examRoutinesSnapshot.forEach(doc => {
+      const data = doc.data();
+      
+      // Return EXACTLY what's stored - NO CHANGES
+      examRoutines.push({
+        id: doc.id,
+        ...data
+      });
+    });
+    
+    console.log(`Found ${examRoutines.length} exam routines`);
+    
+    return { 
+      success: true, 
+      examRoutines: examRoutines
+    };
+    
+  } catch (error) {
+    console.error('Error getting exam routines:', error);
+    throw new functions.https.HttpsError('internal', `Failed to get exam routines: ${error.message}`);
+  }
+});
+
+// HTTP function to delete exam routine (admin only) - UPDATED VERSION
+exports.deleteExamRoutine = functions.https.onCall(async (data, context) => {
+  console.log('Delete exam routine called - UPDATED VERSION');
+  console.log('Received data:', JSON.stringify(data));
+  
+  const { documentId } = data;
+  
+  if (!documentId) {
+    console.error('No documentId provided in data:', data);
+    throw new functions.https.HttpsError('invalid-argument', 'Document ID is required for deletion');
+  }
+  
+  try {
+    console.log(`Attempting to delete exam routine with document ID: ${documentId}`);
+    await db.collection('exam_routines').doc(documentId).delete();
+    
+    console.log(`SUCCESS: Exam routine deleted with document ID: ${documentId}`);
+    
+    return { 
+      success: true, 
+      message: `Exam routine deleted successfully`
+    };
+  } catch (error) {
+    console.error('ERROR deleting exam routine:', error);
+    throw new functions.https.HttpsError('internal', `Failed to delete exam routine: ${error.message}`);
+  }
+});
+
+// HTTP function to set exam mode (admin only)
+exports.setExamMode = functions.https.onCall(async (data, context) => {
+  console.log('Set exam mode called');
+  console.log('Data received:', data);
+  console.log('Data type:', typeof data);
+  console.log('Data keys:', data ? Object.keys(data) : 'data is null/undefined');
+  
+  // Handle different possible data structures
+  let examModeEnabled;
+  
+  if (data && typeof data === 'object') {
+    if ('examModeEnabled' in data) {
+      examModeEnabled = data.examModeEnabled;
+      console.log('Found examModeEnabled directly in data');
+    } else if (data.data && 'examModeEnabled' in data.data) {
+      examModeEnabled = data.data.examModeEnabled;
+      console.log('Found examModeEnabled in data.data');
+    } else {
+      console.log('examModeEnabled not found in expected locations');
+      console.log('Available properties:', Object.keys(data));
+    }
+  }
+  
+  console.log('Final examModeEnabled:', examModeEnabled);
+  console.log('examModeEnabled type:', typeof examModeEnabled);
+  
+  if (typeof examModeEnabled !== 'boolean') {
+    console.error('Invalid examModeEnabled type:', typeof examModeEnabled, 'Value:', examModeEnabled);
+    throw new functions.https.HttpsError('invalid-argument', `examModeEnabled must be a boolean, received ${typeof examModeEnabled}: ${examModeEnabled}`);
+  }
+  
+  try {
+    // Update metadata to include exam mode
+    await db.collection('metadata').doc('routine_version').set({
+      examMode: examModeEnabled,
+      examModeUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      examModeUpdatedBy: 'admin'
+    }, { merge: true });
+    
+    console.log(`Exam mode ${examModeEnabled ? 'enabled' : 'disabled'} successfully`);
+    
+    // Send push notifications to all users about exam mode change
+    if (examModeEnabled) {
+      await sendMaintenanceNotifications({
+        title: 'Exam Mode Activated',
+        body: 'The app is now showing exam schedules. Check your exam routine!',
+        type: 'exam_mode_enabled'
+      });
+    } else {
+      await sendMaintenanceNotifications({
+        title: 'Back to Normal Schedule',
+        body: 'The app is now showing regular class schedules.',
+        type: 'exam_mode_disabled'
+      });
+    }
+    
+    return { 
+      success: true, 
+      message: `Exam mode ${examModeEnabled ? 'enabled' : 'disabled'} successfully`,
+      examModeEnabled: examModeEnabled
+    };
+  } catch (error) {
+    console.error('Error setting exam mode:', error);
+    throw new functions.https.HttpsError('internal', `Failed to set exam mode: ${error.message}`);
+  }
+});
+
+// HTTP function to get exam mode status
+exports.getExamMode = functions.https.onCall(async (data, context) => {
+  console.log('Get exam mode called');
+  
+  try {
+    const metadataDoc = await db.collection('metadata').doc('routine_version').get();
+    
+    let examModeEnabled = false;
+    if (metadataDoc.exists) {
+      const metadataData = metadataDoc.data();
+      examModeEnabled = metadataData.examMode || false;
+    }
+    
+    console.log(`Current exam mode status: ${examModeEnabled}`);
+    
+    return { 
+      success: true, 
+      examModeEnabled: examModeEnabled
+    };
+  } catch (error) {
+    console.error('Error getting exam mode:', error);
+    throw new functions.https.HttpsError('internal', `Failed to get exam mode: ${error.message}`);
+  }
+});

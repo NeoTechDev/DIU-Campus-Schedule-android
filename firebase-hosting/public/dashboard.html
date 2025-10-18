@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DIU Campus Schedule Admin Dashboard</title>
     
+    <!-- Version: 2025-10-16-v2 - Force cache refresh -->
     <!-- Firebase SDK -->
     <script defer src="/__/firebase/12.1.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/12.1.0/firebase-firestore-compat.js"></script>
@@ -187,6 +188,7 @@
         .status-normal { color: #22543d; }
         .status-maintenance { color: #d69e2e; }
         .status-break { color: #3182ce; }
+        .status-exam { color: #e91e63; }
         .status-cleared { color: #e53e3e; }
         .status-close {
             position: absolute;
@@ -609,6 +611,7 @@
                 <div class="stat-value" style="font-size: 1.0em;" id="systemStatus">
                     <div id="maintenanceStatus">🟢 Normal Operation</div>
                     <div id="semesterBreakStatus" style="margin-top: 5px;">📚 Academic Period</div>
+                    <div id="examModeStatus" style="margin-top: 5px;">📝 Class Routine</div>
                 </div>
             </div>
         </div>
@@ -642,6 +645,62 @@
             <div id="routineList" class="routine-list">
                 <p>Click "Refresh List" to load routines...</p>
             </div>
+        </div>
+
+        <!-- Exam Routine Management -->
+        <div class="card">
+            <h2>📝 Exam Routine Management</h2>
+            <p>Upload and manage exam routine data. Students will see exam schedules instead of class routines when exam mode is enabled.</p>
+            
+            <!-- Exam Routine Upload Section -->
+            <div class="form-group">
+                <label for="examRoutineFile">Select Exam Routine JSON File</label>
+                <div class="file-input-wrapper">
+                    <div class="file-input">
+                        <input type="file" id="examRoutineFile" accept=".json" onchange="handleExamFileSelect(this)">
+                        📁 Click to select examRoutine.json file or drag & drop
+                    </div>
+                </div>
+            </div>
+            <div id="examFileInfo" class="hidden" style="margin: 10px 0; padding: 10px; background: #ffe6f0; border-radius: 5px;">
+                <strong>Selected:</strong> <span id="examFileName"></span><br>
+                <strong>Size:</strong> <span id="examFileSize"></span>
+            </div>
+            <button class="btn" onclick="uploadExamRoutine()" id="uploadExamBtn" style="background: #e91e63;">
+                📝 Upload Exam Routine
+            </button>
+            <div id="examUploadStatus" class="status"></div>
+
+            <!-- Current Exam Routines -->
+            <h3 style="margin-top: 20px;">📝 Current Exam Routines</h3>
+            <button class="btn" onclick="loadExamRoutines()" style="background: #e91e63;">🔄 Refresh Exam List</button>
+            <div id="examRoutineList" class="routine-list">
+                <p>Click "Refresh Exam List" to load exam routines...</p>
+            </div>
+        </div>
+
+        <!-- Exam Mode Control -->
+        <div class="card">
+            <h2>📝 Exam Mode Control</h2>
+            <p>Control when students see exam routines instead of class routines. Push notifications will be sent to all users.</p>
+            
+            <!-- Exam Mode Buttons -->
+            <div class="button-grid">
+                <button class="modern-btn primary" onclick="openEnableExamModeModal()" style="background: #e91e63;">
+                    <span class="btn-icon">📝</span>
+                    <span class="btn-text">Enable Exam Mode</span>
+                </button>
+                <button class="modern-btn success" onclick="disableExamMode()">
+                    <span class="btn-icon">✅</span>
+                    <span class="btn-text">Disable Exam Mode</span>
+                </button>
+                <button class="modern-btn secondary" onclick="openExamNotificationModal()" style="background: #6366f1;">
+                    <span class="btn-icon">�</span>
+                    <span class="btn-text">Exam Mode Notification</span>
+                </button>
+            </div>
+            
+            <div id="examModeStatus" class="status"></div>
         </div>
 
         <!-- Maintenance Control -->
@@ -732,6 +791,7 @@
 
     <script>
         let db;
+        let functions;
         let selectedFile = null;
 
         // Check authentication
@@ -773,6 +833,7 @@
                 if (typeof firebase !== "undefined" && firebase.firestore && firebase.functions) {
                     console.log("Firebase loaded successfully");
                     db = firebase.firestore();
+                    functions = firebase.functions();
                     
                     // Test Firebase connection
                     console.log("Testing Firebase connection...");
@@ -820,9 +881,10 @@
         }
 
         // Function to update system status display
-        function updateSystemStatus(maintenanceMode = null, semesterBreak = null, dataCleared = null) {
+        function updateSystemStatus(maintenanceMode = null, semesterBreak = null, examMode = null, dataCleared = null) {
             const maintenanceEl = document.getElementById('maintenanceStatus');
             const semesterEl = document.getElementById('semesterBreakStatus');
+            const examEl = document.getElementById('examModeStatus');
             
             // Update maintenance status
             if (maintenanceMode !== null) {
@@ -850,6 +912,19 @@
                 }
             }
             
+            // Update exam mode status
+            if (examMode !== null) {
+                if (examMode) {
+                    examEl.innerHTML = '📝 Exam Mode';
+                    examEl.className = 'status-exam';
+                    localStorage.setItem('lastExamAction', 'enabled');
+                } else {
+                    examEl.innerHTML = '📚 Class Routine';
+                    examEl.className = 'status-normal';
+                    localStorage.setItem('lastExamAction', 'disabled');
+                }
+            }
+            
             // Update data cleared status
             if (dataCleared === true) {
                 semesterEl.innerHTML = '🗑️ Data Cleared';
@@ -862,19 +937,43 @@
         function loadSystemStatus() {
             const lastMaintenance = localStorage.getItem('lastMaintenanceAction');
             const lastSemester = localStorage.getItem('lastSemesterAction');
+            const lastExam = localStorage.getItem('lastExamAction');
             
             if (lastMaintenance === 'enabled') {
-                updateSystemStatus(true, null, null);
+                updateSystemStatus(true, null, null, null);
             } else if (lastMaintenance === 'disabled') {
-                updateSystemStatus(false, null, null);
+                updateSystemStatus(false, null, null, null);
             }
             
             if (lastSemester === 'break_enabled') {
-                updateSystemStatus(null, true, null);
+                updateSystemStatus(null, true, null, null);
             } else if (lastSemester === 'break_disabled') {
-                updateSystemStatus(null, false, null);
+                updateSystemStatus(null, false, null, null);
             } else if (lastSemester === 'data_cleared') {
-                updateSystemStatus(null, null, true);
+                updateSystemStatus(null, null, null, true);
+            }
+            
+            if (lastExam === 'enabled') {
+                updateSystemStatus(null, null, true, null);
+            } else if (lastExam === 'disabled') {
+                updateSystemStatus(null, null, false, null);
+            }
+            
+            // Also load current exam mode status from server
+            loadCurrentExamModeStatus();
+        }
+        
+        async function loadCurrentExamModeStatus() {
+            try {
+                const getExamModeFunction = firebase.functions().httpsCallable('getExamMode');
+                const result = await getExamModeFunction();
+                
+                if (result.data && result.data.success) {
+                    updateSystemStatus(null, null, result.data.examModeEnabled, null);
+                }
+            } catch (error) {
+                console.log('Could not load exam mode status:', error);
+                // Use localStorage fallback if server is unavailable
             }
         }
 
@@ -1209,6 +1308,62 @@
             showModal();
         }
         
+        function openEnableExamModeModal() {
+            currentModalAction = 'enableExamMode';
+            document.getElementById('modalIcon').textContent = '�';
+            document.getElementById('modalTitle').textContent = 'Enable Exam Mode';
+            document.getElementById('modalTextarea').placeholder = 'Enter exam mode message for users...';
+            document.getElementById('modalTextarea').value = 'Exam mode activated. Students can now view their exam schedules.';
+            document.getElementById('modalConfirmBtn').innerHTML = '<span>📝</span> Enable Exam Mode';
+            
+            showModal();
+        }
+        
+        function openExamNotificationModal() {
+            currentModalAction = 'examNotification';
+            document.getElementById('modalIcon').textContent = '�';
+            document.getElementById('modalTitle').textContent = 'Send Exam Notification';
+            document.getElementById('modalTextarea').placeholder = 'Enter exam notification message for users...';
+            document.getElementById('modalTextarea').value = 'Important exam update: Please check your exam schedule for any changes.';
+            document.getElementById('modalConfirmBtn').innerHTML = '<span>�</span> Send Notification';
+            
+            showModal();
+        }
+        
+        async function disableExamMode() {
+            if (!confirm('Are you sure you want to disable exam mode? Students will see class routines again.')) {
+                return;
+            }
+            
+            showStatus('examModeStatus', '🔄 Disabling exam mode...', false);
+            
+            try {
+                const setExamModeFunction = firebase.functions().httpsCallable('setExamMode');
+                const result = await setExamModeFunction({ 
+                    examModeEnabled: false 
+                });
+                
+                if (result.data.success) {
+                    showStatus('examModeStatus', '✅ Exam mode disabled successfully!', false);
+                    updateSystemStatus(null, null, false, null);
+                } else {
+                    throw new Error(result.data.error || 'Failed to disable exam mode');
+                }
+                
+            } catch (error) {
+                console.error('Error disabling exam mode:', error);
+                let errorMessage = '❌ Failed to disable exam mode: ';
+                
+                if (error.code === 'functions/not-found') {
+                    errorMessage += 'setExamMode function not found. Please deploy Cloud Functions.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                showStatus('examModeStatus', errorMessage, true);
+            }
+        }
+        
         function showModal() {
             const modal = document.getElementById('messageModal');
             const textarea = document.getElementById('modalTextarea');
@@ -1276,6 +1431,10 @@
                     await enableMaintenanceMode(message);
                 } else if (currentModalAction === 'semester') {
                     await setSemesterBreak(message);
+                } else if (currentModalAction === 'enableExamMode') {
+                    await enableExamMode(message);
+                } else if (currentModalAction === 'examNotification') {
+                    await sendExamNotification(message);
                 }
                 
                 // Close modal after function completes
@@ -1361,21 +1520,111 @@
         }
 
         async function clearMaintenanceData() {
-            if (confirm('This will clear all maintenance settings and return the app to normal. Continue?')) {
+            if (confirm('This will clear all maintenance settings, disable exam mode, and return the app to normal. Continue?')) {
                 try {
-                    showStatus('maintenanceStatus', '⏳ Clearing maintenance data...', false);
+                    showStatus('maintenanceStatus', '⏳ Clearing maintenance data and disabling exam mode...', false);
                     
                     // Call Cloud Function to clear maintenance data
                     const clearMaintenance = firebase.functions().httpsCallable('clearMaintenanceData');
                     const result = await clearMaintenance();
                     
-                    showStatus('maintenanceStatus', '✅ All maintenance data cleared! Apps will return to normal.', false);
-                    updateSystemStatus(null, null, true); // Update system status to show data cleared
+                    // Also disable exam mode
+                    const setExamModeFunction = firebase.functions().httpsCallable('setExamMode');
+                    await setExamModeFunction({ examModeEnabled: false });
+                    
+                    showStatus('maintenanceStatus', '✅ All maintenance data cleared and exam mode disabled! Apps will return to normal.', false);
+                    updateSystemStatus(null, null, false, true); // Update system status: disable exam mode, show data cleared
                     loadDashboardData();
                 } catch (error) {
                     console.error('Clear maintenance error:', error);
                     showStatus('maintenanceStatus', `❌ Failed to clear maintenance data: ${error.message}`, true);
                 }
+            }
+        }
+
+        async function enableExamMode(message = null) {
+            // If no message provided, use default
+            if (!message) {
+                message = 'Exam mode activated. Students can now view their exam schedules.';
+            }
+            
+            try {
+                showStatus('examModeStatus', '🔄 Enabling exam mode...', false);
+                
+                // Comprehensive testing and validation
+                const originalValue = true;
+                const examModeValue = Boolean(originalValue);
+                
+                console.log('=== DEBUGGING EXAM MODE DATA ===');
+                console.log('Original value:', originalValue, 'type:', typeof originalValue);
+                console.log('Boolean value:', examModeValue, 'type:', typeof examModeValue);
+                console.log('Value comparison:', examModeValue === true);
+                console.log('Strict equality:', examModeValue === Boolean(true));
+                
+                // Create payload object
+                const payload = { examModeEnabled: examModeValue };
+                console.log('Payload object:', JSON.stringify(payload));
+                console.log('Payload examModeEnabled:', payload.examModeEnabled, 'type:', typeof payload.examModeEnabled);
+                
+                const setExamModeFunction = firebase.functions().httpsCallable('setExamMode');
+                console.log('About to call function with payload:', payload);
+                
+                const result = await setExamModeFunction(payload);
+                
+                if (result.data.success) {
+                    showStatus('examModeStatus', '✅ Exam mode enabled successfully! Students will see exam schedules.', false);
+                    updateSystemStatus(null, null, true, null);
+                } else {
+                    throw new Error(result.data.error || 'Failed to enable exam mode');
+                }
+                
+            } catch (error) {
+                console.error('Error enabling exam mode:', error);
+                let errorMessage = '❌ Failed to enable exam mode: ';
+                
+                if (error.code === 'functions/not-found') {
+                    errorMessage += 'setExamMode function not found. Please deploy Cloud Functions.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                showStatus('examModeStatus', errorMessage, true);
+            }
+        }
+        
+        async function sendExamNotification(message = null) {
+            if (!message) {
+                message = 'Important exam update: Please check your exam schedule for any changes.';
+            }
+            
+            try {
+                showStatus('examModeStatus', '🔄 Sending exam notification...', false);
+                
+                // Use the manual update function to send notification
+                const triggerUpdate = firebase.functions().httpsCallable('triggerManualUpdate');
+                const result = await triggerUpdate({
+                    message: message,
+                    title: 'Exam Update',
+                    type: 'exam_notification'
+                });
+                
+                if (result.data.success) {
+                    showStatus('examModeStatus', '✅ Exam notification sent to all users!', false);
+                } else {
+                    throw new Error(result.data.error || 'Failed to send exam notification');
+                }
+                
+            } catch (error) {
+                console.error('Error sending exam notification:', error);
+                let errorMessage = '❌ Failed to send exam notification: ';
+                
+                if (error.code === 'functions/not-found') {
+                    errorMessage += 'triggerManualUpdate function not found. Please deploy Cloud Functions.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                showStatus('examModeStatus', errorMessage, true);
             }
         }
 
@@ -1450,6 +1699,11 @@
                 // Semester is handled above with other metadata
 
                 console.log("Dashboard data loaded successfully");
+                
+                // Load exam routine data
+                console.log("Loading exam routine data...");
+                loadExamRoutines();
+                checkExamModeStatus();
 
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
@@ -1628,6 +1882,245 @@
             });
         }
         
+        // Exam Routine Functions
+        let selectedExamFile = null;
+        
+        function transformExamRoutineFormat(rawData) {
+            console.log('Transforming exam routine format from schedule to days');
+            
+            const days = rawData.schedule.map(daySchedule => {
+                return {
+                    date: daySchedule.date,
+                    dayName: daySchedule.weekday,
+                    courses: daySchedule.courses.map(course => {
+                        // Get actual time from slots if available
+                        let time = course.slot;
+                        if (rawData.slots && rawData.slots[course.slot]) {
+                            time = rawData.slots[course.slot];
+                        }
+                        
+                        return {
+                            courseCode: course.code,
+                            courseTitle: course.name,
+                            time: time,
+                            room: course.room || 'TBA', // Default room if not specified
+                            teacher: course.teacher || 'TBA', // Default teacher if not specified
+                            batches: course.batch ? [course.batch] : [] // Convert single batch to array
+                        };
+                    })
+                };
+            });
+            
+            return {
+                days: days,
+                semester: rawData.semester || 'Unknown',
+                examType: rawData.exam_type || 'Exam',
+                startDate: rawData.start_date,
+                endDate: rawData.end_date
+            };
+        }
+        
+        function handleExamFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                selectedExamFile = file;
+                document.getElementById('examFileName').textContent = file.name;
+                document.getElementById('examFileSize').textContent = formatFileSize(file.size);
+                document.getElementById('examFileInfo').classList.remove('hidden');
+                
+                // Update file input display
+                const fileInputDiv = input.parentElement;
+                fileInputDiv.innerHTML = `
+                    <input type="file" id="examRoutineFile" accept=".json" onchange="handleExamFileSelect(this)">
+                    ✅ ${file.name} selected
+                `;
+            }
+        }
+        
+        async function uploadExamRoutine() {
+            if (!selectedExamFile) {
+                showStatus('examUploadStatus', '❌ Please select an exam routine file first.', true);
+                return;
+            }
+            
+            showStatus('examUploadStatus', '📤 Uploading exam routine...', false);
+            
+            try {
+                const fileText = await selectedExamFile.text();
+                const examData = JSON.parse(fileText);
+                
+                // Log the data being sent
+                console.log('DASHBOARD - Raw exam data keys:', Object.keys(examData));
+                console.log('DASHBOARD - Has schedule:', !!examData.schedule);
+                console.log('DASHBOARD - Has days:', !!examData.days);
+                
+                // Send exactly what we parsed - NO TRANSFORMATION
+                const payload = {
+                    examRoutineData: examData
+                };
+                
+                console.log('DASHBOARD - Calling Firebase function with payload');
+                
+                // Call Firebase function to upload exam routine
+                const uploadExamRoutineFunction = firebase.functions().httpsCallable('uploadExamRoutine');
+                const result = await uploadExamRoutineFunction(payload);
+                
+                if (result.data.success) {
+                    showStatus('examUploadStatus', `✅ Exam routine uploaded successfully!`, false);
+                    loadExamRoutines(); // Refresh the list
+                } else {
+                    throw new Error(result.data.error || 'Upload failed');
+                }
+                
+            } catch (error) {
+                console.error('Error uploading exam routine:', error);
+                let errorMessage = '❌ Failed to upload exam routine: ';
+                
+                if (error instanceof SyntaxError) {
+                    errorMessage += 'Invalid JSON format in the file.';
+                } else if (error.code === 'functions/not-found') {
+                    errorMessage += 'uploadExamRoutine function not found. Please deploy Cloud Functions.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                showStatus('examUploadStatus', errorMessage, true);
+            }
+        }
+        
+        async function loadExamRoutines() {
+            showStatus('examListStatus', '📋 Loading exam routines...', false);
+            
+            try {
+                const getExamRoutinesFunction = firebase.functions().httpsCallable('getExamRoutines');
+                const result = await getExamRoutinesFunction();
+                
+                if (result.data.success) {
+                    displayExamRoutinesList(result.data.examRoutines || []);
+                    showStatus('examListStatus', `✅ Loaded ${result.data.examRoutines?.length || 0} exam routines.`, false);
+                } else {
+                    throw new Error(result.data.error || 'Failed to load exam routines');
+                }
+                
+            } catch (error) {
+                console.error('Error loading exam routines:', error);
+                let errorMessage = '❌ Failed to load exam routines: ';
+                
+                if (error.code === 'functions/not-found') {
+                    errorMessage += 'getExamRoutines function not found. Please deploy Cloud Functions.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                showStatus('examListStatus', errorMessage, true);
+                displayExamRoutinesList([]);
+            }
+        }
+        
+        function displayExamRoutinesList(examRoutines) {
+            const container = document.getElementById('examRoutineList');
+            
+            if (examRoutines.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #666;">
+                        📝 No exam routines found
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="routine-list">';
+            
+            examRoutines.forEach((routine, index) => {
+                const createdAt = routine.createdAt ? new Date(routine.createdAt.seconds * 1000).toLocaleString() : 'Unknown';
+                const daysCount = routine.schedule ? routine.schedule.length : (routine.days ? routine.days.length : 0);
+                const totalCourses = routine.schedule ? 
+                    routine.schedule.reduce((sum, day) => sum + (day.courses?.length || 0), 0) :
+                    (routine.days ? routine.days.reduce((sum, day) => sum + (day.courses?.length || 0), 0) : 0);
+                
+                // Calculate estimated file size
+                const estimatedSize = JSON.stringify(routine).length;
+                
+                html += `
+                    <div class="routine-item" style="
+                        border: 1px solid #ddd;
+                        border-radius: 8px;
+                        padding: 15px;
+                        margin-bottom: 10px;
+                        background: white;
+                    ">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div class="routine-info" style="flex: 1;">
+                                <h4 style="margin: 0 0 10px 0; color: #333;">📄 examRoutine.json</h4>
+                                <p style="margin: 2px 0; color: #666; font-size: 14px;">📅 Uploaded: ${createdAt}</p>
+                                <p style="margin: 2px 0; color: #666; font-size: 14px;">🗓️ Effective From: ${routine.start_date || 'Unknown'}</p>
+                                <p style="margin: 2px 0; color: #666; font-size: 14px;">🎓 Semester: ${routine.semester || 'Unknown'}</p>
+                                <p style="margin: 2px 0; color: #666; font-size: 14px;">🏢 Department: ${routine.department || 'Unknown Department'}</p>
+                                <p style="margin: 2px 0; color: #666; font-size: 14px;">📝 Exam Type: ${routine.exam_type || 'Unknown'}</p>
+                                <p style="margin: 2px 0; color: #666; font-size: 14px;">📦 Size: ${(estimatedSize / 1024).toFixed(2)} KB</p>
+                                <p style="margin: 2px 0; color: #666; font-size: 14px;">🆔 ID: ${routine.id}</p>
+                            </div>
+                            <div>
+                                <button onclick="deleteExamRoutine('${routine.department}', '${routine.id}')" 
+                                        class="btn btn-danger" style="
+                                    background: #dc3545;
+                                    color: white;
+                                    border: none;
+                                    padding: 8px 16px;
+                                    border-radius: 5px;
+                                    cursor: pointer;
+                                    font-size: 14px;
+                                ">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        async function deleteExamRoutine(department, documentId) {
+            if (!confirm(`Are you sure you want to delete the exam routine for ${department}?`)) {
+                return;
+            }
+            
+            showStatus('examListStatus', `🗑️ Deleting exam routine for ${department}...`, false);
+            
+            try {
+                // Delete directly from Firestore (same pattern as class routines)
+                await db.collection('exam_routines').doc(documentId).delete();
+                
+                showStatus('examListStatus', `✅ Exam routine deleted for ${department}.`, false);
+                loadExamRoutines(); // Refresh the list
+                
+            } catch (error) {
+                console.error('Error deleting exam routine:', error);
+                let errorMessage = `❌ Failed to delete exam routine: ${error.message}`;
+                showStatus('examListStatus', errorMessage, true);
+            }
+        }
+        
+        // toggleExamMode function removed - was not used and referenced non-existent element
+        
+        async function checkExamModeStatus() {
+            try {
+                const getExamModeFunction = firebase.functions().httpsCallable('getExamMode');
+                const result = await getExamModeFunction();
+                
+                if (result.data.success) {
+                    const status = result.data.examModeEnabled ? 'enabled' : 'disabled';
+                    showStatus('examModeStatus', `📊 Current exam mode status: ${status}`, false);
+                }
+            } catch (error) {
+                console.error('Error checking exam mode status:', error);
+                showStatus('examModeStatus', '⚠️ Could not load exam mode status.', true);
+            }
+        }
+
         // Enhanced button feedback
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('modern-btn')) {
