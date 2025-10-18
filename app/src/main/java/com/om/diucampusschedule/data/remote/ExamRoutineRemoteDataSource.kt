@@ -4,6 +4,8 @@ import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.om.diucampusschedule.data.model.ExamRoutineDto
+import com.om.diucampusschedule.data.model.ExamDayDto
+import com.om.diucampusschedule.data.model.ExamCourseDto
 import com.om.diucampusschedule.data.model.toDomainModel
 import com.om.diucampusschedule.data.model.toDto
 import com.om.diucampusschedule.domain.model.ExamRoutine
@@ -74,9 +76,56 @@ class ExamRoutineRemoteDataSource @Inject constructor(
                     Log.d(TAG, "Department match result: $departmentMatches")
                     
                     if (departmentMatches) {
-                        val examRoutineDto = document.toObject(ExamRoutineDto::class.java)
+                        // Handle both direct and nested data structures using manual extraction
+                        val sourceData = if (documentData.containsKey("data")) {
+                            // Data is nested under "data" field
+                            documentData["data"] as? Map<String, Any>
+                        } else {
+                            // Data is at root level
+                            documentData
+                        }
+                        
+                        val examRoutineDto = sourceData?.let { data ->
+                            Log.d(TAG, "Creating DTO from data. exam_type: ${data["exam_type"]}, start_date: ${data["start_date"]}")
+                            ExamRoutineDto(
+                                id = document.id,
+                                university = data["university"] as? String ?: "",
+                                department = data["department"] as? String ?: "",
+                                examType = data["exam_type"] as? String ?: "",
+                                semester = data["semester"] as? String ?: "",
+                                startDate = data["start_date"] as? String ?: "",
+                                endDate = data["end_date"] as? String ?: "",
+                                slots = data["slots"] as? Map<String, String> ?: emptyMap(),
+                                schedule = (data["schedule"] as? List<*>)?.mapNotNull { scheduleItem ->
+                                    (scheduleItem as? Map<String, Any>)?.let { dayData ->
+                                        ExamDayDto(
+                                            dayNumber = (dayData["day_number"] as? Number)?.toInt() ?: 0,
+                                            date = dayData["date"] as? String ?: "",
+                                            weekday = dayData["weekday"] as? String ?: "",
+                                            courses = (dayData["courses"] as? List<*>)?.mapNotNull { courseItem ->
+                                                (courseItem as? Map<String, Any>)?.let { courseData ->
+                                                    ExamCourseDto(
+                                                        code = courseData["code"] as? String ?: "",
+                                                        name = courseData["name"] as? String ?: "",
+                                                        students = (courseData["students"] as? Number)?.toInt() ?: 0,
+                                                        batch = courseData["batch"] as? String ?: "",
+                                                        slot = courseData["slot"] as? String ?: ""
+                                                    )
+                                                }
+                                            } ?: emptyList()
+                                        )
+                                    }
+                                } ?: emptyList(),
+                                version = (data["version"] as? Number)?.toLong() ?: 1L,
+                                createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,
+                                updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: 0L
+                            )
+                        }
+                        
                         if (examRoutineDto != null) {
-                            val examRoutine = examRoutineDto.copy(id = document.id).toDomainModel()
+                            Log.d(TAG, "Created examRoutineDto - examType: ${examRoutineDto.examType}, startDate: ${examRoutineDto.startDate}")
+                            val examRoutine = examRoutineDto.toDomainModel()
+                            Log.d(TAG, "Converted to domain model - examType: ${examRoutine.examType}, startDate: ${examRoutine.startDate}")
                             Log.d(TAG, "Found matching exam routine: ${examRoutine.examType} for ${examRoutine.department}")
                             return Result.success(examRoutine)
                         }
@@ -127,9 +176,53 @@ class ExamRoutineRemoteDataSource @Inject constructor(
                             )
                             
                             if (departmentMatches) {
-                                val examRoutineDto = document.toObject(ExamRoutineDto::class.java)
+                                // Handle both direct and nested data structures using manual extraction
+                                val sourceData = if (documentData.containsKey("data")) {
+                                    // Data is nested under "data" field
+                                    documentData["data"] as? Map<String, Any>
+                                } else {
+                                    // Data is at root level
+                                    documentData
+                                }
+                                
+                                val examRoutineDto = sourceData?.let { data ->
+                                    ExamRoutineDto(
+                                        id = document.id,
+                                        university = data["university"] as? String ?: "",
+                                        department = data["department"] as? String ?: "",
+                                        examType = data["exam_type"] as? String ?: "",
+                                        semester = data["semester"] as? String ?: "",
+                                        startDate = data["start_date"] as? String ?: "",
+                                        endDate = data["end_date"] as? String ?: "",
+                                        slots = data["slots"] as? Map<String, String> ?: emptyMap(),
+                                        schedule = (data["schedule"] as? List<*>)?.mapNotNull { scheduleItem ->
+                                            (scheduleItem as? Map<String, Any>)?.let { dayData ->
+                                                ExamDayDto(
+                                                    dayNumber = (dayData["day_number"] as? Number)?.toInt() ?: 0,
+                                                    date = dayData["date"] as? String ?: "",
+                                                    weekday = dayData["weekday"] as? String ?: "",
+                                                    courses = (dayData["courses"] as? List<*>)?.mapNotNull { courseItem ->
+                                                        (courseItem as? Map<String, Any>)?.let { courseData ->
+                                                            ExamCourseDto(
+                                                                code = courseData["code"] as? String ?: "",
+                                                                name = courseData["name"] as? String ?: "",
+                                                                students = (courseData["students"] as? Number)?.toInt() ?: 0,
+                                                                batch = courseData["batch"] as? String ?: "",
+                                                                slot = courseData["slot"] as? String ?: ""
+                                                            )
+                                                        }
+                                                    } ?: emptyList()
+                                                )
+                                            }
+                                        } ?: emptyList(),
+                                        version = (data["version"] as? Number)?.toLong() ?: 1L,
+                                        createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,
+                                        updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: 0L
+                                    )
+                                }
+                                
                                 if (examRoutineDto != null) {
-                                    val examRoutine = examRoutineDto.copy(id = document.id).toDomainModel()
+                                    val examRoutine = examRoutineDto.toDomainModel()
                                     Log.d(TAG, "Observed exam routine update: ${examRoutine.examType}")
                                     trySend(examRoutine)
                                     return@addSnapshotListener

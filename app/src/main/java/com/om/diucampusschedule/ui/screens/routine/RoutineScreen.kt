@@ -99,7 +99,7 @@ import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.components.DownloadOptionsBottomSheet
-import com.om.diucampusschedule.ui.components.ExamRoutineContent
+import com.om.diucampusschedule.ui.components.ExamRoutineContentEnhanced
 import com.om.diucampusschedule.ui.components.FilterRoutinesBottomSheet
 import com.om.diucampusschedule.ui.components.GenerationProgressDialog
 import com.om.diucampusschedule.ui.components.SuccessDialog
@@ -304,15 +304,17 @@ fun RoutineScreen(
                 }
             }
             
-            // Routine Info Bar - secondary information below top bar
-            RoutineInfoBar(
-                effectiveFrom = uiState.effectiveFrom,
-                isFiltered = uiState.isFiltered,
-                currentFilter = uiState.currentFilter,
-                defaultFilterText = viewModel.getDefaultFilterText(),
-                onFilterClick = { showFilterSheet = true },
-                onClearFilterClick = { viewModel.clearFilter() }
-            )
+            // Routine Info Bar - only show when NOT in exam mode
+            if (!uiState.isExamMode) {
+                RoutineInfoBar(
+                    effectiveFrom = uiState.effectiveFrom,
+                    isFiltered = uiState.isFiltered,
+                    currentFilter = uiState.currentFilter,
+                    defaultFilterText = viewModel.getDefaultFilterText(),
+                    onFilterClick = { showFilterSheet = true },
+                    onClearFilterClick = { viewModel.clearFilter() }
+                )
+            }
 
             when {
                 uiState.isLoading && uiState.routineItems.isEmpty() && uiState.examCourses.isEmpty() -> {
@@ -338,15 +340,11 @@ fun RoutineScreen(
                 uiState.isExamMode -> {
                     android.util.Log.d(
                         "RoutineScreen",
-                        "Showing ExamRoutineContent with ${uiState.examCourses.size} exam courses"
+                        "Showing Enhanced ExamRoutineContent with exam routine: ${uiState.examRoutine?.examType}"
                     )
-                    ExamRoutineContent(
+                    ExamRoutineContentEnhanced(
                         examRoutine = uiState.examRoutine,
-                        examCourses = uiState.examCourses,
-                        examDates = uiState.examDates,
-                        selectedExamDate = uiState.selectedExamDate,
-                        currentUser = uiState.currentUser,
-                        onDateSelected = { date -> viewModel.selectExamDate(date) }
+                        user = uiState.currentUser
                     )
                 }
 
