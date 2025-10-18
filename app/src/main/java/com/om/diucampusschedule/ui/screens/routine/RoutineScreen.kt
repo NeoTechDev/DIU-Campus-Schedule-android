@@ -208,6 +208,7 @@ fun RoutineScreen(
             // Clean Top App Bar - only essential info
             RoutineTopAppBar(
                 user = uiState.currentUser,
+                currentSemester = uiState.currentSemester,
                 isExamMode = uiState.isExamMode,
                 onRefreshClick = { 
                     if (uiState.isExamMode) {
@@ -798,6 +799,7 @@ private fun RoutineContent(
 @Composable
 private fun RoutineTopAppBar(
     user: User?,
+    currentSemester: String?,
     isExamMode: Boolean,
     onRefreshClick: () -> Unit,
     isRefreshing: Boolean,
@@ -812,10 +814,10 @@ private fun RoutineTopAppBar(
                     text = if (isExamMode) "Exam Routine" else "Class Routine",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (isExamMode) Color(0xFFE91E63) else MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = user?.department ?: "",
+                    text = currentSemester?.ifBlank { user?.department } ?: user?.department ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

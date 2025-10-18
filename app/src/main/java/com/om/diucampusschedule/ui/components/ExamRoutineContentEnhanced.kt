@@ -1,24 +1,48 @@
 package com.om.diucampusschedule.ui.components
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.Announcement
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.om.diucampusschedule.domain.model.ExamCourse
 import com.om.diucampusschedule.domain.model.ExamRoutine
 import com.om.diucampusschedule.domain.model.User
+import com.om.diucampusschedule.ui.theme.AccentGreen
 
 /**
  * Enhanced exam routine content matching the beautiful design from screenshot
@@ -154,18 +178,21 @@ private fun ExamRoutineContent(
         item {
             ImportantNoticeCard()
         }
-        
+
         // Render grouped exams with date headers
         examsByDate.forEach { (date, examsForDate) ->
-            item(key = "date_header_$date") {
-                ExamDateHeader(date = date)
-            }
-            
             items(
                 items = examsForDate,
                 key = { course -> "${course.code}_${course.batch}_${course.slot}_$date" }
             ) { examCourse ->
                 android.util.Log.d("ExamRoutineContentEnhanced", "Rendering course card: ${examCourse.code} - ${examCourse.name}")
+                Text(
+                    text = date,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 ExamCourseCard(
                     examCourse = examCourse,
                     examRoutine = examRoutine
@@ -226,27 +253,37 @@ private fun ExamCourseCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = if(isSystemInDarkTheme()) MaterialTheme.colorScheme.outline.copy(alpha = 0.12f) else MaterialTheme.colorScheme.outline
+        )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Course name and slot
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Text(
                     text = examCourse.name,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 20.sp
+                    ),
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
+
+                Spacer(modifier = Modifier.width(12.dp))
                 
                 // Slot badge with colors like in screenshot
                 SlotBadge(
@@ -258,45 +295,49 @@ private fun ExamCourseCard(
             // Date and time row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Date with icon
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.DateRange,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(8.dp))
-                    
-                    Text(
-                        text = "${examDay?.weekday ?: "TBD"}, ${examDay?.date ?: "TBD"}",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                
                 // Time with icon
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Schedule,
+                        imageVector = Icons.Default.AccessTime,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.size(14.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Text(
+                        text = timeRange.uppercase(),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+                // Date with icon
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     
                     Text(
-                        text = timeRange,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = examDay?.weekday ?: "TBD",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -316,64 +357,102 @@ private fun ExamRoutineHeaderCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
             // Top row with exam type and batch
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = if (examRoutine.examType.isBlank()) "Final Exam" else examRoutine.examType,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = examRoutine.examType.ifBlank { "Unknown Exam Type" },
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 20.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Semester and department
+                    Text(
+                        text = "Semester: ${examRoutine.semester}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Exam Start date
+                    Text(
+                        text = if (examRoutine.startDate.isBlank()) "Exam dates will be announced" else "Starts from: ${examRoutine.startDate}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AccentGreen,
+                    )
+
+                    // Users exam start date
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // User's first exam date
+                    val userFirstExamDate = remember(examRoutine, user) {
+                        user?.let { u ->
+                            examRoutine.schedule
+                                .firstOrNull { day -> day.courses.any { it.batch == u.batch } }
+                                ?.date
+                        }
+                    }
+
+                    Text(
+                        text = when {
+                            userFirstExamDate.isNullOrBlank() && examRoutine.startDate.isBlank() -> "Exam dates will be announced"
+                            userFirstExamDate.isNullOrBlank() -> "Starts from ${examRoutine.startDate}"
+                            else -> "Your exam start date: $userFirstExamDate"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
                 // Batch badge (like in screenshot)
                 user?.batch?.let { batch ->
                     Surface(
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(20.dp)
                     ) {
-                        Text(
-                            text = "Batch $batch",
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Groups,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            Text(
+                                text = "Batch $batch",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                 }
             }
-            
-            // Semester and department
-            Text(
-                text = examRoutine.semester,
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Text(
-                text = examRoutine.department,
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            // Start date with blue color (like in screenshot)
-            Text(
-                text = if (examRoutine.startDate.isBlank()) "Exam dates will be announced" else "Starts from ${examRoutine.startDate}",
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
-            )
         }
     }
 }
@@ -390,24 +469,27 @@ private fun ImportantNoticeCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // Red icon
-            Text(
-                text = "📋",
-                fontSize = 20.sp,
-                modifier = Modifier.padding(end = 12.dp)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Announcement,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
             )
+            Spacer(modifier = Modifier.width(12.dp))
             
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Important Notice",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
                     color = MaterialTheme.colorScheme.error
                 )
                 
@@ -415,48 +497,12 @@ private fun ImportantNoticeCard(
                 
                 Text(
                     text = "This schedule may contain conflicts or mistakes. Always verify exam timings and dates from the official university website before attending.",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 20.sp
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        lineHeight = 16.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
             }
-        }
-    }
-}
-
-/**
- * Date header for grouping exams by date
- */
-@Composable
-private fun ExamDateHeader(
-    date: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.DateRange,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(20.dp)
-            )
-            
-            Text(
-                text = date,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
         }
     }
 }
@@ -471,12 +517,12 @@ private fun SlotBadge(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.clip(RoundedCornerShape(8.dp)),
+        modifier = modifier.clip(RoundedCornerShape(16.dp)),
         color = color
     ) {
         Text(
             text = "Slot $slot",
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             color = Color.White
@@ -491,7 +537,7 @@ private fun SlotBadge(
 private fun getSlotColor(slot: String): Color {
     return when (slot.uppercase()) {
         "A" -> Color(0xFF2196F3) // Blue like in screenshot
-        "B" -> Color(0xFFFF9800) // Orange like in screenshot  
+        "B" -> Color(0xFFE91E63) // Orange like in screenshot
         "C" -> Color(0xFF4CAF50) // Green like in screenshot
         else -> MaterialTheme.colorScheme.primary
     }

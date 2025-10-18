@@ -68,6 +68,7 @@ data class RoutineUiState(
     val isSemesterBreak: Boolean = false, // Whether it's semester break
     val updateType: String? = null, // Type of maintenance update (maintenance_enabled, semester_break, etc.)
     val effectiveFrom: String? = null, // Effective from date of the current routine
+    val currentSemester: String? = null, // Current semester from routine data
     // Exam routine fields
     val isExamMode: Boolean = false, // Whether the system is in exam mode
     val examMessage: String? = null, // Message to show during exam mode
@@ -753,10 +754,13 @@ class RoutineViewModel @Inject constructor(
                         logger.info(TAG, "Loaded ${fullRoutineItems.size} full database routine items")
                         // Extract effectiveFrom from the first routine item
                         val effectiveFrom = fullRoutineItems.firstOrNull()?.effectiveFrom?.takeIf { it.isNotBlank() }
+                        val semester = fullRoutineItems.firstOrNull()?.semester?.takeIf { it.isNotBlank() }
                         logger.debug(TAG, "Extracted effectiveFrom: $effectiveFrom")
+                        logger.debug(TAG, "Extracted semester: $semester")
                         _uiState.value = _uiState.value.copy(
                             fullDatabaseRoutineItems = fullRoutineItems,
-                            effectiveFrom = effectiveFrom
+                            effectiveFrom = effectiveFrom,
+                            currentSemester = semester
                         )
                     },
                     onFailure = { throwable ->
