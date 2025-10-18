@@ -38,7 +38,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Badge
@@ -107,7 +106,6 @@ import com.om.diucampusschedule.ui.screens.today.components.TodayRoutineContent
 import com.om.diucampusschedule.ui.screens.today.components.calculateDailyEventCounts
 import com.om.diucampusschedule.ui.screens.webview.PortalTitles
 import com.om.diucampusschedule.ui.screens.webview.PortalUrls
-import com.om.diucampusschedule.ui.theme.AccentGreen
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -355,7 +353,11 @@ fun TodayScreen(
                                 routineItems = emptyList(),
                                 tasks = emptyList(),
                                 isLoading = false,
-                                hasLoadedOnce = true // Set to true for animation states to prevent loading
+                                hasLoadedOnce = true, // Set to true for animation states to prevent loading
+                                // Keep exam mode state from current state
+                                isExamMode = todayState.isExamMode,
+                                examRoutine = todayState.examRoutine,
+                                examMessage = todayState.examMessage
                             )
                         }
                         TodayRoutineContent(
@@ -388,6 +390,18 @@ fun TodayScreen(
                             isSemesterBreak = animatedTodayState.isSemesterBreak,
                             updateType = animatedTodayState.updateType,
                             selectedDate = animatedDate,
+                            // Exam mode parameters
+                            isExamMode = animatedTodayState.isExamMode,
+                            examRoutine = animatedTodayState.examRoutine,
+                            onNavigateToRoutine = {
+                                navController.navigate(Screen.Routine.route) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
                             // Pass scroll state change listener
                             onScrollStateChanged = onScrollStateChanged
                         )

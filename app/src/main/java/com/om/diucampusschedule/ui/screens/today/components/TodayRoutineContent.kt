@@ -1,5 +1,6 @@
 package com.om.diucampusschedule.ui.screens.today.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -22,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +51,7 @@ import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
+import com.om.diucampusschedule.domain.model.ExamRoutine
 import com.om.diucampusschedule.ui.screens.tasks.TaskCard
 import com.om.diucampusschedule.ui.utils.TimeFormatterUtils
 import com.om.diucampusschedule.ui.viewmodel.ClassStatus
@@ -87,6 +91,10 @@ fun TodayRoutineContent(
     isSemesterBreak: Boolean = false,
     updateType: String? = null,
     selectedDate: LocalDate,
+    // Exam mode parameters
+    isExamMode: Boolean = false,
+    examRoutine: ExamRoutine? = null,
+    onNavigateToRoutine: () -> Unit = {},
     // Add scroll state change listener
     onScrollStateChanged: (Int, Int) -> Unit = { _, _ -> }
 ) {
@@ -95,7 +103,7 @@ fun TodayRoutineContent(
     
     if (shouldShowLoading) {
         LoadingContent()
-    } else if (routineItems.isEmpty() && tasks.isEmpty()) {
+    } else if (routineItems.isEmpty() && tasks.isEmpty() && !isExamMode) {
         // Wrap empty content in LazyColumn to enable pull-to-refresh
         LazyColumn(
             modifier = modifier
@@ -156,10 +164,17 @@ fun TodayRoutineContent(
                 .padding(horizontal = 6.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            // Add ClassRoutineSectionHeader when routine items are not empty OR in maintenance mode
-            if (routineItems.isNotEmpty() || isMaintenanceMode) {
+            // Add ClassRoutineSectionHeader when routine items are not empty OR in maintenance mode OR in exam mode
+            if (routineItems.isNotEmpty() || isMaintenanceMode || isExamMode) {
                 item {
-                    if (isMaintenanceMode) {
+                    if (isExamMode) {
+                        // Show exam mode content when exam mode is active
+                        ExamModeContent(
+                            examRoutine = examRoutine,
+                            onNavigateToRoutine = onNavigateToRoutine,
+                            currentUser = currentUser
+                        )
+                    } else if (isMaintenanceMode) {
                         // Show maintenance message for class routine section only
                         EmptyClassRoutineContent(
                             isMaintenanceMode = isMaintenanceMode,
@@ -181,8 +196,8 @@ fun TodayRoutineContent(
                     }
                 }
                 
-                // Only show routine items if not in maintenance mode
-                if (!isMaintenanceMode) {
+                // Only show routine items if not in maintenance mode and not in exam mode
+                if (!isMaintenanceMode && !isExamMode) {
                     item {
                         Spacer(modifier = Modifier.height(1.dp))
                     }
@@ -626,6 +641,104 @@ private fun EmptyClassRoutineContent(
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
+        }
+    }
+}
+
+@Composable
+fun ExamModeContent(
+    examRoutine: ExamRoutine?,
+    onNavigateToRoutine: () -> Unit,
+    currentUser: User?
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if(currentUser?.role == UserRole.STUDENT) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Exam icon
+                Image(
+                    painter = painterResource(id = R.drawable.exam),
+                    contentDescription = null,
+                    modifier = Modifier.size(180.dp)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+
+                // Exam information
+                if (examRoutine != null) {
+                    Text(
+                        text = "${examRoutine.examType} of ${examRoutine.semester} are currently in progress from ${examRoutine.startDate} to ${examRoutine.endDate}.",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Description text
+                Text(
+                    text = "Please check your exam routine",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Navigate to routine button
+                OutlinedButton(
+                    onClick = onNavigateToRoutine,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(
+                        text = "View Exam Routine",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
+            }
+        }
+        else {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ){
+                Image(
+                    painter = painterResource(id = R.drawable.exam),
+                    contentDescription = null,
+                    modifier = Modifier.size(200.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "${examRoutine?.examType} of ${examRoutine?.semester} are currently in progress from ${examRoutine?.startDate} to ${examRoutine?.endDate}. Please wait until examination period concludes.",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }

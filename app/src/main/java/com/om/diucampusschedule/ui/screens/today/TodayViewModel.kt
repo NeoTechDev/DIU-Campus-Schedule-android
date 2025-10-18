@@ -15,9 +15,13 @@ import com.om.diucampusschedule.domain.model.Notice
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
+import com.om.diucampusschedule.domain.model.ExamCourse
+import com.om.diucampusschedule.domain.model.ExamRoutine
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetMaintenanceInfoUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetUserRoutineForDayUseCase
+import com.om.diucampusschedule.domain.usecase.exam.GetExamModeInfoUseCase
+import com.om.diucampusschedule.domain.usecase.exam.GetExamRoutineForUserUseCase
 import com.om.diucampusschedule.ui.screens.today.components.CourseUtils
 import com.om.diucampusschedule.widget.WidgetManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,7 +55,11 @@ data class TodayUiState(
     val maintenanceMessage: String? = null, // Message to show during maintenance
     val isSemesterBreak: Boolean = false, // Whether it's semester break
     val updateType: String? = null, // Type of maintenance update (maintenance_enabled, semester_break, etc.)
-    val hasLoadedOnce: Boolean = false // Track if data has been loaded at least once to prevent blinking
+    val hasLoadedOnce: Boolean = false, // Track if data has been loaded at least once to prevent blinking
+    // Exam mode related fields
+    val isExamMode: Boolean = false, // Whether the system is in exam mode
+    val examMessage: String? = null, // Message to show during exam mode
+    val examRoutine: ExamRoutine? = null // Current exam routine
 )
 
 data class CachedDayData(
@@ -65,6 +73,8 @@ class TodayViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getUserRoutineForDayUseCase: GetUserRoutineForDayUseCase,
     private val getMaintenanceInfoUseCase: GetMaintenanceInfoUseCase,
+    private val getExamModeInfoUseCase: GetExamModeInfoUseCase,
+    private val getExamRoutineForUserUseCase: GetExamRoutineForUserUseCase,
     private val courseNameService: CourseNameService,
     private val taskRepository: TaskRepository,
     private val routineRepository: RoutineRepository,
@@ -721,8 +731,76 @@ class TodayViewModel @Inject constructor(
                     // Don't update maintenance state on failure to avoid false positives
                 }
             )
+            
+            // Also check exam mode
+            checkExamMode()
         } catch (e: Exception) {
             logger.error(TAG, "Error checking maintenance mode for Today screen", e)
+        }
+    }
+    
+    /**
+     * Check exam mode status from Firebase
+     * When exam mode is enabled, show exam information instead of class routine
+     */
+    private suspend fun checkExamMode() {
+        try {
+            logger.debug(TAG, "Checking exam mode status from Firebase")
+            getExamModeInfoUseCase().fold(
+                onSuccess = { examModeInfo ->
+                    logger.info(TAG, "Exam mode info: isExamMode=${examModeInfo.isExamMode}, message=${examModeInfo.examMessage}")
+                    if (examModeInfo.isExamMode) {
+                        logger.info(TAG, "Exam mode enabled - loading exam routine for Today screen")
+                        _uiState.value = _uiState.value.copy(
+                            isExamMode = true,
+                            examMessage = examModeInfo.examMessage
+                        )
+                        loadExamRoutineData()
+                    } else {
+                        logger.info(TAG, "Exam mode disabled - clearing exam state for Today screen")
+                        _uiState.value = _uiState.value.copy(
+                            isExamMode = false,
+                            examMessage = null,
+                            examRoutine = null
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    logger.warning(TAG, "Failed to fetch exam mode info from Firebase", error)
+                }
+            )
+        } catch (e: Exception) {
+            logger.error(TAG, "Error checking exam mode", e)
+        }
+    }
+    
+    /**
+     * Load exam routine data for the current user
+     */
+    private suspend fun loadExamRoutineData() {
+        val user = currentUser ?: return
+        try {
+            logger.debug(TAG, "Loading exam routine data for user: ${user.name}")
+            getExamRoutineForUserUseCase(user).fold(
+                onSuccess = { examRoutine ->
+                    if (examRoutine != null) {
+                        logger.info(TAG, "Exam routine loaded: ${examRoutine.examType}")
+                        _uiState.value = _uiState.value.copy(
+                            examRoutine = examRoutine
+                        )
+                    } else {
+                        logger.info(TAG, "No exam routine found for user")
+                        _uiState.value = _uiState.value.copy(
+                            examRoutine = null
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    logger.error(TAG, "Failed to load exam routine", error)
+                }
+            )
+        } catch (e: Exception) {
+            logger.error(TAG, "Error loading exam routine data", e)
         }
     }
     
