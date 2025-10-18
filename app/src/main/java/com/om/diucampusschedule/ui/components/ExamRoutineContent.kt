@@ -49,7 +49,7 @@ import com.om.diucampusschedule.ui.theme.AccentGreen
  * Shows exam type, dates, and individual exam courses with clean cards
  */
 @Composable
-fun ExamRoutineContentEnhanced(
+fun ExamRoutineContent(
     examRoutine: ExamRoutine?,
     user: User?,
     modifier: Modifier = Modifier

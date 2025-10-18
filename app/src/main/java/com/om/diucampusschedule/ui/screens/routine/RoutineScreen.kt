@@ -99,7 +99,7 @@ import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.components.DownloadOptionsBottomSheet
-import com.om.diucampusschedule.ui.components.ExamRoutineContentEnhanced
+import com.om.diucampusschedule.ui.components.ExamRoutineContent
 import com.om.diucampusschedule.ui.components.FilterRoutinesBottomSheet
 import com.om.diucampusschedule.ui.components.GenerationProgressDialog
 import com.om.diucampusschedule.ui.components.SuccessDialog
@@ -338,12 +338,12 @@ fun RoutineScreen(
                 }
 
                 // Check exam mode AFTER maintenance mode
-                uiState.isExamMode -> {
+                uiState.isExamMode && uiState.currentUser?.role == UserRole.STUDENT -> {
                     android.util.Log.d(
                         "RoutineScreen",
                         "Showing Enhanced ExamRoutineContent with exam routine: ${uiState.examRoutine?.examType}"
                     )
-                    ExamRoutineContentEnhanced(
+                    ExamRoutineContent(
                         examRoutine = uiState.examRoutine,
                         user = uiState.currentUser
                     )
@@ -782,8 +782,6 @@ private fun RoutineContent(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-
-
         // Table-style routine display - shows full weekly routine
         TableRoutineView(
             currentUser = currentUser,
@@ -824,14 +822,16 @@ private fun RoutineTopAppBar(
             }
         },
         actions = {
-            // Routine Generate Button
-            IconButton(onClick = onDownloadClick) {
-                Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.share_solid_full),
-                    contentDescription = "Generate",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(28.dp)
-                )
+            if(isExamMode){
+                // Routine Generate Button
+                IconButton(onClick = onDownloadClick) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.share_solid_full),
+                        contentDescription = "Generate",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
             // Only refresh button for clean design
             IconButton(
