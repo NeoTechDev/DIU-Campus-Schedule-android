@@ -8,6 +8,7 @@ import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.repository.RoutineRepository
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.exam.GetExamModeInfoUseCase
+import com.om.diucampusschedule.domain.usecase.routine.GetMaintenanceInfoUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,6 +23,7 @@ import javax.inject.Singleton
  * Professional service for managing class reminder scheduling.
  * Integrates with user's routine data and handles scheduling logic.
  * Now also checks exam mode status to disable class notifications during exams.
+ * Now also checks maintenance mode status to disable class notifications during maintenance.
  */
 @Singleton
 class ClassReminderService @Inject constructor(
@@ -29,6 +31,7 @@ class ClassReminderService @Inject constructor(
     private val routineRepository: RoutineRepository,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getExamModeInfoUseCase: GetExamModeInfoUseCase,
+    private val getMaintenanceModeInfoUseCase: GetMaintenanceInfoUseCase,
     private val courseNameService: CourseNameService,
     private val notificationPreferences: NotificationPreferences,
     private val logger: AppLogger
@@ -58,6 +61,13 @@ class ClassReminderService @Inject constructor(
                 val examModeInfo = getExamModeInfoUseCase().getOrNull()
                 if (examModeInfo?.isExamMode == true) {
                     logger.info(TAG, "Exam mode is active, skipping class reminder scheduling")
+                    return@launch
+                }
+
+                // Checks if maintenance mode is active
+                val maintenanceModeInfo = getMaintenanceModeInfoUseCase().getOrNull()
+                if (maintenanceModeInfo?.isMaintenanceMode == true || maintenanceModeInfo?.isSemesterBreak == true) {
+                    logger.info(TAG, "Maintenance mode or semester break is active, skipping class reminder scheduling")
                     return@launch
                 }
                 
@@ -94,6 +104,13 @@ class ClassReminderService @Inject constructor(
                     logger.info(TAG, "Exam mode is active, skipping class reminder scheduling for $targetDate")
                     return@launch
                 }
+
+                // Checks if maintenance mode is active
+                val maintenanceModeInfo = getMaintenanceModeInfoUseCase().getOrNull()
+                if (maintenanceModeInfo?.isMaintenanceMode == true || maintenanceModeInfo?.isSemesterBreak == true) {
+                    logger.info(TAG, "Maintenance mode or semester break is active, skipping class reminder scheduling for $targetDate")
+                    return@launch
+                }
                 
                 val userResult = getCurrentUserUseCase.invoke()
                 val user = userResult.getOrNull()
@@ -126,6 +143,13 @@ class ClassReminderService @Inject constructor(
                 val examModeInfo = getExamModeInfoUseCase().getOrNull()
                 if (examModeInfo?.isExamMode == true) {
                     logger.info(TAG, "Exam mode is active, skipping weekly class reminder scheduling")
+                    return@launch
+                }
+
+                // Checks if maintenance mode is active
+                val maintenanceModeInfo = getMaintenanceModeInfoUseCase().getOrNull()
+                if (maintenanceModeInfo?.isMaintenanceMode == true || maintenanceModeInfo?.isSemesterBreak == true) {
+                    logger.info(TAG, "Maintenance mode or semester break is active, skipping weekly class reminder scheduling")
                     return@launch
                 }
                 
@@ -191,6 +215,13 @@ class ClassReminderService @Inject constructor(
                 if (examModeInfo?.isExamMode == true) {
                     logger.info(TAG, "Exam mode is active, cancelling all class reminders instead of refreshing")
                     cancelAllFutureReminders()
+                    return@launch
+                }
+
+                // Checks if maintenance mode is active
+                val maintenanceModeInfo = getMaintenanceModeInfoUseCase().getOrNull()
+                if (maintenanceModeInfo?.isMaintenanceMode == true || maintenanceModeInfo?.isSemesterBreak == true) {
+                    logger.info(TAG, "Maintenance mode or semester break is active, cancelling all class reminders instead of refreshing")
                     return@launch
                 }
                 
@@ -264,6 +295,33 @@ class ClassReminderService @Inject constructor(
                 }
             } catch (e: Exception) {
                 logger.error(TAG, "Failed to handle exam mode change", e)
+            }
+        }
+    }
+
+    /**
+     * Handle maintenance mode and semester break changes
+     * When maintenance mode or semester break is activated, cancel all class reminders
+     * When maintenance mode or semester break is deactivated, reschedule class reminders
+     */
+    fun handleMaintenanceModeChange(isMaintenanceMode: Boolean, isSemesterBreak: Boolean) {
+        serviceScope.launch {
+            try {
+                if (isMaintenanceMode || isSemesterBreak) {
+                    logger.info(TAG, "Maintenance mode or semester break activated - cancelling all class reminders")
+                    cancelAllFutureReminders()
+                } else {
+                    logger.info(TAG, "Maintenance mode or semester break deactivated - rescheduling class reminders")
+                    // Check if notifications are enabled before rescheduling
+                    val notificationsEnabled = notificationPreferences.isClassRemindersEnabled.first()
+                    if (notificationsEnabled) {
+                        scheduleWeeklyReminders()
+                    } else {
+                        logger.info(TAG, "Class reminders are disabled, not rescheduling")
+                    }
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Failed to handle maintenance mode change", e)
             }
         }
     }

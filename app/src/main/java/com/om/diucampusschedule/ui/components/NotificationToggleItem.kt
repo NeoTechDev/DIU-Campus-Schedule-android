@@ -77,6 +77,9 @@ fun NotificationToggleItem(
     val hasPermissionBeenRequested by notificationViewModel.hasNotificationPermissionBeenRequested.collectAsStateWithLifecycle()
     val hasNotificationPermission by notificationViewModel.hasNotificationPermission.collectAsStateWithLifecycle()
     val isExamMode by notificationViewModel.isExamMode.collectAsStateWithLifecycle()
+    val isMaintenanceMode by notificationViewModel.isMaintenanceMode.collectAsStateWithLifecycle()
+    val isSemesterBreak by notificationViewModel.isSemesterBreak.collectAsStateWithLifecycle()
+
     
     var showPermissionDialog by remember { mutableStateOf(false) }
     
@@ -97,7 +100,7 @@ fun NotificationToggleItem(
     
     // Animated colors and scale
     val iconColor by animateColorAsState(
-        targetValue = if (isExamMode) {
+        targetValue = if (isExamMode || isMaintenanceMode || isSemesterBreak) {
             MaterialTheme.colorScheme.tertiary // Different color for exam mode
         } else if (isRemindersEnabled && hasNotificationPermission) {
             MaterialTheme.colorScheme.primary
@@ -146,7 +149,7 @@ fun NotificationToggleItem(
             modifier = Modifier.weight(1f)
         ) {
             Icon(
-                imageVector = if (isExamMode) {
+                imageVector = if (isExamMode || isMaintenanceMode || isSemesterBreak) {
                     Icons.Default.NotificationsOff // Always off during exam mode
                 } else if (isRemindersEnabled && hasNotificationPermission) {
                     Icons.Default.Notifications
@@ -173,6 +176,8 @@ fun NotificationToggleItem(
                 Text(
                     text = when {
                         isExamMode -> "Disabled during exam period"
+                        isMaintenanceMode -> "Disabled during maintenance period"
+                        isSemesterBreak -> "Disabled during semester break"
                         hasNotificationPermission || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> {
                             if (isRemindersEnabled) "Get notified 30 minutes before class" 
                             else "No class notifications"
@@ -180,7 +185,7 @@ fun NotificationToggleItem(
                         else -> "Tap to enable notifications"
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isExamMode) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isExamMode || isMaintenanceMode || isSemesterBreak) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -188,16 +193,16 @@ fun NotificationToggleItem(
         // Material 3 Switch
         if (hasNotificationPermission || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             Switch(
-                checked = isRemindersEnabled && !isExamMode,
+                checked = isRemindersEnabled && !isExamMode && !isMaintenanceMode && !isSemesterBreak,
                 onCheckedChange = { enabled ->
-                    if (!isExamMode) {
+                    if (!isExamMode && !isMaintenanceMode) {
                         notificationViewModel.toggleClassReminders(enabled)
                     }
                 },
-                enabled = !isExamMode,
+                enabled = !isExamMode && !isMaintenanceMode && !isSemesterBreak,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = if (isExamMode) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = if (isExamMode) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                    checkedThumbColor = if (isExamMode || isMaintenanceMode || isSemesterBreak) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary,
+                    checkedTrackColor = if (isExamMode || isMaintenanceMode || isSemesterBreak) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                     uncheckedThumbColor = MaterialTheme.colorScheme.outline,
                     uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
                     disabledCheckedThumbColor = MaterialTheme.colorScheme.outline,

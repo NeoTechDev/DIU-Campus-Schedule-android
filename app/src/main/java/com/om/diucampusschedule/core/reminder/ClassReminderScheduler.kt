@@ -7,6 +7,7 @@ import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
 import com.om.diucampusschedule.domain.usecase.exam.GetExamModeInfoUseCase
+import com.om.diucampusschedule.domain.usecase.routine.GetMaintenanceInfoUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,13 +19,14 @@ import javax.inject.Singleton
 
 /**
  * Professional scheduler that automatically manages class reminders.
- * Integrates seamlessly with the app lifecycle, user authentication, and exam mode.
+ * Integrates seamlessly with the app lifecycle, user authentication, exam mode, maintenance mode and semester break.
  * 
  * Features:
  * - Automatic scheduling when user logs in
  * - Lifecycle-aware operations
  * - Handles routine data changes
  * - Handles exam mode changes
+ * - Handles maintenance mode and semester break changes
  * - Professional error handling and logging
  */
 @Singleton
@@ -32,6 +34,7 @@ class ClassReminderScheduler @Inject constructor(
     private val reminderService: ClassReminderService,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getExamModeInfoUseCase: GetExamModeInfoUseCase,
+    private val getMaintenanceModeInfoUseCase: GetMaintenanceInfoUseCase,
     private val logger: AppLogger
 ) : DefaultLifecycleObserver {
     
@@ -43,6 +46,8 @@ class ClassReminderScheduler @Inject constructor(
     private var currentUser: User? = null
     private var isInitialized = false
     private var currentExamMode: Boolean = false
+    private var currentMaintenanceMode: Boolean = false
+    private var currentSemesterBreak: Boolean = false
     
     /**
      * Initialize the scheduler
@@ -62,6 +67,9 @@ class ClassReminderScheduler @Inject constructor(
             
             // Observe exam mode changes
             observeExamModeChanges()
+
+            // Observe maintenance mode changes
+            observeMaintenanceModeChanges()
             
             isInitialized = true
             logger.info(TAG, "Class reminder scheduler initialized successfully")
@@ -195,7 +203,42 @@ class ClassReminderScheduler @Inject constructor(
             }
         }
     }
-    
+
+    /**
+     * Observe maintenance mode changes
+     */
+    private fun observeMaintenanceModeChanges() {
+        schedulerScope.launch {
+            try {
+                // Poll maintenance mode status periodically (since we don't have a flow for maintenance mode)
+                while (isInitialized) {
+                    try {
+                        val maintenanceModeInfo = getMaintenanceModeInfoUseCase().getOrNull()
+                        val isMaintenanceMode = maintenanceModeInfo?.isMaintenanceMode ?: false
+                        val semesterBreak = maintenanceModeInfo?.isSemesterBreak ?: false
+
+                        if (isMaintenanceMode != currentMaintenanceMode || semesterBreak != currentSemesterBreak) {
+                            logger.info(
+                                TAG,
+                                "Maintenance mode changed: maintenance $currentMaintenanceMode -> $isMaintenanceMode, semesterBreak $currentSemesterBreak -> $semesterBreak"
+                            )
+                            currentMaintenanceMode = isMaintenanceMode
+                            currentSemesterBreak = semesterBreak
+                            reminderService.handleMaintenanceModeChange(isMaintenanceMode, semesterBreak)
+                        }
+                    } catch (e: Exception) {
+                        logger.error(TAG, "Error checking maintenance mode status", e)
+                    }
+
+                    // Check every 30 seconds
+                    kotlinx.coroutines.delay(30_000)
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Error in maintenance mode observation", e)
+            }
+        }
+    }
+
     /**
      * Handle user login/logout
      */

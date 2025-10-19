@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.om.diucampusschedule.core.permission.NotificationPermissionManager
 import com.om.diucampusschedule.domain.usecase.notification.ManageNotificationPreferencesUseCase
 import com.om.diucampusschedule.domain.usecase.exam.GetExamModeInfoUseCase
+import com.om.diucampusschedule.domain.usecase.routine.GetMaintenanceInfoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,8 @@ import javax.inject.Inject
 class NotificationSettingsViewModel @Inject constructor(
     private val manageNotificationPreferencesUseCase: ManageNotificationPreferencesUseCase,
     private val notificationPermissionManager: NotificationPermissionManager,
-    private val getExamModeInfoUseCase: GetExamModeInfoUseCase
+    private val getExamModeInfoUseCase: GetExamModeInfoUseCase,
+    private val getMaintenanceInfoUseCase: GetMaintenanceInfoUseCase
 ) : ViewModel() {
     
     /**
@@ -77,6 +79,46 @@ class NotificationSettingsViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = false
     )
+
+    /**
+     * Current maintenance mode state (polled every 30 seconds)
+     */
+    val isMaintenanceMode: StateFlow<Boolean> = flow {
+        while (true) {
+            try {
+                val maintenanceInfo = getMaintenanceInfoUseCase().getOrNull()
+                emit(maintenanceInfo?.isMaintenanceMode ?: false)
+                emit(maintenanceInfo?.isSemesterBreak ?: false)
+            } catch (e: Exception) {
+                emit(false)
+            }
+            delay(30_000) // Check every 30 seconds
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
+
+    /**
+     * Current semester break state (polled every 30 seconds)
+     */
+    val isSemesterBreak: StateFlow<Boolean> = flow {
+        while (true) {
+            try {
+                val maintenanceInfo = getMaintenanceInfoUseCase().getOrNull()
+                emit(maintenanceInfo?.isSemesterBreak ?: false)
+            } catch (e: Exception) {
+                emit(false)
+            }
+            delay(30_000) // Check every 30 seconds
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
+
     
     /**
      * Toggle class reminders on/off
