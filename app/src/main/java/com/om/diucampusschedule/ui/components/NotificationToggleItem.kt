@@ -76,6 +76,7 @@ fun NotificationToggleItem(
     val isRemindersEnabled by notificationViewModel.isClassRemindersEnabled.collectAsStateWithLifecycle()
     val hasPermissionBeenRequested by notificationViewModel.hasNotificationPermissionBeenRequested.collectAsStateWithLifecycle()
     val hasNotificationPermission by notificationViewModel.hasNotificationPermission.collectAsStateWithLifecycle()
+    val isExamMode by notificationViewModel.isExamMode.collectAsStateWithLifecycle()
     
     var showPermissionDialog by remember { mutableStateOf(false) }
     
@@ -96,7 +97,9 @@ fun NotificationToggleItem(
     
     // Animated colors and scale
     val iconColor by animateColorAsState(
-        targetValue = if (isRemindersEnabled && hasNotificationPermission) {
+        targetValue = if (isExamMode) {
+            MaterialTheme.colorScheme.tertiary // Different color for exam mode
+        } else if (isRemindersEnabled && hasNotificationPermission) {
             MaterialTheme.colorScheme.primary
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
@@ -143,7 +146,9 @@ fun NotificationToggleItem(
             modifier = Modifier.weight(1f)
         ) {
             Icon(
-                imageVector = if (isRemindersEnabled && hasNotificationPermission) {
+                imageVector = if (isExamMode) {
+                    Icons.Default.NotificationsOff // Always off during exam mode
+                } else if (isRemindersEnabled && hasNotificationPermission) {
                     Icons.Default.Notifications
                 } else {
                     Icons.Default.NotificationsOff
@@ -166,14 +171,16 @@ fun NotificationToggleItem(
                 )
                 
                 Text(
-                    text = if (hasNotificationPermission || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                        if (isRemindersEnabled) "Get notified 30 minutes before class" 
-                        else "No class notifications"
-                    } else {
-                        "Tap to enable notifications"
+                    text = when {
+                        isExamMode -> "Disabled during exam period"
+                        hasNotificationPermission || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> {
+                            if (isRemindersEnabled) "Get notified 30 minutes before class" 
+                            else "No class notifications"
+                        }
+                        else -> "Tap to enable notifications"
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isExamMode) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -181,15 +188,22 @@ fun NotificationToggleItem(
         // Material 3 Switch
         if (hasNotificationPermission || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             Switch(
-                checked = isRemindersEnabled,
+                checked = isRemindersEnabled && !isExamMode,
                 onCheckedChange = { enabled ->
-                    notificationViewModel.toggleClassReminders(enabled)
+                    if (!isExamMode) {
+                        notificationViewModel.toggleClassReminders(enabled)
+                    }
                 },
+                enabled = !isExamMode,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                    checkedThumbColor = if (isExamMode) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary,
+                    checkedTrackColor = if (isExamMode) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                     uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledCheckedThumbColor = MaterialTheme.colorScheme.outline,
+                    disabledCheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledUncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                    disabledUncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             )
         } else {

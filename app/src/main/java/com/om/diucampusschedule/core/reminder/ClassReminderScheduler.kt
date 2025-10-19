@@ -6,6 +6,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
+import com.om.diucampusschedule.domain.usecase.exam.GetExamModeInfoUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,18 +18,20 @@ import javax.inject.Singleton
 
 /**
  * Professional scheduler that automatically manages class reminders.
- * Integrates seamlessly with the app lifecycle and user authentication.
+ * Integrates seamlessly with the app lifecycle, user authentication, and exam mode.
  * 
  * Features:
  * - Automatic scheduling when user logs in
  * - Lifecycle-aware operations
  * - Handles routine data changes
+ * - Handles exam mode changes
  * - Professional error handling and logging
  */
 @Singleton
 class ClassReminderScheduler @Inject constructor(
     private val reminderService: ClassReminderService,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val getExamModeInfoUseCase: GetExamModeInfoUseCase,
     private val logger: AppLogger
 ) : DefaultLifecycleObserver {
     
@@ -39,6 +42,7 @@ class ClassReminderScheduler @Inject constructor(
     private val schedulerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var currentUser: User? = null
     private var isInitialized = false
+    private var currentExamMode: Boolean = false
     
     /**
      * Initialize the scheduler
@@ -55,6 +59,9 @@ class ClassReminderScheduler @Inject constructor(
             
             // Observe user changes
             observeUserChanges()
+            
+            // Observe exam mode changes
+            observeExamModeChanges()
             
             isInitialized = true
             logger.info(TAG, "Class reminder scheduler initialized successfully")
@@ -157,6 +164,36 @@ class ClassReminderScheduler @Inject constructor(
                 handleUserChange(user)
             }
             .launchIn(schedulerScope)
+    }
+    
+    /**
+     * Observe exam mode changes
+     */
+    private fun observeExamModeChanges() {
+        schedulerScope.launch {
+            try {
+                // Poll exam mode status periodically (since we don't have a flow for exam mode)
+                while (isInitialized) {
+                    try {
+                        val examModeInfo = getExamModeInfoUseCase().getOrNull()
+                        val isExamMode = examModeInfo?.isExamMode ?: false
+                        
+                        if (isExamMode != currentExamMode) {
+                            logger.info(TAG, "Exam mode changed from $currentExamMode to $isExamMode")
+                            currentExamMode = isExamMode
+                            reminderService.handleExamModeChange(isExamMode)
+                        }
+                    } catch (e: Exception) {
+                        logger.error(TAG, "Error checking exam mode status", e)
+                    }
+                    
+                    // Check every 30 seconds
+                    kotlinx.coroutines.delay(30_000)
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Error in exam mode observation", e)
+            }
+        }
     }
     
     /**

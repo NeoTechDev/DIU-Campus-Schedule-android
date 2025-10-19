@@ -7,6 +7,7 @@ import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.repository.RoutineRepository
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
+import com.om.diucampusschedule.domain.usecase.exam.GetExamModeInfoUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,12 +21,14 @@ import javax.inject.Singleton
 /**
  * Professional service for managing class reminder scheduling.
  * Integrates with user's routine data and handles scheduling logic.
+ * Now also checks exam mode status to disable class notifications during exams.
  */
 @Singleton
 class ClassReminderService @Inject constructor(
     private val alarmManager: ClassReminderAlarmManager,
     private val routineRepository: RoutineRepository,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val getExamModeInfoUseCase: GetExamModeInfoUseCase,
     private val courseNameService: CourseNameService,
     private val notificationPreferences: NotificationPreferences,
     private val logger: AppLogger
@@ -48,6 +51,13 @@ class ClassReminderService @Inject constructor(
                 val notificationsEnabled = notificationPreferences.isClassRemindersEnabled.first()
                 if (!notificationsEnabled) {
                     logger.info(TAG, "Class reminders are disabled, skipping scheduling")
+                    return@launch
+                }
+                
+                // Check if exam mode is active
+                val examModeInfo = getExamModeInfoUseCase().getOrNull()
+                if (examModeInfo?.isExamMode == true) {
+                    logger.info(TAG, "Exam mode is active, skipping class reminder scheduling")
                     return@launch
                 }
                 
@@ -78,6 +88,13 @@ class ClassReminderService @Inject constructor(
                     return@launch
                 }
                 
+                // Check if exam mode is active
+                val examModeInfo = getExamModeInfoUseCase().getOrNull()
+                if (examModeInfo?.isExamMode == true) {
+                    logger.info(TAG, "Exam mode is active, skipping class reminder scheduling for $targetDate")
+                    return@launch
+                }
+                
                 val userResult = getCurrentUserUseCase.invoke()
                 val user = userResult.getOrNull()
                 if (user == null) {
@@ -102,6 +119,13 @@ class ClassReminderService @Inject constructor(
                 val notificationsEnabled = notificationPreferences.isClassRemindersEnabled.first()
                 if (!notificationsEnabled) {
                     logger.info(TAG, "Class reminders are disabled, skipping weekly scheduling")
+                    return@launch
+                }
+                
+                // Check if exam mode is active
+                val examModeInfo = getExamModeInfoUseCase().getOrNull()
+                if (examModeInfo?.isExamMode == true) {
+                    logger.info(TAG, "Exam mode is active, skipping weekly class reminder scheduling")
                     return@launch
                 }
                 
@@ -162,6 +186,14 @@ class ClassReminderService @Inject constructor(
             try {
                 logger.info(TAG, "Refreshing class reminders due to routine data changes")
                 
+                // Check if exam mode is active
+                val examModeInfo = getExamModeInfoUseCase().getOrNull()
+                if (examModeInfo?.isExamMode == true) {
+                    logger.info(TAG, "Exam mode is active, cancelling all class reminders instead of refreshing")
+                    cancelAllFutureReminders()
+                    return@launch
+                }
+                
                 // Cancel existing reminders and reschedule
                 cancelAllFutureReminders()
                 
@@ -209,6 +241,33 @@ class ClassReminderService @Inject constructor(
         }
     }
     
+    /**
+     * Handle exam mode changes
+     * When exam mode is activated, cancel all class reminders
+     * When exam mode is deactivated, reschedule class reminders
+     */
+    fun handleExamModeChange(isExamMode: Boolean) {
+        serviceScope.launch {
+            try {
+                if (isExamMode) {
+                    logger.info(TAG, "Exam mode activated - cancelling all class reminders")
+                    cancelAllFutureReminders()
+                } else {
+                    logger.info(TAG, "Exam mode deactivated - rescheduling class reminders")
+                    // Check if notifications are enabled before rescheduling
+                    val notificationsEnabled = notificationPreferences.isClassRemindersEnabled.first()
+                    if (notificationsEnabled) {
+                        scheduleWeeklyReminders()
+                    } else {
+                        logger.info(TAG, "Class reminders are disabled, not rescheduling")
+                    }
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Failed to handle exam mode change", e)
+            }
+        }
+    }
+
     /**
      * Check if exact alarm permission is available
      */
