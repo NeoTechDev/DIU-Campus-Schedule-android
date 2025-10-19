@@ -682,7 +682,7 @@
         <!-- Exam Mode Control -->
         <div class="card">
             <h2>📝 Exam Mode Control</h2>
-            <p>Control when students see exam routines instead of class routines. Push notifications will be sent to all users.</p>
+            <p>Control when students see exam routines instead of class routines. Note: Enable/Disable buttons do NOT send notifications. Use the "Exam Mode Notification" button to notify users about exam updates.</p>
             
             <!-- Exam Mode Buttons -->
             <div class="button-grid">
@@ -1335,7 +1335,7 @@
                 return;
             }
             
-            showStatus('examModeStatus', '🔄 Disabling exam mode...', false);
+            showStatus('examModeStatus', '🔄 Disabling exam mode (no notification will be sent)...', false);
             
             try {
                 const setExamModeFunction = firebase.functions().httpsCallable('setExamMode');
@@ -1344,7 +1344,7 @@
                 });
                 
                 if (result.data.success) {
-                    showStatus('examModeStatus', '✅ Exam mode disabled successfully!', false);
+                    showStatus('examModeStatus', '✅ Exam mode disabled successfully! (No notification sent)', false);
                     updateSystemStatus(null, null, false, null);
                 } else {
                     throw new Error(result.data.error || 'Failed to disable exam mode');
@@ -1543,13 +1543,13 @@
         }
 
         async function enableExamMode(message = null) {
-            // If no message provided, use default
+            // If no message provided, use default (this message is not sent as notification, just for logging)
             if (!message) {
                 message = 'Exam mode activated. Students can now view their exam schedules.';
             }
             
             try {
-                showStatus('examModeStatus', '🔄 Enabling exam mode...', false);
+                showStatus('examModeStatus', '🔄 Enabling exam mode (no notification will be sent)...', false);
                 
                 // Comprehensive testing and validation
                 const originalValue = true;
@@ -1572,7 +1572,7 @@
                 const result = await setExamModeFunction(payload);
                 
                 if (result.data.success) {
-                    showStatus('examModeStatus', '✅ Exam mode enabled successfully! Students will see exam schedules.', false);
+                    showStatus('examModeStatus', '✅ Exam mode enabled successfully! (No notification sent - use "Exam Mode Notification" button to notify users)', false);
                     updateSystemStatus(null, null, true, null);
                 } else {
                     throw new Error(result.data.error || 'Failed to enable exam mode');
@@ -1600,12 +1600,11 @@
             try {
                 showStatus('examModeStatus', '🔄 Sending exam notification...', false);
                 
-                // Use the manual update function to send notification
-                const triggerUpdate = firebase.functions().httpsCallable('triggerManualUpdate');
-                const result = await triggerUpdate({
+                // Use the dedicated sendExamNotification function
+                const sendNotification = firebase.functions().httpsCallable('sendExamNotification');
+                const result = await sendNotification({
                     message: message,
-                    title: 'Exam Update',
-                    type: 'exam_notification'
+                    title: 'Exam Update'
                 });
                 
                 if (result.data.success) {
@@ -1619,7 +1618,7 @@
                 let errorMessage = '❌ Failed to send exam notification: ';
                 
                 if (error.code === 'functions/not-found') {
-                    errorMessage += 'triggerManualUpdate function not found. Please deploy Cloud Functions.';
+                    errorMessage += 'sendExamNotification function not found. Please deploy Cloud Functions.';
                 } else {
                     errorMessage += error.message;
                 }

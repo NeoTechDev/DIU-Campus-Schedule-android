@@ -590,9 +590,9 @@ exports.deleteExamRoutine = functions.https.onCall(async (data, context) => {
   }
 });
 
-// HTTP function to set exam mode (admin only)
+// HTTP function to set exam mode WITHOUT notifications (admin only)
 exports.setExamMode = functions.https.onCall(async (data, context) => {
-  console.log('Set exam mode called');
+  console.log('Set exam mode called (no notifications)');
   console.log('Data received:', data);
   console.log('Data type:', typeof data);
   console.log('Data keys:', data ? Object.keys(data) : 'data is null/undefined');
@@ -629,22 +629,7 @@ exports.setExamMode = functions.https.onCall(async (data, context) => {
       examModeUpdatedBy: 'admin'
     }, { merge: true });
     
-    console.log(`Exam mode ${examModeEnabled ? 'enabled' : 'disabled'} successfully`);
-    
-    // Send push notifications to all users about exam mode change
-    if (examModeEnabled) {
-      await sendMaintenanceNotifications({
-        title: 'Exam Mode Activated',
-        body: 'The app is now showing exam schedules. Check your exam routine!',
-        type: 'exam_mode_enabled'
-      });
-    } else {
-      await sendMaintenanceNotifications({
-        title: 'Back to Normal Schedule',
-        body: 'The app is now showing regular class schedules.',
-        type: 'exam_mode_disabled'
-      });
-    }
+    console.log(`Exam mode ${examModeEnabled ? 'enabled' : 'disabled'} successfully (no notifications sent)`);
     
     return { 
       success: true, 
@@ -654,6 +639,37 @@ exports.setExamMode = functions.https.onCall(async (data, context) => {
   } catch (error) {
     console.error('Error setting exam mode:', error);
     throw new functions.https.HttpsError('internal', `Failed to set exam mode: ${error.message}`);
+  }
+});
+
+// HTTP function to send exam notifications (admin only)
+exports.sendExamNotification = functions.https.onCall(async (data, context) => {
+  console.log('Send exam notification called');
+  console.log('Data received:', data);
+  
+  const { message, title } = data;
+  const notificationTitle = title || 'Exam Update';
+  const notificationMessage = message || 'Important exam update: Please check your exam schedule for any changes.';
+  
+  try {
+    // Send push notifications to all users
+    await sendMaintenanceNotifications({
+      title: notificationTitle,
+      body: notificationMessage,
+      type: 'exam_notification'
+    });
+    
+    console.log('Exam notification sent successfully');
+    
+    return { 
+      success: true, 
+      message: 'Exam notification sent successfully',
+      title: notificationTitle,
+      body: notificationMessage
+    };
+  } catch (error) {
+    console.error('Error sending exam notification:', error);
+    throw new functions.https.HttpsError('internal', `Failed to send exam notification: ${error.message}`);
   }
 });
 
