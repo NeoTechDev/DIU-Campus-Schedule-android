@@ -95,10 +95,12 @@ import com.om.diucampusschedule.R
 import com.om.diucampusschedule.core.network.rememberConnectivityState
 import com.om.diucampusschedule.domain.model.Task
 import com.om.diucampusschedule.domain.model.User
+import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.components.AddTaskBottomSheet
 import com.om.diucampusschedule.ui.navigation.Screen
 import com.om.diucampusschedule.ui.screens.notices.NoticesViewModel
 import com.om.diucampusschedule.ui.screens.today.components.CalendarViewComponent
+import com.om.diucampusschedule.ui.screens.today.components.ExamRoutineBottomSheetContent
 import com.om.diucampusschedule.ui.screens.today.components.FindCourseBottomSheetContent
 import com.om.diucampusschedule.ui.screens.today.components.MiniCalendar
 import com.om.diucampusschedule.ui.screens.today.components.TodayActionButton
@@ -106,6 +108,7 @@ import com.om.diucampusschedule.ui.screens.today.components.TodayRoutineContent
 import com.om.diucampusschedule.ui.screens.today.components.calculateDailyEventCounts
 import com.om.diucampusschedule.ui.screens.webview.PortalTitles
 import com.om.diucampusschedule.ui.screens.webview.PortalUrls
+import com.om.diucampusschedule.ui.theme.AccentGreen
 import com.om.diucampusschedule.ui.utils.ScreenConfig
 import com.om.diucampusschedule.ui.utils.TopAppBarIconSize.topbarIconSize
 import com.om.diucampusschedule.ui.viewmodel.AuthViewModel
@@ -150,6 +153,10 @@ fun TodayScreen(
     
     // State for action button
     var isActionButtonExpanded by remember { mutableStateOf(false) }
+
+    //State for View Exam Routine bottom sheet
+    var showViewExamRoutineBottomSheet by remember { mutableStateOf(false) }
+    val viewExamRoutineSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     
     // State for Find Course bottom sheet
     var showFindCourseBottomSheet by remember { mutableStateOf(false) }
@@ -264,7 +271,6 @@ fun TodayScreen(
                 todayViewModel = todayViewModel,
                 unreadNotificationCount = unreadNotificationCount,
                 onProfileClick = {
-//                    onOpenDrawer() // Open drawer instead of navigating to profile
                     navController.navigate(Screen.Profile.route)
                 },
                 onNotificationClick = {
@@ -416,7 +422,7 @@ fun TodayScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // "Back to Today" FAB - only show when not on current date and when FABs are visible
                         AnimatedVisibility(
@@ -431,7 +437,9 @@ fun TodayScreen(
                                 icon = {
                                     Icon(
                                         imageVector = ImageVector.vectorResource(id = R.drawable.undo_24px),
-                                        contentDescription = "Back to Today"
+                                        contentDescription = "Back to Today",
+                                        modifier = Modifier
+                                            .size(24.dp)
                                     )
                                 },
                                 text = {
@@ -446,10 +454,56 @@ fun TodayScreen(
                                 containerColor = Color(0xFF00BCD4),
                                 contentColor = Color.Black,
                                 elevation = FloatingActionButtonDefaults.elevation(
-                                    defaultElevation = 6.dp,
-                                    pressedElevation = 8.dp
+                                    defaultElevation = 8.dp,
+                                    pressedElevation = 10.dp
                                 )
                             )
+                        }
+
+                        val isStudent = todayState.currentUser?.role == UserRole.STUDENT
+                        val shouldShowFab = isStudent && isFabVisible
+
+                        if(shouldShowFab){
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = scaleIn(initialScale = 0.0f, animationSpec = tween(100)) +
+                                        fadeIn(animationSpec = tween(50)),
+                                exit = scaleOut(targetScale = 0.0f, animationSpec = tween(80)) +
+                                        fadeOut(animationSpec = tween(50))
+                            ) {
+                                ExtendedFloatingActionButton(
+                                    onClick = { 
+                                        // Ensure exam routine data is available before opening the sheet
+                                        if (todayState.examRoutine == null) {
+                                            todayViewModel.fetchExamRoutine()
+                                        }
+                                        showViewExamRoutineBottomSheet = true 
+                                    },
+                                    icon = {
+                                        Icon(
+                                            imageVector = ImageVector.vectorResource(id = R.drawable.exam_routine),
+                                            contentDescription = "View Exam Routine",
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                        )
+                                    },
+                                    text = {
+                                        Text(
+                                            text = "Exam Routine",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 16.sp
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(20.dp),
+                                    containerColor = AccentGreen,
+                                    contentColor = Color.Black,
+                                    elevation = FloatingActionButtonDefaults.elevation(
+                                        defaultElevation = 6.dp,
+                                        pressedElevation = 8.dp
+                                    )
+                                )
+                            }
                         }
 
                         // Main Quick Access FAB with scroll-based visibility
@@ -505,6 +559,36 @@ fun TodayScreen(
                     todayViewModel.retryLastAction()
                 }
             }
+        }
+    }
+
+    // View Exam Routine bottom sheet
+    if (showViewExamRoutineBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showViewExamRoutineBottomSheet = false },
+            modifier = Modifier.padding(top = 64.dp),
+            sheetState = viewExamRoutineSheetState,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(
+                            Color.Gray.copy(alpha = 0.3f),
+                            RoundedCornerShape(2.dp)
+                        )
+                )
+            }
+        ){
+            ExamRoutineBottomSheetContent(
+                onDismiss = { showViewExamRoutineBottomSheet = false },
+                examRoutine = todayState.examRoutine,
+                user = todayState.currentUser,
+                isLoading = todayState.isLoading && todayState.examRoutine == null
+            )
         }
     }
     

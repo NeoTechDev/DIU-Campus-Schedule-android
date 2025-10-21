@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -167,6 +168,10 @@ fun TodayActionButton(
             onClick = onToggleExpand,
             containerColor = containerColor,
             shape = RoundedCornerShape(fabShape),
+            elevation = FloatingActionButtonDefaults.elevation(
+                defaultElevation = 4.dp,
+                pressedElevation = 6.dp
+            ),
             modifier = Modifier
                 .size(fabSize)
                 .shadow(fabElevation, RoundedCornerShape(fabShape))

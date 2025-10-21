@@ -20,7 +20,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -80,7 +79,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -101,7 +99,6 @@ import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.model.UserRole
 import com.om.diucampusschedule.ui.components.DownloadOptionsBottomSheet
-import com.om.diucampusschedule.ui.components.ExamRoutineContent
 import com.om.diucampusschedule.ui.components.FilterRoutinesBottomSheet
 import com.om.diucampusschedule.ui.components.GenerationProgressDialog
 import com.om.diucampusschedule.ui.components.SuccessDialog
@@ -211,13 +208,8 @@ fun RoutineScreen(
             RoutineTopAppBar(
                 user = uiState.currentUser,
                 currentSemester = uiState.currentSemester,
-                isExamMode = uiState.isExamMode,
-                onRefreshClick = { 
-                    if (uiState.isExamMode) {
-                        viewModel.refreshExamRoutine()
-                    } else {
-                        viewModel.refreshRoutine()
-                    }
+                onRefreshClick = {
+                    viewModel.refreshRoutine()
                 },
                 isRefreshing = uiState.isRefreshing,
                 refreshRotation = refreshRotation,
@@ -307,29 +299,27 @@ fun RoutineScreen(
                 }
             }
             
-            // Routine Info Bar - only show when NOT in exam mode
-            if (!uiState.isExamMode) {
-                RoutineInfoBar(
-                    effectiveFrom = uiState.effectiveFrom,
-                    isFiltered = uiState.isFiltered,
-                    currentFilter = uiState.currentFilter,
-                    defaultFilterText = viewModel.getDefaultFilterText(),
-                    onFilterClick = { showFilterSheet = true },
-                    onClearFilterClick = { viewModel.clearFilter() }
-                )
-            }
+            // Routine Info Bar
+            RoutineInfoBar(
+                effectiveFrom = uiState.effectiveFrom,
+                isFiltered = uiState.isFiltered,
+                currentFilter = uiState.currentFilter,
+                defaultFilterText = viewModel.getDefaultFilterText(),
+                onFilterClick = { showFilterSheet = true },
+                onClearFilterClick = { viewModel.clearFilter() }
+            )
 
             when {
-                uiState.isLoading && uiState.routineItems.isEmpty() && uiState.examCourses.isEmpty() -> {
+                uiState.isLoading && uiState.routineItems.isEmpty() -> {
                     android.util.Log.d("RoutineScreen", "Showing LoadingContent")
                     LoadingContent()
                 }
 
-                // Check maintenance mode FIRST, before other states
-                uiState.isMaintenanceMode -> {
+                // Check maintenance mode FIRST, before error states
+                uiState.isMaintenanceMode || uiState.activeDays.isEmpty() -> {
                     android.util.Log.d(
                         "RoutineScreen",
-                        "Showing EmptyContent - maintenance: ${uiState.isMaintenanceMode}"
+                        "Showing EmptyContent - maintenance: ${uiState.isMaintenanceMode}, activeDays empty: ${uiState.activeDays.isEmpty()}"
                     )
                     EmptyContent(
                         isMaintenanceMode = uiState.isMaintenanceMode,
@@ -339,57 +329,7 @@ fun RoutineScreen(
                     )
                 }
 
-                // Check exam mode AFTER maintenance mode
-                uiState.isExamMode -> {
-                    if(uiState.currentUser?.role == UserRole.STUDENT){
-                        android.util.Log.d(
-                            "RoutineScreen",
-                            "Showing Enhanced ExamRoutineContent with exam routine: ${uiState.examRoutine?.examType}"
-                        )
-                        ExamRoutineContent(
-                            examRoutine = uiState.examRoutine,
-                            user = uiState.currentUser
-                        )
-                    }
-                    else{
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ){
-                            Image(
-                                painter = painterResource(id = R.drawable.exam),
-                                contentDescription = null,
-                                modifier = Modifier.size(200.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "${uiState.examRoutine?.examType} of ${uiState.examRoutine?.semester} are currently in progress from ${uiState.examRoutine?.startDate} to ${uiState.examRoutine?.endDate}. Please wait until examination period concludes.",
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(16.dp),
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                }
-
-                uiState.activeDays.isEmpty() && !uiState.isExamMode -> {
-                    android.util.Log.d(
-                        "RoutineScreen",
-                        "Showing EmptyContent - no active days"
-                    )
-                    EmptyContent(
-                        isMaintenanceMode = false,
-                        maintenanceMessage = "No routine data available",
-                        isSemesterBreak = false,
-                        updateType = null
-                    )
-                }
-
-                uiState.error != null && uiState.routineItems.isEmpty() && !uiState.isExamMode -> {
+                uiState.error != null && uiState.routineItems.isEmpty() -> {
                     android.util.Log.d(
                         "RoutineScreen",
                         "Showing ErrorContent: ${uiState.error!!.message}"
@@ -408,7 +348,7 @@ fun RoutineScreen(
                         "Showing RoutineContent with ${uiState.routineItems.size} items"
                     )
                     RoutineContent(
-                        routineItems = viewModel.getDisplayRoutineItems() as List<RoutineItem>, // Use filtered or all routine items
+                        routineItems = viewModel.getDisplayRoutineItems(), // Use filtered or all routine items
                         allTimeSlots = uiState.allTimeSlots, // Pass the sorted time slots
                         currentUser = uiState.currentUser,
                         currentFilter = uiState.currentFilter,
@@ -825,7 +765,6 @@ private fun RoutineContent(
 private fun RoutineTopAppBar(
     user: User?,
     currentSemester: String?,
-    isExamMode: Boolean,
     onRefreshClick: () -> Unit,
     isRefreshing: Boolean,
     refreshRotation: Float,
@@ -836,7 +775,7 @@ private fun RoutineTopAppBar(
             // Simple clean title section
             Column {
                 Text(
-                    text = if (isExamMode && user?.role == UserRole.STUDENT) "Exam Routine" else "Class Routine",
+                    text = "Class Routine",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -849,16 +788,14 @@ private fun RoutineTopAppBar(
             }
         },
         actions = {
-            if(!isExamMode){
-                // Routine Generate Button
-                IconButton(onClick = onDownloadClick) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(id = R.drawable.share_solid_full),
-                        contentDescription = "Generate",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
+            // Routine Generate Button
+            IconButton(onClick = onDownloadClick) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(id = R.drawable.share_solid_full),
+                    contentDescription = "Generate",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(28.dp)
+                )
             }
             // Only refresh button for clean design
             IconButton(

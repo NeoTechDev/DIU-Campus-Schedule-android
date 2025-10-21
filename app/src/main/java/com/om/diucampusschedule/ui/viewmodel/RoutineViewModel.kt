@@ -8,16 +8,9 @@ import com.om.diucampusschedule.core.logging.AppLogger
 import com.om.diucampusschedule.core.network.NetworkMonitor
 import com.om.diucampusschedule.core.service.CourseNameService
 import com.om.diucampusschedule.domain.model.DayOfWeek
-import com.om.diucampusschedule.domain.model.ExamCourse
-import com.om.diucampusschedule.domain.model.ExamRoutine
 import com.om.diucampusschedule.domain.model.RoutineItem
 import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.domain.usecase.auth.GetCurrentUserUseCase
-import com.om.diucampusschedule.domain.usecase.exam.GetExamCoursesForUserAndDateUseCase
-import com.om.diucampusschedule.domain.usecase.exam.GetExamDatesForUserUseCase
-import com.om.diucampusschedule.domain.usecase.exam.GetExamModeInfoUseCase
-import com.om.diucampusschedule.domain.usecase.exam.GetExamRoutineForUserUseCase
-import com.om.diucampusschedule.domain.usecase.exam.ObserveExamRoutineForUserUseCase
 import com.om.diucampusschedule.domain.usecase.routine.CheckForUpdatesUseCase
 import com.om.diucampusschedule.domain.usecase.routine.ClearLocalDataUseCase
 import com.om.diucampusschedule.domain.usecase.routine.GetActiveDaysUseCase
@@ -69,13 +62,6 @@ data class RoutineUiState(
     val updateType: String? = null, // Type of maintenance update (maintenance_enabled, semester_break, etc.)
     val effectiveFrom: String? = null, // Effective from date of the current routine
     val currentSemester: String? = null, // Current semester from routine data
-    // Exam routine fields
-    val isExamMode: Boolean = false, // Whether the system is in exam mode
-    val examMessage: String? = null, // Message to show during exam mode
-    val examRoutine: ExamRoutine? = null, // Current exam routine
-    val examCourses: List<ExamCourse> = emptyList(), // Exam courses for selected date
-    val examDates: List<String> = emptyList(), // All exam dates for user
-    val selectedExamDate: String = "" // Currently selected exam date
 )
 
 
@@ -95,12 +81,6 @@ class RoutineViewModel @Inject constructor(
     private val checkForUpdatesUseCase: CheckForUpdatesUseCase,
     private val clearLocalDataUseCase: ClearLocalDataUseCase,
     private val getMaintenanceInfoUseCase: GetMaintenanceInfoUseCase,
-    // Exam routine use cases
-    private val getExamModeInfoUseCase: GetExamModeInfoUseCase,
-    private val getExamRoutineForUserUseCase: GetExamRoutineForUserUseCase,
-    private val observeExamRoutineForUserUseCase: ObserveExamRoutineForUserUseCase,
-    private val getExamCoursesForUserAndDateUseCase: GetExamCoursesForUserAndDateUseCase,
-    private val getExamDatesForUserUseCase: GetExamDatesForUserUseCase,
     private val networkMonitor: NetworkMonitor,
     private val logger: AppLogger,
     private val cacheService: RoutineCacheService,
@@ -120,7 +100,7 @@ class RoutineViewModel @Inject constructor(
         logger.debug(TAG, "RoutineViewModel initialized")
         observeUserChanges()
         observeNetworkChanges()
-        
+
         // Check maintenance mode immediately on ViewModel creation
         viewModelScope.launch {
             logger.debug(TAG, "Initial maintenance mode check on ViewModel init")
@@ -132,21 +112,21 @@ class RoutineViewModel @Inject constructor(
     private fun observeUserChanges() {
         logger.debug(TAG, "Starting to observe user changes")
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-        
+
         getCurrentUserUseCase.observeCurrentUser()
             .onEach { user ->
                 logger.debug(TAG, "User changed: ${user?.id}")
                 android.util.Log.d("RoutineViewModel", "User profile changed: ${user?.name}, Batch: ${user?.batch}, Section: ${user?.section}, Initial: ${user?.initial}")
-                
+
                 if (user != null) {
                     val previousUser = currentUser
                     currentUser = user
-                    
+
                     _uiState.value = _uiState.value.copy(
                         currentUser = user,
                         isLoading = false
                     )
-                    
+
                     // Check if this is a profile update (user existed before) or initial load
                     if (previousUser != null && hasUserProfileChanged(previousUser, user)) {
                         logger.info(TAG, "User profile updated, refreshing routine data")
@@ -177,39 +157,39 @@ class RoutineViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
     }
-    
+
     private fun hasUserProfileChanged(oldUser: User, newUser: User): Boolean {
         return oldUser.batch != newUser.batch ||
-               oldUser.section != newUser.section ||
-               oldUser.labSection != newUser.labSection ||
-               oldUser.initial != newUser.initial ||
-               oldUser.department != newUser.department ||
-               oldUser.role != newUser.role
+                oldUser.section != newUser.section ||
+                oldUser.labSection != newUser.labSection ||
+                oldUser.initial != newUser.initial ||
+                oldUser.department != newUser.department ||
+                oldUser.role != newUser.role
     }
 
     private fun loadInitialData() {
         val user = currentUser ?: return
-        
+
         viewModelScope.launch {
             logger.debug(TAG, "Loading initial routine data for user: ${user.id}")
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
+
             try {
                 // Check maintenance mode FIRST before loading any data
                 checkMaintenanceMode()
-                
+
                 // If we're in maintenance mode, don't load routine data
                 if (_uiState.value.isMaintenanceMode) {
                     logger.info(TAG, "Maintenance mode detected - skipping routine data load")
                     return@launch
                 }
-                
+
                 // Load all days (including off days) and active days
                 val allDays = getAllDaysUseCase()
-                
+
                 // Load time slots for the department
                 loadTimeSlots(user.department)
-                
+
                 // Check cache first
                 val cachedActiveDays = cacheService.getCachedActiveDays(user)
                 if (cachedActiveDays != null) {
@@ -218,20 +198,20 @@ class RoutineViewModel @Inject constructor(
                         activeDays = cachedActiveDays,
                         allDays = allDays
                     )
-                    
+
                     // Set selected day and continue with preloading
                     val currentDay = DayOfWeek.getCurrentDay().displayName
                     val selectedDay = currentDay // Always select current day, even if it's an off day
-                    
+
                     logger.debug(TAG, "Selected initial day: $selectedDay")
                     _uiState.value = _uiState.value.copy(selectedDay = selectedDay)
-                    
+
                     // Preload all days data for faster switching
                     preloadAllDaysData()
-                    
+
                     // Load full database routine for filtering
                     loadFullDatabaseRoutine()
-                    
+
                     // Start observing routine for selected day (will be empty for off days)
                     observeRoutineForDay(selectedDay)
                 } else {
@@ -240,28 +220,28 @@ class RoutineViewModel @Inject constructor(
                         onSuccess = { activeDays ->
                             logger.info(TAG, "Loaded ${activeDays.size} active days: $activeDays")
                             logger.info(TAG, "All days including off days: $allDays")
-                            
+
                             // Cache the active days
                             cacheService.cacheActiveDays(user, activeDays)
-                            
+
                             _uiState.value = _uiState.value.copy(
                                 activeDays = activeDays,
                                 allDays = allDays
                             )
-                            
+
                             // Set selected day to current day (including off days)
                             val currentDay = DayOfWeek.getCurrentDay().displayName
                             val selectedDay = currentDay // Always select current day, even if it's an off day
-                            
+
                             logger.debug(TAG, "Selected initial day: $selectedDay")
                             _uiState.value = _uiState.value.copy(selectedDay = selectedDay)
-                            
+
                             // Preload all days data for faster switching
                             preloadAllDaysData()
-                            
+
                             // Load full database routine for filtering
                             loadFullDatabaseRoutine()
-                            
+
                             // Start observing routine for selected day (will be empty for off days)
                             observeRoutineForDay(selectedDay)
                         },
@@ -276,12 +256,12 @@ class RoutineViewModel @Inject constructor(
                         }
                     )
                 }
-                
+
                 // HYBRID STRATEGY: Always check maintenance mode first, then handle cached data
                 launch {
                     // Check maintenance mode first - this should happen regardless of cached data
                     checkMaintenanceMode()
-                    
+
                     if (cachedActiveDays != null) {
                         // Check for updates in background and notify user if available
                         // Add a small delay to ensure admin dashboard changes have propagated
@@ -292,7 +272,7 @@ class RoutineViewModel @Inject constructor(
                         syncRoutineDataSilently()
                     }
                 }
-                
+
             } catch (e: Exception) {
                 val error = AppError.fromThrowable(e)
                 logger.error(TAG, "Error loading initial data", e)
@@ -307,13 +287,13 @@ class RoutineViewModel @Inject constructor(
 
     private fun observeRoutineForDay(day: String) {
         val user = currentUser ?: return
-        
+
         logger.debug(TAG, "Starting to observe routine for day: $day (forcing fresh data)")
         android.util.Log.d("RoutineViewModel", "User details - Name: ${user.name}, Department: ${user.department}, Batch: ${user.batch}, Section: ${user.section}, Role: ${user.role}")
-        
+
         // Clear any existing cache for this day before observing
         cacheService.clearCacheForUser(user)
-        
+
         observeUserRoutineForDayUseCase(user, day)
             .catch { throwable ->
                 val error = AppError.fromThrowable(throwable)
@@ -328,15 +308,15 @@ class RoutineViewModel @Inject constructor(
             .onEach { routineItems ->
                 logger.debug(TAG, "Received ${routineItems.size} fresh routine items for $day")
                 android.util.Log.d("RoutineViewModel", "Received ${routineItems.size} fresh routine items for $day")
-                
+
                 // Log the items for debugging
                 routineItems.forEachIndexed { index, item ->
                     android.util.Log.d("RoutineViewModel", "Item $index: ${item.courseCode} - ${item.time} - ${item.room}")
                 }
-                
+
                 // Cache the fresh data
                 cacheService.cacheRoutineForDay(day, user, routineItems)
-                
+
                 _uiState.value = _uiState.value.copy(
                     routineItems = routineItems,
                     isLoading = false,
@@ -345,25 +325,25 @@ class RoutineViewModel @Inject constructor(
                     hasPendingSync = false,
                     lastSyncTime = System.currentTimeMillis()
                 )
-                
+
                 logger.debug(TAG, "UI updated with ${routineItems.size} items for day: $day")
             }
             .launchIn(viewModelScope)
     }
-    
 
-    
+
+
     private fun preloadAllDaysData() {
         val user = currentUser ?: return
-        
+
         viewModelScope.launch {
             try {
                 logger.debug(TAG, "Preloading all days data")
-                
+
                 // First check if we already have cached data
                 if (cacheService.preloadAllDaysFromSchedule(user)) {
                     logger.debug(TAG, "Preloaded from existing full schedule cache")
-                    
+
                     // Get all cached routine items for the full week view
                     val allDays = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
                     val allCachedItems = mutableListOf<RoutineItem>()
@@ -371,25 +351,25 @@ class RoutineViewModel @Inject constructor(
                         val dayItems = cacheService.getCachedRoutineForDay(day, user) ?: emptyList()
                         allCachedItems.addAll(dayItems)
                     }
-                    
+
                     _uiState.value = _uiState.value.copy(
                         isCacheLoaded = true,
                         allRoutineItems = allCachedItems
                     )
                     return@launch
                 }
-                
+
                 // If no full schedule cache, load from use case
                 getUserRoutineUseCase(user).fold(
                     onSuccess = { allRoutineItems ->
                         logger.debug(TAG, "Successfully preloaded ${allRoutineItems.size} routine items")
-                        
+
                         // Group by day and cache using singleton service
                         val groupedByDay = allRoutineItems.groupBy { it.day }
                         groupedByDay.forEach { (day, items) ->
                             cacheService.cacheRoutineForDay(day, user, items)
                         }
-                        
+
                         _uiState.value = _uiState.value.copy(
                             isCacheLoaded = true,
                             allRoutineItems = allRoutineItems // Store all routine items for full week view
@@ -411,7 +391,7 @@ class RoutineViewModel @Inject constructor(
             networkMonitor.isOnline.collect { isOnline ->
                 logger.debug(TAG, "Network status changed: $isOnline")
                 _uiState.value = _uiState.value.copy(isOffline = !isOnline)
-                
+
                 // Auto-sync when coming back online
                 if (isOnline && _uiState.value.hasPendingSync) {
                     logger.info(TAG, "Network restored - triggering auto-sync")
@@ -425,10 +405,10 @@ class RoutineViewModel @Inject constructor(
         if (day != _uiState.value.selectedDay) {
             val user = currentUser ?: return
             logger.debug(TAG, "Day selected: $day")
-            
+
             // Check if we have cached data for this day
             val cachedData = cacheService.getCachedRoutineForDay(day, user)
-            
+
             if (cachedData != null) {
                 logger.debug(TAG, "Using cached data for day: $day (${cachedData.size} items)")
                 _uiState.value = _uiState.value.copy(
@@ -439,7 +419,7 @@ class RoutineViewModel @Inject constructor(
                 )
             } else {
                 logger.debug(TAG, "No valid cache for day: $day, trying full schedule cache")
-                
+
                 // Try to get data from full schedule cache first
                 val fromFullSchedule = cacheService.getRoutineFromFullSchedule(day, user)
                 if (fromFullSchedule != null) {
@@ -461,26 +441,26 @@ class RoutineViewModel @Inject constructor(
                     observeRoutineForDay(day)
                 }
             }
-            
+
             logger.logUserAction("day_selected", mapOf("day" to day))
         }
     }
 
     fun refreshRoutine() {
         val user = currentUser ?: return
-        
+
         viewModelScope.launch {
             logger.info(TAG, "Manual refresh triggered - forcing complete reload")
             _uiState.value = _uiState.value.copy(
-                isRefreshing = true, 
+                isRefreshing = true,
                 error = null,
                 hasAvailableUpdates = false,
                 updateMessage = null
             )
-            
+
             // Check maintenance mode first
             checkMaintenanceMode()
-            
+
             // STEP 1: Aggressively clear ALL caches and reset UI state
             logger.debug(TAG, "Clearing all caches and resetting UI state")
             clearCache()
@@ -494,7 +474,7 @@ class RoutineViewModel @Inject constructor(
                 isFiltered = false,
                 currentFilter = null
             )
-            
+
             // STEP 1.5: Clear local database to prevent fallback to cached data
             logger.debug(TAG, "Clearing local database to prevent fallback")
             clearLocalDataUseCase(user.department).fold(
@@ -505,41 +485,41 @@ class RoutineViewModel @Inject constructor(
                     logger.warning(TAG, "Failed to clear local database", error)
                 }
             )
-            
+
             try {
                 // STEP 2: Force refresh from remote (bypasses all caching)
                 refreshRoutineUseCase(user.department).fold(
                     onSuccess = { freshSchedule ->
                         logger.info(TAG, "Manual refresh completed - got ${freshSchedule.schedule.size} fresh items")
-                        
+
                         // STEP 3: Wait a moment for database to be updated, then reload everything
                         kotlinx.coroutines.delay(100) // Small delay to ensure database is updated
-                        
+
                         // Reload everything from scratch with fresh data
                         loadActiveDays()
                         loadTimeSlots(user.department)
-                        
+
                         // STEP 4: Preload fresh data (this will use the fresh database data)
                         preloadAllDaysData()
                         loadFullDatabaseRoutine()
-                        
+
                         // STEP 5: Force refresh the currently selected day with fresh data
                         val selectedDay = _uiState.value.selectedDay
-                        
+
                         // Instead of using observeRoutineForDay (which might use cache),
                         // directly get fresh data from use case
                         launch {
                             getUserRoutineForDayUseCase(user, selectedDay).fold(
                                 onSuccess = { freshDayItems ->
                                     logger.info(TAG, "Got ${freshDayItems.size} fresh items for day $selectedDay")
-                                    
+
                                     // Update UI with fresh data
                                     _uiState.value = _uiState.value.copy(
                                         routineItems = freshDayItems,
                                         isLoading = false,
                                         isRefreshing = false
                                     )
-                                    
+
                                     // Cache the fresh data
                                     cacheService.cacheRoutineForDay(selectedDay, user, freshDayItems)
                                 },
@@ -550,7 +530,7 @@ class RoutineViewModel @Inject constructor(
                                 }
                             )
                         }
-                        
+
                         _uiState.value = _uiState.value.copy(
                             isRefreshing = false,
                             isOffline = false,
@@ -558,7 +538,7 @@ class RoutineViewModel @Inject constructor(
                             lastSyncTime = System.currentTimeMillis(),
                             error = null
                         )
-                        
+
                         logger.info(TAG, "Manual refresh UI update completed")
                         logger.logUserAction("routine_refreshed", mapOf(
                             "department" to user.department,
@@ -575,7 +555,7 @@ class RoutineViewModel @Inject constructor(
                             isOffline = !networkMonitor.isCurrentlyOnline(),
                             hasPendingSync = !networkMonitor.isCurrentlyOnline()
                         )
-                        
+
                         logger.logUserAction("routine_refreshed", mapOf(
                             "department" to user.department,
                             "success" to "false",
@@ -598,14 +578,14 @@ class RoutineViewModel @Inject constructor(
 
     private fun syncRoutineDataSilently() {
         val user = currentUser ?: return
-        
+
         viewModelScope.launch {
             try {
                 logger.debug(TAG, "Starting background sync for department: ${user.department}")
-                
+
                 // Check maintenance mode first
                 checkMaintenanceMode()
-                
+
                 syncRoutineUseCase(user.department).fold(
                     onSuccess = {
                         logger.info(TAG, "Background sync completed successfully")
@@ -632,45 +612,45 @@ class RoutineViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun refreshRoutineData() {
         val user = currentUser ?: return
-        
+
         viewModelScope.launch {
             logger.debug(TAG, "Refreshing routine data due to profile changes")
             android.util.Log.d("RoutineViewModel", "Refreshing routine data for updated user profile")
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
+
             try {
                 // Load all days (including off days) and active days with the new profile
                 val allDays = getAllDaysUseCase()
-                
+
                 // Load time slots for the department
                 loadTimeSlots(user.department)
-                
+
                 getActiveDaysUseCase(user).fold(
                     onSuccess = { activeDays ->
                         logger.info(TAG, "Loaded ${activeDays.size} active days for updated profile: $activeDays")
                         android.util.Log.d("RoutineViewModel", "New active days after profile update: $activeDays")
-                        
+
                         _uiState.value = _uiState.value.copy(
                             activeDays = activeDays,
                             allDays = allDays
                         )
-                        
+
                         // Set selected day to current day (including off days)
                         val currentDay = DayOfWeek.getCurrentDay().displayName
                         val selectedDay = currentDay // Always select current day, even if it's an off day
-                        
+
                         logger.debug(TAG, "Selected day after profile update: $selectedDay")
                         _uiState.value = _uiState.value.copy(selectedDay = selectedDay)
-                        
+
                         // Clear cache when profile changes
                         clearCache()
-                        
+
                         // Preload all days data for faster switching
                         preloadAllDaysData()
-                        
+
                         // Start observing routine for selected day with new profile
                         observeRoutineForDay(selectedDay)
                     },
@@ -699,7 +679,7 @@ class RoutineViewModel @Inject constructor(
 
     private fun loadActiveDays() {
         val user = currentUser ?: return
-        
+
         viewModelScope.launch {
             try {
                 logger.debug(TAG, "Reloading active days")
@@ -721,7 +701,7 @@ class RoutineViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun loadTimeSlots(department: String) {
         viewModelScope.launch {
             try {
@@ -742,10 +722,10 @@ class RoutineViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun loadFullDatabaseRoutine() {
         val user = currentUser ?: return
-        
+
         viewModelScope.launch {
             try {
                 logger.debug(TAG, "Loading full database routine for department: ${user.department}")
@@ -823,7 +803,7 @@ class RoutineViewModel @Inject constructor(
         } else {
             return null
         }
-        
+
         val currentTime = LocalTime.now()
         return todayRoutine
             .sortedBy { it.startTime }
@@ -840,13 +820,13 @@ class RoutineViewModel @Inject constructor(
         } else {
             return null
         }
-        
+
         val currentTime = LocalTime.now()
         return todayRoutine.find { routineItem ->
             val startTime = routineItem.startTime
             val endTime = routineItem.endTime
-            startTime != null && endTime != null && 
-            currentTime.isAfter(startTime) && currentTime.isBefore(endTime)
+            startTime != null && endTime != null &&
+                    currentTime.isAfter(startTime) && currentTime.isBefore(endTime)
         }
     }
 
@@ -854,7 +834,7 @@ class RoutineViewModel @Inject constructor(
         val currentTime = LocalTime.now()
         val startTime = routineItem.startTime
         val endTime = routineItem.endTime
-        
+
         return when {
             startTime == null || endTime == null -> ClassStatus.UNKNOWN
             currentTime.isBefore(startTime) -> ClassStatus.UPCOMING
@@ -867,14 +847,14 @@ class RoutineViewModel @Inject constructor(
     private fun clearCache() {
         logger.debug(TAG, "Aggressively clearing ALL routine caches")
         val user = currentUser
-        
+
         // Clear in-memory cache
         if (user != null) {
             cacheService.clearCacheForUser(user)
         } else {
             cacheService.clearAllCache()
         }
-        
+
         // Reset UI state to force complete reload
         _uiState.value = _uiState.value.copy(
             isCacheLoaded = false,
@@ -885,16 +865,16 @@ class RoutineViewModel @Inject constructor(
             isFiltered = false,
             currentFilter = null
         )
-        
+
         logger.debug(TAG, "Cache clearing completed - UI state reset")
     }
 
     // Filtering methods
     fun applyFilter(filter: RoutineFilter) {
         logger.debug(TAG, "Applying filter: ${filter.type} - ${filter.getDisplayText()}")
-        
+
         val allItems = _uiState.value.fullDatabaseRoutineItems
-        
+
         // If full database routine is not loaded yet, load it first
         if (allItems.isEmpty()) {
             logger.debug(TAG, "Full database routine not loaded yet, loading now...")
@@ -910,22 +890,22 @@ class RoutineViewModel @Inject constructor(
                     } else {
                         item.batch.equals(filter.batch, ignoreCase = true)
                     }
-                    
+
                     val sectionMatches = if (filter.section.isNullOrBlank()) {
                         true // If no section specified, don't filter by section
                     } else {
                         // Use the same section matching logic as RoutineItem.matchesUser()
                         val userSection = filter.section!!.trim().uppercase()
                         val itemSection = item.section.trim().uppercase()
-                        
+
                         when {
                             // Exact section match (e.g., filter: "J", item: "J")
                             itemSection == userSection -> true
-                            
+
                             // User specified main section (e.g., "J") and item has lab sections (e.g., "J1", "J2")
-                            userSection.length == 1 && itemSection.startsWith(userSection) && 
-                            itemSection.length > 1 && itemSection.substring(1).all { it.isDigit() } -> true
-                            
+                            userSection.length == 1 && itemSection.startsWith(userSection) &&
+                                    itemSection.length > 1 && itemSection.substring(1).all { it.isDigit() } -> true
+
                             else -> false
                         }
                     }
@@ -954,30 +934,30 @@ class RoutineViewModel @Inject constructor(
                 }
             }
         }
-        
+
         _uiState.value = _uiState.value.copy(
             filteredRoutineItems = filteredItems,
             currentFilter = filter,
             isFiltered = true
         )
-        
+
         // Debug logging for filtering
         logger.debug(TAG, "Filter applied: ${filteredItems.size} items from ${allItems.size} total items match filter")
         logger.debug(TAG, "Filter details - Type: ${filter.type}, Batch: '${filter.batch}', Section: '${filter.section}', Initial: '${filter.teacherInitial}', Room: '${filter.room}'")
-        
+
         // Debug: Show first few filtered items
         if (filteredItems.isNotEmpty()) {
             filteredItems.take(5).forEachIndexed { index, item ->
                 logger.debug(TAG, "Filtered item $index: courseCode='${item.courseCode}', batch='${item.batch}', section='${item.section}', initial='${item.teacherInitial}', room='${item.room}'")
             }
         }
-        
+
         if (allItems.size <= 10) {
             allItems.forEachIndexed { index, item ->
                 logger.debug(TAG, "Item $index: batch='${item.batch}', section='${item.section}', initial='${item.teacherInitial}', room='${item.room}', course='${item.courseCode}'")
             }
         }
-        
+
         logger.info(TAG, "Filter applied: Found ${filteredItems.size} matches out of ${allItems.size} total items for ${filter.type} filter")
     }
 
@@ -1018,7 +998,7 @@ class RoutineViewModel @Inject constructor(
     private suspend fun checkForUpdatesAndNotify(user: User) {
         try {
             logger.debug(TAG, "Checking for updates in background")
-            
+
             checkForUpdatesUseCase(user.department).fold(
                 onSuccess = { hasUpdates ->
                     if (hasUpdates) {
@@ -1027,7 +1007,7 @@ class RoutineViewModel @Inject constructor(
                             hasAvailableUpdates = true,
                             updateMessage = "New routine data is available. Pull down to refresh."
                         )
-                        
+
                         // Auto-sync immediately for critical updates like deletions (no delay for app launch)
                         viewModelScope.launch {
                             kotlinx.coroutines.delay(500) // Shorter delay for app launch
@@ -1052,15 +1032,15 @@ class RoutineViewModel @Inject constructor(
     private suspend fun performBackgroundSync(user: User) {
         try {
             logger.info(TAG, "Starting aggressive background sync for potential deletions/updates")
-            
+
             // STEP 0: Check for maintenance mode first
             checkMaintenanceMode()
-            
+
             // Use the same aggressive approach as manual refresh
             // STEP 1: Clear all caches and local data first
             logger.debug(TAG, "Background sync: Clearing all caches and local data")
             clearCache()
-            
+
             // Clear local database to prevent fallback to cached data
             clearLocalDataUseCase(user.department).fold(
                 onSuccess = {
@@ -1070,23 +1050,23 @@ class RoutineViewModel @Inject constructor(
                     logger.warning(TAG, "Background sync: Failed to clear local database", error)
                 }
             )
-            
+
             // STEP 2: Force refresh from remote (same as manual refresh)
             refreshRoutineUseCase(user.department).fold(
                 onSuccess = { freshSchedule ->
                     logger.info(TAG, "Background sync completed - got ${freshSchedule.schedule.size} fresh items")
-                    
+
                     // STEP 3: Wait a moment for database to be updated
                     kotlinx.coroutines.delay(100)
-                    
+
                     // Reload everything from scratch with fresh data
                     getActiveDaysUseCase(user).fold(
                         onSuccess = { activeDays ->
                             logger.info(TAG, "Background sync: Reloaded active days: $activeDays")
-                            
+
                             // Cache the fresh active days
                             cacheService.cacheActiveDays(user, activeDays)
-                            
+
                             // Update UI state with fresh data
                             _uiState.value = _uiState.value.copy(
                                 activeDays = activeDays,
@@ -1095,11 +1075,11 @@ class RoutineViewModel @Inject constructor(
                                 lastSyncTime = System.currentTimeMillis(),
                                 isLoading = false
                             )
-                            
+
                             // Preload fresh data for all days
                             preloadAllDaysData()
                             loadFullDatabaseRoutine()
-                            
+
                             // STEP 4: Get fresh data for currently selected day (same as manual refresh)
                             val selectedDay = _uiState.value.selectedDay
 
@@ -1107,16 +1087,16 @@ class RoutineViewModel @Inject constructor(
                                 getUserRoutineForDayUseCase(user, selectedDay).fold(
                                     onSuccess = { freshDayItems ->
                                         logger.info(TAG, "Background sync: Got ${freshDayItems.size} fresh items for day $selectedDay")
-                                        
+
                                         // Update UI with fresh data
                                         _uiState.value = _uiState.value.copy(
                                             routineItems = freshDayItems,
                                             isLoading = false
                                         )
-                                        
+
                                         // Cache the fresh data
                                         cacheService.cacheRoutineForDay(selectedDay, user, freshDayItems)
-                                        
+
                                         logger.info(TAG, "Background sync UI refresh completed successfully")
                                     },
                                     onFailure = { error ->
@@ -1158,13 +1138,15 @@ class RoutineViewModel @Inject constructor(
 
     private suspend fun checkMaintenanceMode() {
         try {
-            logger.debug(TAG, "Checking maintenance and exam mode status from Firebase")
-            
-            // Check maintenance mode first
+            logger.debug(TAG, "Checking maintenance mode status from Firebase")
+
             getMaintenanceInfoUseCase().fold(
                 onSuccess = { maintenanceInfo ->
                     logger.info(TAG, "Maintenance info: isMaintenanceMode=${maintenanceInfo.isMaintenanceMode}, message=${maintenanceInfo.maintenanceMessage}, isSemesterBreak=${maintenanceInfo.isSemesterBreak}")
-                    
+
+                    // Always update maintenance state based on Firebase data
+                    logger.info(TAG, "Updating UI maintenance state - isMaintenanceMode: ${maintenanceInfo.isMaintenanceMode}, isSemesterBreak: ${maintenanceInfo.isSemesterBreak}")
+
                     if (maintenanceInfo.isMaintenanceMode) {
                         logger.info(TAG, "Maintenance mode enabled - updating UI to show maintenance state")
                         _uiState.value = _uiState.value.copy(
@@ -1177,146 +1159,42 @@ class RoutineViewModel @Inject constructor(
                             allRoutineItems = emptyList(),
                             filteredRoutineItems = emptyList(),
                             fullDatabaseRoutineItems = emptyList(),
-                            isExamMode = false,
-                            examCourses = emptyList(),
-                            examDates = emptyList(),
                             isLoading = false,
                             isRefreshing = false,
                             error = null // Always clear errors when in maintenance mode
                         )
-                        return
                     } else {
-                        logger.info(TAG, "Maintenance mode disabled - checking exam mode")
+                        logger.info(TAG, "Maintenance mode disabled - clearing maintenance state")
                         _uiState.value = _uiState.value.copy(
                             isMaintenanceMode = false,
                             maintenanceMessage = null,
-                            isSemesterBreak = false,
+                            isSemesterBreak = false, // Clear semester break when maintenance is fully disabled
                             updateType = null,
-                            error = null
+                            error = null // Also clear errors when maintenance is cleared
                         )
                     }
                 },
                 onFailure = { error ->
                     logger.warning(TAG, "Failed to fetch maintenance info from Firebase", error)
+                    // Fallback: check if we have no routines locally
+                    val user = currentUser ?: return
+                    getActiveDaysUseCase(user).fold(
+                        onSuccess = { activeDays ->
+                            if (activeDays.isEmpty()) {
+                                logger.info(TAG, "No active days found - might be maintenance mode (fallback)")
+                                _uiState.value = _uiState.value.copy(
+                                    isMaintenanceMode = true,
+                                    maintenanceMessage = "System is under maintenance. New routine will be available soon.",
+                                    isSemesterBreak = false
+                                )
+                            }
+                        },
+                        onFailure = { /* ignore fallback errors */ }
+                    )
                 }
             )
-
-            // Check exam mode
-            checkExamMode()
-            
         } catch (e: Exception) {
             logger.error(TAG, "Error checking maintenance mode", e)
-        }
-    }
-
-    private suspend fun checkExamMode() {
-        try {
-            logger.debug(TAG, "Checking exam mode status from Firebase")
-            
-            getExamModeInfoUseCase().fold(
-                onSuccess = { examModeInfo ->
-                    logger.info(TAG, "Exam mode info: isExamMode=${examModeInfo.isExamMode}, message=${examModeInfo.examMessage}")
-                    
-                    if (examModeInfo.isExamMode) {
-                        logger.info(TAG, "Exam mode enabled - loading exam routine")
-                        loadExamRoutineData()
-                        _uiState.value = _uiState.value.copy(
-                            isExamMode = true,
-                            examMessage = examModeInfo.examMessage,
-                            // Hide class routine data when in exam mode
-                            routineItems = emptyList(),
-                            activeDays = emptyList(),
-                            allRoutineItems = emptyList()
-                        )
-                    } else {
-                        logger.info(TAG, "Exam mode disabled - clearing exam state")
-                        _uiState.value = _uiState.value.copy(
-                            isExamMode = false,
-                            examMessage = null,
-                            examCourses = emptyList(),
-                            examDates = emptyList(),
-                            examRoutine = null
-                        )
-                    }
-                },
-                onFailure = { error ->
-                    logger.warning(TAG, "Failed to fetch exam mode info from Firebase", error)
-                }
-            )
-        } catch (e: Exception) {
-            logger.error(TAG, "Error checking exam mode", e)
-        }
-    }
-
-    private suspend fun loadExamRoutineData() {
-        val user = currentUser ?: return
-        
-        try {
-            logger.debug(TAG, "Loading exam routine data for user: ${user.name}")
-            
-            // Load exam routine
-            getExamRoutineForUserUseCase(user).fold(
-                onSuccess = { examRoutine ->
-                    if (examRoutine != null) {
-                        logger.info(TAG, "Exam routine loaded: ${examRoutine.examType}")
-                        
-                        // Get exam dates for user
-                        getExamDatesForUserUseCase(user).fold(
-                            onSuccess = { examDates ->
-                                logger.info(TAG, "Found ${examDates.size} exam dates for user")
-                                
-                                // Load exam courses for first available date
-                                val firstDate = examDates.firstOrNull()
-                                if (firstDate != null) {
-                                    loadExamCoursesForDate(user, firstDate)
-                                }
-                                
-                                _uiState.value = _uiState.value.copy(
-                                    examRoutine = examRoutine,
-                                    examDates = examDates,
-                                    selectedExamDate = firstDate ?: ""
-                                )
-                            },
-                            onFailure = { error ->
-                                logger.error(TAG, "Failed to load exam dates", error)
-                            }
-                        )
-                    } else {
-                        logger.info(TAG, "No exam routine found for user")
-                        _uiState.value = _uiState.value.copy(
-                            examRoutine = null,
-                            examCourses = emptyList(),
-                            examDates = emptyList()
-                        )
-                    }
-                },
-                onFailure = { error ->
-                    logger.error(TAG, "Failed to load exam routine", error)
-                }
-            )
-        } catch (e: Exception) {
-            logger.error(TAG, "Error loading exam routine data", e)
-        }
-    }
-
-    private suspend fun loadExamCoursesForDate(user: User, date: String) {
-        try {
-            logger.debug(TAG, "Loading exam courses for date: $date")
-            
-            getExamCoursesForUserAndDateUseCase(user, date).fold(
-                onSuccess = { examCourses ->
-                    logger.info(TAG, "Found ${examCourses.size} exam courses for date: $date")
-                    _uiState.value = _uiState.value.copy(
-                        examCourses = examCourses,
-                        selectedExamDate = date
-                    )
-                },
-                onFailure = { error ->
-                    logger.error(TAG, "Failed to load exam courses for date: $date", error)
-                }
-            )
-        } catch (e: Exception) {
-            logger.error(TAG, "Error loading exam courses for date: $date", e)
         }
     }
 
@@ -1328,63 +1206,6 @@ class RoutineViewModel @Inject constructor(
     }
 
     /**
-     * Select an exam date and load exam courses for that date
-     */
-    fun selectExamDate(date: String) {
-        val user = currentUser ?: return
-        
-        viewModelScope.launch {
-            logger.debug(TAG, "Exam date selected: $date")
-            loadExamCoursesForDate(user, date)
-        }
-    }
-
-    /**
-     * Refresh exam routine data
-     */
-    fun refreshExamRoutine() {
-        val user = currentUser ?: return
-        
-        viewModelScope.launch {
-            logger.info(TAG, "Manual exam routine refresh triggered")
-            _uiState.value = _uiState.value.copy(isRefreshing = true)
-            
-            try {
-                loadExamRoutineData()
-            } finally {
-                _uiState.value = _uiState.value.copy(isRefreshing = false)
-            }
-        }
-    }
-
-    /**
-     * Get display routine items based on current mode (class or exam)
-     */
-    fun getDisplayItems(): Any {
-        return if (_uiState.value.isExamMode) {
-            _uiState.value.examCourses
-        } else if (_uiState.value.isFiltered) {
-            _uiState.value.filteredRoutineItems
-        } else {
-            _uiState.value.allRoutineItems
-        }
-    }
-
-    /**
-     * Check if current mode is exam mode
-     */
-    fun isInExamMode(): Boolean {
-        return _uiState.value.isExamMode
-    }
-
-    /**
-     * Get current exam routine
-     */
-    fun getCurrentExamRoutine(): ExamRoutine? {
-        return _uiState.value.examRoutine
-    }
-
-    /**
      * Filter empty rooms for all time slots and days
      * @return Map<Day, Map<TimeSlot, List<Room>>>
      */
@@ -1392,41 +1213,41 @@ class RoutineViewModel @Inject constructor(
         val allRoutineItems = _uiState.value.fullDatabaseRoutineItems
         val allTimeSlots = _uiState.value.allTimeSlots
         val workingDays = DayOfWeek.values().map { it.displayName }
-        
+
         // Get all unique rooms from the database
         val allRooms = allRoutineItems
             .map { it.room }
             .filter { it.isNotBlank() }
             .distinct()
             .sorted()
-        
+
         val emptyRoomsMap = mutableMapOf<String, Map<String, List<String>>>()
-        
+
         for (day in workingDays) {
             val timeSlotMap = mutableMapOf<String, List<String>>()
-            
+
             for (timeSlot in allTimeSlots) {
                 // Get all occupied rooms for this day and time slot
                 val occupiedRooms = allRoutineItems
                     .filter { routine ->
-                        routine.day.equals(day, ignoreCase = true) && 
-                        routine.time.equals(timeSlot, ignoreCase = true) &&
-                        routine.room.isNotBlank()
+                        routine.day.equals(day, ignoreCase = true) &&
+                                routine.time.equals(timeSlot, ignoreCase = true) &&
+                                routine.room.isNotBlank()
                     }
                     .map { it.room }
                     .toSet()
-                
+
                 // Find empty rooms (all rooms minus occupied rooms)
                 val emptyRooms = allRooms.filter { room ->
                     !occupiedRooms.contains(room)
                 }
-                
+
                 timeSlotMap[timeSlot] = emptyRooms
             }
-            
+
             emptyRoomsMap[day] = timeSlotMap
         }
-        
+
         return emptyRoomsMap
     }
 

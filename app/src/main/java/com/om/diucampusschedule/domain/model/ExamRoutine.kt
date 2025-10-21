@@ -3,6 +3,12 @@ package com.om.diucampusschedule.domain.model
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
+enum class ExamType(val displayName: String) {
+    BATCH("Your Batch"),
+    SELF_STUDY("Self Study"),
+    RETAKE("Retake")
+}
+
 data class ExamCourse(
     val code: String,
     val name: String,
@@ -65,6 +71,7 @@ data class ExamRoutine(
     val semester: String,
     val startDate: String,
     val endDate: String,
+    val message: String,
     val slots: Map<String, String>, // Slot ID to time range mapping
     val schedule: List<ExamDay>,
     val version: Long = 1,
@@ -72,14 +79,14 @@ data class ExamRoutine(
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     
-    // Get exam courses for a specific user (filtered by batch)
+    // Get exam courses for a specific user (filtered by batch only, excluding Self Study)
     fun getExamCoursesForUser(user: User): List<ExamCourse> {
         android.util.Log.d("ExamRoutine", "Filtering exam courses for user: ${user.name}")
         android.util.Log.d("ExamRoutine", "User details - Batch: '${user.batch}', Department: '${user.department}'")
         
         val userBatch = user.batch?.trim()
         if (userBatch.isNullOrEmpty()) {
-            android.util.Log.d("ExamRoutine", "User has no batch information")
+            android.util.Log.d("ExamRoutine", "User has no batch information, returning empty list")
             return emptyList()
         }
         
@@ -94,6 +101,51 @@ data class ExamRoutine(
         
         android.util.Log.d("ExamRoutine", "Filtered result: ${filtered.size} exam courses match user")
         return filtered
+    }
+    
+    // Get Self Study exam courses (available for everyone)
+    fun getSelfStudyExamCourses(): List<ExamCourse> {
+        android.util.Log.d("ExamRoutine", "Getting Self Study exam courses")
+        
+        val selfStudyCourses = schedule.flatMap { day ->
+            day.courses.filter { course ->
+                val courseBatch = course.batch.trim()
+                val isSelfStudy = courseBatch.equals("Self Study", ignoreCase = true)
+                android.util.Log.d("ExamRoutine", "Course ${course.code} (batch: '$courseBatch') is Self Study: $isSelfStudy")
+                isSelfStudy
+            }
+        }
+        
+        android.util.Log.d("ExamRoutine", "Found ${selfStudyCourses.size} Self Study exam courses")
+        return selfStudyCourses
+    }
+    
+    // Get Retake exam courses (available for everyone)
+    fun getRetakeExamCourses(): List<ExamCourse> {
+        android.util.Log.d("ExamRoutine", "Getting Retake exam courses")
+        
+        val retakeCourses = schedule.flatMap { day ->
+            day.courses.filter { course ->
+                val courseBatch = course.batch.trim()
+                val isRetake = courseBatch.equals("Retake", ignoreCase = true)
+                android.util.Log.d("ExamRoutine", "Course ${course.code} (batch: '$courseBatch') is Retake: $isRetake")
+                isRetake
+            }
+        }
+        
+        android.util.Log.d("ExamRoutine", "Found ${retakeCourses.size} Retake exam courses")
+        return retakeCourses
+    }
+    
+    // Get combined exam courses for user (batch + Self Study + Retake based on selection)
+    fun getCombinedExamCoursesForUser(user: User, includeSelfStudy: Boolean = true, includeRetake: Boolean = true): List<ExamCourse> {
+        val userCourses = getExamCoursesForUser(user)
+        val combinedCourses = mutableListOf<ExamCourse>().apply {
+            addAll(userCourses)
+            if (includeSelfStudy) addAll(getSelfStudyExamCourses())
+            if (includeRetake) addAll(getRetakeExamCourses())
+        }
+        return combinedCourses
     }
     
     // Get exam courses for a specific day and user

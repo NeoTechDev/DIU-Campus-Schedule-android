@@ -149,6 +149,11 @@ class TodayViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(currentUser = user)
                         // Load data for current selected date
                         loadDataForDate(_selectedDate.value)
+                        
+                        // Always check exam mode and load exam routine data when user changes
+                        viewModelScope.launch {
+                            checkExamMode()
+                        }
                     } else {
                         _uiState.value = _uiState.value.copy(
                             currentUser = null,
@@ -742,6 +747,7 @@ class TodayViewModel @Inject constructor(
     /**
      * Check exam mode status from Firebase
      * When exam mode is enabled, show exam information instead of class routine
+     * Always load exam routine data so it's available for the View Exam Routine FAB
      */
     private suspend fun checkExamMode() {
         try {
@@ -749,28 +755,33 @@ class TodayViewModel @Inject constructor(
             getExamModeInfoUseCase().fold(
                 onSuccess = { examModeInfo ->
                     logger.info(TAG, "Exam mode info: isExamMode=${examModeInfo.isExamMode}, message=${examModeInfo.examMessage}")
+                    
+                    // Always load exam routine data regardless of exam mode status
+                    // This ensures students can view exam routine via FAB even when exam mode is OFF
+                    loadExamRoutineData()
+                    
+                    // Update exam mode state
+                    _uiState.value = _uiState.value.copy(
+                        isExamMode = examModeInfo.isExamMode,
+                        examMessage = examModeInfo.examMessage
+                    )
+                    
                     if (examModeInfo.isExamMode) {
-                        logger.info(TAG, "Exam mode enabled - loading exam routine for Today screen")
-                        _uiState.value = _uiState.value.copy(
-                            isExamMode = true,
-                            examMessage = examModeInfo.examMessage
-                        )
-                        loadExamRoutineData()
+                        logger.info(TAG, "Exam mode enabled - exam routine will be shown in main screen")
                     } else {
-                        logger.info(TAG, "Exam mode disabled - clearing exam state for Today screen")
-                        _uiState.value = _uiState.value.copy(
-                            isExamMode = false,
-                            examMessage = null,
-                            examRoutine = null
-                        )
+                        logger.info(TAG, "Exam mode disabled - exam routine available via FAB")
                     }
                 },
                 onFailure = { error ->
                     logger.warning(TAG, "Failed to fetch exam mode info from Firebase", error)
+                    // Still try to load exam routine data on failure
+                    loadExamRoutineData()
                 }
             )
         } catch (e: Exception) {
             logger.error(TAG, "Error checking exam mode", e)
+            // Still try to load exam routine data on error
+            loadExamRoutineData()
         }
     }
     
@@ -797,10 +808,26 @@ class TodayViewModel @Inject constructor(
                 },
                 onFailure = { error ->
                     logger.error(TAG, "Failed to load exam routine", error)
+                    _uiState.value = _uiState.value.copy(
+                        examRoutine = null
+                    )
                 }
             )
         } catch (e: Exception) {
             logger.error(TAG, "Error loading exam routine data", e)
+            _uiState.value = _uiState.value.copy(
+                examRoutine = null
+            )
+        }
+    }
+
+    /**
+     * Public method to manually fetch exam routine data
+     * Useful when opening the exam routine bottom sheet
+     */
+    fun fetchExamRoutine() {
+        viewModelScope.launch {
+            loadExamRoutineData()
         }
     }
     

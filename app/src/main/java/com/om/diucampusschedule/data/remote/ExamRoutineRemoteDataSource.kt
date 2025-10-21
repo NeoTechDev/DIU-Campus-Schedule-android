@@ -95,6 +95,7 @@ class ExamRoutineRemoteDataSource @Inject constructor(
                                 semester = data["semester"] as? String ?: "",
                                 startDate = data["start_date"] as? String ?: "",
                                 endDate = data["end_date"] as? String ?: "",
+                                message = data["message"] as? String ?: "",
                                 slots = data["slots"] as? Map<String, String> ?: emptyMap(),
                                 schedule = (data["schedule"] as? List<*>)?.mapNotNull { scheduleItem ->
                                     (scheduleItem as? Map<String, Any>)?.let { dayData ->
@@ -194,6 +195,7 @@ class ExamRoutineRemoteDataSource @Inject constructor(
                                         semester = data["semester"] as? String ?: "",
                                         startDate = data["start_date"] as? String ?: "",
                                         endDate = data["end_date"] as? String ?: "",
+                                        message = data["message"] as? String ?: "",
                                         slots = data["slots"] as? Map<String, String> ?: emptyMap(),
                                         schedule = (data["schedule"] as? List<*>)?.mapNotNull { scheduleItem ->
                                             (scheduleItem as? Map<String, Any>)?.let { dayData ->
