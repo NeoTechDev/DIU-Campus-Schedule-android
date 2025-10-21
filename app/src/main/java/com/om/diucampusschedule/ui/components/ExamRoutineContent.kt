@@ -2,7 +2,6 @@ package com.om.diucampusschedule.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,8 +59,8 @@ import com.om.diucampusschedule.domain.model.User
 import com.om.diucampusschedule.ui.theme.AccentGreen
 
 /**
- * Enhanced exam routine content matching the beautiful design from screenshot
- * Shows exam type, dates, and individual exam courses with clean cards
+ * Enhanced exam routine content with Google Material 3 design
+ * Clean, compact, and highly rounded corners throughout
  */
 @Composable
 fun ExamRoutineContent(
@@ -76,19 +75,17 @@ fun ExamRoutineContent(
             )
         }
         else -> {
-            // Get batch exam courses for the user
             val userExamCourses by remember(examRoutine, user) {
                 derivedStateOf {
                     if (user != null) {
                         android.util.Log.d("ExamRoutineContent", "User details: name=${user.name}, batch='${user.batch}', department='${user.department}'")
-                        
-                        // Debug: Show all available courses in the exam routine
+
                         val allCourses = examRoutine.schedule.flatMap { it.courses }
                         android.util.Log.d("ExamRoutineContent", "Total courses in exam routine: ${allCourses.size}")
                         allCourses.forEachIndexed { index, course ->
                             android.util.Log.d("ExamRoutineContent", "Course $index: ${course.code} - ${course.name} (batch: '${course.batch}')")
                         }
-                        
+
                         val filtered = examRoutine.getExamCoursesForUser(user)
                         android.util.Log.d("ExamRoutineContent", "Filtered courses for user: ${filtered.size}")
 
@@ -100,7 +97,6 @@ fun ExamRoutineContent(
                 }
             }
 
-            // Show the main content with batch exams + optional sections
             ExamRoutineContent(
                 examRoutine = examRoutine,
                 userExamCourses = userExamCourses,
@@ -111,9 +107,6 @@ fun ExamRoutineContent(
     }
 }
 
-/**
- * Main exam routine content with batch exams + optional sections
- */
 @Composable
 private fun ExamRoutineContent(
     examRoutine: ExamRoutine,
@@ -121,7 +114,6 @@ private fun ExamRoutineContent(
     user: User?,
     modifier: Modifier = Modifier
 ) {
-    // Group exams by date using professional Compose patterns
     val examsByDate by remember(userExamCourses, examRoutine) {
         derivedStateOf {
             android.util.Log.d("ExamRoutineContentEnhanced", "Grouping ${userExamCourses.size} exam courses by date")
@@ -137,14 +129,12 @@ private fun ExamRoutineContent(
                 }
                 .toList()
                 .sortedWith { (dateA, _), (dateB, _) ->
-                    // Sort by date, handling "TBD" and different date formats
                     when {
                         dateA == "TBD" && dateB == "TBD" -> 0
                         dateA == "TBD" -> 1
                         dateB == "TBD" -> -1
                         else -> {
                             try {
-                                // Parse DD/MM/YYYY format
                                 val parseDate = { dateStr: String ->
                                     val parts = dateStr.split("/")
                                     if (parts.size == 3) {
@@ -175,8 +165,8 @@ private fun ExamRoutineContent(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Header Card
         item {
@@ -193,17 +183,16 @@ private fun ExamRoutineContent(
 
         // Show exam courses or empty state card
         if (examsByDate.isNotEmpty()) {
-            // Render grouped exams with date headers
             examsByDate.forEach { (date, examsForDate) ->
                 item {
                     Text(
                         text = date,
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp
+                            fontSize = 16.sp
                         ),
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 0.dp)
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp, start = 4.dp)
                     )
                 }
 
@@ -219,7 +208,6 @@ private fun ExamRoutineContent(
                 }
             }
         } else {
-            // Show empty state for batch exams
             item {
                 EmptyExamCard(
                     currentExamType = ExamType.BATCH,
@@ -230,9 +218,9 @@ private fun ExamRoutineContent(
 
         item {
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                 thickness = 1.dp,
-                modifier = Modifier.padding(vertical = 24.dp)
+                modifier = Modifier.padding(vertical = 16.dp)
             )
         }
 
@@ -240,11 +228,10 @@ private fun ExamRoutineContent(
         val selfStudyCount = examRoutine.getSelfStudyExamCourses().size
         val retakeCount = examRoutine.getRetakeExamCourses().size
 
-        // Self Study expandable section
         item {
             ExpandableOptionalSection(
-                title = "If you have Self Study exams",
-                subtitle = if (selfStudyCount > 0) "$selfStudyCount exam${if (selfStudyCount > 1) "s" else ""} found" else "Tap to check if you have any",
+                title = "Self Study exams",
+                subtitle = if (selfStudyCount > 0) "$selfStudyCount exam${if (selfStudyCount > 1) "s" else ""}" else "Tap to check",
                 examCourses = examRoutine.getSelfStudyExamCourses(),
                 examRoutine = examRoutine,
                 color = MaterialTheme.colorScheme.primary,
@@ -252,11 +239,10 @@ private fun ExamRoutineContent(
             )
         }
 
-        // Retake expandable section
         item {
             ExpandableOptionalSection(
-                title = "If you have Retake exams",
-                subtitle = if (retakeCount > 0) "$retakeCount exam${if (retakeCount > 1) "s" else ""} found" else "Tap to check if you have any",
+                title = "Retake exams",
+                subtitle = if (retakeCount > 0) "$retakeCount exam${if (retakeCount > 1) "s" else ""}" else "Tap to check",
                 examCourses = examRoutine.getRetakeExamCourses(),
                 examRoutine = examRoutine,
                 color = MaterialTheme.colorScheme.secondary,
@@ -272,30 +258,25 @@ private fun ExamCourseCard(
     examRoutine: ExamRoutine,
     modifier: Modifier = Modifier
 ) {
-    // Get exam day information for this course
     val examDay = remember(examCourse, examRoutine) {
         examRoutine.schedule.find { day ->
             day.courses.any { it.code == examCourse.code && it.batch == examCourse.batch }
         }
     }
 
-    // Get time from slot
     val timeRange = examRoutine.getSlotTimeRange(examCourse.slot) ?: "Time TBD"
 
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
         ),
-        shape = RoundedCornerShape(20.dp),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = if(isSystemInDarkTheme()) Color.Transparent else MaterialTheme.colorScheme.outline
-        )
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Course name and slot
             Row(
@@ -305,20 +286,19 @@ private fun ExamCourseCard(
             ) {
                 Text(
                     text = examCourse.name,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        lineHeight = 18.sp,
-                        fontSize = 17.sp
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp,
+                        lineHeight = 20.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
-                // Slot badge
                 SlotBadge(
                     slot = examCourse.slot,
                     color = getSlotColor(examCourse.slot)
@@ -329,11 +309,12 @@ private fun ExamCourseCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Time with icon
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.AccessTime,
@@ -342,21 +323,20 @@ private fun ExamCourseCard(
                         modifier = Modifier.size(16.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     Text(
                         text = timeRange.uppercase(),
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        style = MaterialTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp
+                            fontSize = 12.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 // Date with icon
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.CalendarToday,
@@ -365,14 +345,13 @@ private fun ExamCourseCard(
                         tint = MaterialTheme.colorScheme.primary
                     )
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     Text(
                         text = examDay?.weekday ?: "TBD",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -380,9 +359,6 @@ private fun ExamCourseCard(
     }
 }
 
-/**
- * Header card with improved spacing and typography
- */
 @Composable
 private fun ExamRoutineHeaderCard(
     examRoutine: ExamRoutine,
@@ -392,13 +368,14 @@ private fun ExamRoutineHeaderCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(28.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Top row with exam type and batch
             Row(
@@ -409,65 +386,23 @@ private fun ExamRoutineHeaderCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = examRoutine.examType.ifBlank { "Unknown Exam Type" },
-                        style = MaterialTheme.typography.headlineMedium.copy(
+                        style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                            lineHeight = 22.sp
+                            fontSize = 20.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                    // Semester
                     Text(
-                        text = "Semester: ${examRoutine.semester}",
-                        style = MaterialTheme.typography.bodyLarge.copy(
+                        text = "Semester ${examRoutine.semester}",
+                        style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium
                         ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // Exam Start date
-                    Text(
-                        text = if (examRoutine.startDate.isBlank())
-                            "Exam dates will be announced"
-                        else
-                            "Starts from: ${examRoutine.startDate}",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // User's first exam date
-                    val userFirstExamDate = remember(examRoutine, user) {
-                        user?.let { u ->
-                            examRoutine.schedule
-                                .firstOrNull { day -> day.courses.any { it.batch == u.batch } }
-                                ?.date
-                        }
-                    }
-
-                    Text(
-                        text = when {
-                            userFirstExamDate.isNullOrBlank() && examRoutine.startDate.isBlank() ->
-                                "Exam dates will be announced"
-                            userFirstExamDate.isNullOrBlank() ->
-                                "Starts from ${examRoutine.startDate}"
-                            else ->
-                                "Your first exam: $userFirstExamDate"
-                        },
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = AccentGreen,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
                 }
 
@@ -475,24 +410,15 @@ private fun ExamRoutineHeaderCard(
                 user?.batch?.let { batch ->
                     Surface(
                         color = MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(24.dp)
+                        shape = RoundedCornerShape(100.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Groups,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(16.dp)
-                            )
-
-                            Spacer(modifier = Modifier.width(6.dp))
-
                             Text(
                                 text = "Batch $batch",
-                                style = MaterialTheme.typography.labelLarge.copy(
+                                style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
                                 color = MaterialTheme.colorScheme.onPrimary
@@ -502,33 +428,61 @@ private fun ExamRoutineHeaderCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Exam dates info
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = if (examRoutine.startDate.isBlank())
+                        "Dates to be announced"
+                    else
+                        "Starts ${examRoutine.startDate}",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
 
+                // User's first exam date
+                val userFirstExamDate = remember(examRoutine, user) {
+                    user?.let { u ->
+                        examRoutine.schedule
+                            .firstOrNull { day -> day.courses.any { it.batch == u.batch } }
+                            ?.date
+                    }
+                }
+
+                if (!userFirstExamDate.isNullOrBlank()) {
+                    Text(
+                        text = "Your first exam: $userFirstExamDate",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = AccentGreen
+                    )
+                }
+            }
+
+            // Message box
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = AccentGreen.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(16.dp)
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Text(
                     text = examRoutine.message,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    style = MaterialTheme.typography.bodyMedium.copy(
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodySmall.copy(
                         fontWeight = FontWeight.Medium,
-                        lineHeight = 18.sp
+                        lineHeight = 14.sp
                     ),
-                    color = if (isSystemInDarkTheme())
-                        Color.White.copy(alpha = 0.95f)
-                    else
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
     }
 }
 
-/**
- * Important notice card with improved visual hierarchy
- */
 @Composable
 private fun ImportantNoticeCard(
     modifier: Modifier = Modifier
@@ -536,35 +490,33 @@ private fun ImportantNoticeCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if(isSystemInDarkTheme()) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f) else MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
         ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.Top
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Announcement,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(20.dp)
             )
-
-            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Important Notice",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold
                     ),
                     color = MaterialTheme.colorScheme.error
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = "This schedule may contain conflicts or mistakes. Always verify exam timings and dates from the official university website before attending.",
@@ -579,9 +531,6 @@ private fun ImportantNoticeCard(
     }
 }
 
-/**
- * Slot badge with improved styling
- */
 @Composable
 private fun SlotBadge(
     slot: String,
@@ -589,15 +538,15 @@ private fun SlotBadge(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.clip(RoundedCornerShape(20.dp)),
+        modifier = modifier,
         color = color,
-        shadowElevation = 2.dp
+        shape = RoundedCornerShape(100.dp)
     ) {
         Text(
             text = "Slot $slot",
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontSize = 13.sp,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             ),
             color = Color.White
@@ -605,22 +554,16 @@ private fun SlotBadge(
     }
 }
 
-/**
- * Get slot color
- */
 @Composable
 private fun getSlotColor(slot: String): Color {
     return when (slot.uppercase()) {
-        "A" -> Color(0xFF2196F3)
-        "B" -> Color(0xFFE91E63)
-        "C" -> Color(0xFF4CAF50)
+        "A" -> Color(0xFF1E88E5)
+        "B" -> Color(0xFFD81B60)
+        "C" -> Color(0xFF43A047)
         else -> MaterialTheme.colorScheme.primary
     }
 }
 
-/**
- * Empty state when no exam routines are available
- */
 @Composable
 private fun EmptyExamRoutineState(
     modifier: Modifier = Modifier
@@ -636,21 +579,19 @@ private fun EmptyExamRoutineState(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(32.dp)
         ) {
-            // New icon: check circle to indicate completion
             Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = "Exams Finished",
-                modifier = Modifier.size(72.dp),
-                tint = AccentGreen.copy(alpha = 0.8f)
+                modifier = Modifier.size(64.dp),
+                tint = AccentGreen
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Exams? Done and dusted for now 😎",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    lineHeight = 22.sp
+                text = "All done for now 😎",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.SemiBold
                 ),
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
@@ -658,12 +599,9 @@ private fun EmptyExamRoutineState(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Optional motivational subtext
             Text(
-                text = "Take a break or start preparing for the next one!",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Normal
-                ),
+                text = "No upcoming exams scheduled",
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
@@ -671,10 +609,6 @@ private fun EmptyExamRoutineState(
     }
 }
 
-
-/**
- * Empty exam card
- */
 @Composable
 private fun EmptyExamCard(
     currentExamType: ExamType,
@@ -684,15 +618,16 @@ private fun EmptyExamCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
         ),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(28.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
                 imageVector = when (currentExamType) {
@@ -701,11 +636,9 @@ private fun EmptyExamCard(
                     ExamType.RETAKE -> Icons.Default.Refresh
                 },
                 contentDescription = null,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
             )
-
-            Spacer(modifier = Modifier.height(20.dp))
 
             Text(
                 text = when (currentExamType) {
@@ -717,37 +650,32 @@ private fun EmptyExamCard(
                     ExamType.SELF_STUDY -> "No Self Study Exams"
                     ExamType.RETAKE -> "No Retake Exams"
                 },
-                style = MaterialTheme.typography.titleLarge.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
             Text(
                 text = when (currentExamType) {
                     ExamType.BATCH -> if (userBatch != null) {
-                        "No exam schedules are currently available for batch $userBatch. Check back soon!"
+                        "No schedules available for batch $userBatch"
                     } else {
-                        "No exam schedules are currently available. Check back soon!"
+                        "No schedules currently available"
                     }
-                    ExamType.SELF_STUDY -> "Don't have Self Study exams? That's okay! Only some students have them."
-                    ExamType.RETAKE -> "Don't have Retake exams? That's great! Only students who need to retake courses will have these exams."
+                    ExamType.SELF_STUDY -> "Only some students have these exams"
+                    ExamType.RETAKE -> "Great! You don't have any retakes"
                 },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                lineHeight = 22.sp
+                lineHeight = 18.sp
             )
         }
     }
 }
 
-/**
- * Expandable section with improved interaction design
- */
 @Composable
 private fun ExpandableOptionalSection(
     title: String,
@@ -760,15 +688,18 @@ private fun ExpandableOptionalSection(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         // Header
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .clickable { isExpanded = !isExpanded },
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            shape = RoundedCornerShape(16.dp)
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(24.dp)
         ) {
             Row(
                 modifier = Modifier.padding(16.dp),
@@ -777,32 +708,29 @@ private fun ExpandableOptionalSection(
             ) {
                 Row(
                     modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = color,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
-
-                    Spacer(modifier = Modifier.width(12.dp))
 
                     Column {
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.bodyLarge.copy(
+                            style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.SemiBold
                             ),
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
-                        Spacer(modifier = Modifier.height(2.dp))
-
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -810,7 +738,7 @@ private fun ExpandableOptionalSection(
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -819,10 +747,9 @@ private fun ExpandableOptionalSection(
         // Expanded content
         if (isExpanded) {
             Column(
-                modifier = Modifier.padding(top = 12.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (examCourses.isNotEmpty()) {
-                    // Group exams by date
                     val examsByDate = examCourses
                         .groupBy { examCourse ->
                             val examDay = examRoutine.schedule.find { day ->
@@ -857,48 +784,44 @@ private fun ExpandableOptionalSection(
                             }
                         }
 
-                    // Show grouped exams with date headers
                     examsByDate.forEach { (date, examsForDate) ->
-                        // Date header
                         Text(
                             text = date,
-                            style = MaterialTheme.typography.titleLarge.copy(
+                            style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 22.sp
+                                fontSize = 16.sp
                             ),
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(
-                                top = if (examsByDate.first().first == date) 0.dp else 20.dp,
-                                bottom = 8.dp
+                                top = if (examsByDate.first().first == date) 0.dp else 12.dp,
+                                bottom = 4.dp,
+                                start = 4.dp
                             )
                         )
 
-                        // Exam cards for this date
                         examsForDate.forEach { examCourse ->
                             ExamCourseCard(
                                 examCourse = examCourse,
-                                examRoutine = examRoutine,
-                                modifier = Modifier.padding(bottom = 12.dp)
+                                examRoutine = examRoutine
                             )
                         }
                     }
                 } else {
-                    // Empty message
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         Text(
                             text = "No exams found",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 24.dp)
+                                .padding(vertical = 20.dp)
                         )
                     }
                 }
