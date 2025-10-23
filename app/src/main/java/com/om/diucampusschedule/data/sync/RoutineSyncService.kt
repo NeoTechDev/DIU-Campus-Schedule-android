@@ -7,7 +7,17 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.work.*
+import androidx.hilt.work.HiltWorker
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ListenableWorker
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkRequest
+import androidx.work.WorkerParameters
 import com.om.diucampusschedule.MainActivity
 import com.om.diucampusschedule.R
 import com.om.diucampusschedule.domain.repository.AuthRepository
@@ -17,8 +27,9 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 
+@HiltWorker // <-- USE @HiltWorker ANNOTATION
 class RoutineSyncWorker @AssistedInject constructor(
-    @Assisted context: Context,
+    @Assisted private val context: Context, // Make it a property
     @Assisted workerParams: WorkerParameters,
     private val routineRepository: RoutineRepository,
     private val authRepository: AuthRepository
@@ -28,7 +39,11 @@ class RoutineSyncWorker @AssistedInject constructor(
         const val WORK_NAME = "routine_sync_work"
         const val CHANNEL_ID = "routine_updates"
         const val NOTIFICATION_ID = 1001
-        
+
+        // --- KEYS FOR INPUT DATA ---
+        const val KEY_DEPARTMENT = "department"
+        const val KEY_IS_SILENT_SYNC = "is_silent_sync" // <-- The "don't notify" flag
+
         fun enqueuePeriodicSync(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -53,76 +68,76 @@ class RoutineSyncWorker @AssistedInject constructor(
                     periodicWorkRequest
                 )
         }
-        
-        fun enqueueSyncNow(context: Context) {
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
-
-            val oneTimeWorkRequest = OneTimeWorkRequestBuilder<RoutineSyncWorker>()
-                .setConstraints(constraints)
-                .build()
-
-            WorkManager.getInstance(context)
-                .enqueue(oneTimeWorkRequest)
-        }
     }
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): ListenableWorker.Result {
         return try {
-            // Get current user
-            val currentUser = authRepository.observeCurrentUser().first()
-            if (currentUser == null) {
-                return Result.success()
+            // --- UPDATED LOGIC ---
+
+            // 1. Check if this is a silent sync (from FCM)
+            val isSilentSync = inputData.getBoolean(KEY_IS_SILENT_SYNC, false)
+
+            // 2. Get department
+            // Either from FCM's input data OR from the logged-in user (for periodic)
+            val departmentToSync = inputData.getString(KEY_DEPARTMENT)
+                ?: authRepository.observeCurrentUser().first()?.department
+
+            if (departmentToSync == null) {
+                return ListenableWorker.Result.success() // No user, no department. We're done.
+            }
+            // ---
+
+            // 3. Check for updates
+            // We can skip this check if FCM (isSilentSync) told us to sync
+            val hasUpdatesResult: kotlin.Result<Boolean> = if (isSilentSync) {
+                kotlin.Result.success(true) // FCM already knows there's an update, just sync
+            } else {
+                routineRepository.checkForUpdates(departmentToSync)
             }
 
-            // Check for routine updates
-            val hasUpdates = routineRepository.checkForUpdates(currentUser.department)
-            
-            hasUpdates.fold(
-                onSuccess = { updates ->
-                    if (updates) {
-                        // Sync the new routine data
-                        routineRepository.syncRoutineData(currentUser.department).fold(
-                            onSuccess = {
-                                // Show notification about routine update
-                                showRoutineUpdateNotification()
-                                Result.success()
-                            },
-                            onFailure = { error ->
-                                Result.failure()
-                            }
-                        )
-                    } else {
-                        Result.success()
+            val hasUpdates = hasUpdatesResult.getOrNull()
+                ?: return ListenableWorker.Result.retry() // failed to check -> retry
+
+            if (hasUpdates) {
+                // 4. Sync the new routine data
+                val syncResult: kotlin.Result<Unit> = routineRepository.syncRoutineData(departmentToSync)
+
+                return if (syncResult.isSuccess) {
+                    // --- MODIFIED NOTIFICATION LOGIC ---
+                    if (!isSilentSync) {
+                        // Only show notification if NOT silent
+                        // (i.e., this is a periodic sync)
+                        showRoutineUpdateNotification()
                     }
-                },
-                onFailure = { error ->
-                    Result.retry()
+                    ListenableWorker.Result.success()
+                } else {
+                    ListenableWorker.Result.failure()
                 }
-            )
+            } else {
+                ListenableWorker.Result.success() // No updates found
+            }
         } catch (e: Exception) {
-            Result.failure()
+            ListenableWorker.Result.failure()
         }
     }
 
     private fun showRoutineUpdateNotification() {
         createNotificationChannel()
 
-        val intent = Intent(applicationContext, MainActivity::class.java).apply {
+        val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("navigate_to", "routine")
         }
 
         val pendingIntent = PendingIntent.getActivity(
-            applicationContext,
+            context,
             0,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.app_notification_logo) // You'll need to add this icon
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.app_notification_logo) // Make sure this drawable exists!
             .setContentTitle("Routine Updated")
             .setContentText("Your class routine has been updated. Tap to view changes.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -130,7 +145,7 @@ class RoutineSyncWorker @AssistedInject constructor(
             .setAutoCancel(true)
             .build()
 
-        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
@@ -144,44 +159,10 @@ class RoutineSyncWorker @AssistedInject constructor(
             }
 
             val notificationManager: NotificationManager =
-                applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
     }
 
-    @dagger.assisted.AssistedFactory
-    interface Factory {
-        fun create(context: Context, workerParams: WorkerParameters): RoutineSyncWorker
-    }
-}
-
-class RoutineSyncChildWorkerFactory @AssistedInject constructor(
-    private val routineSyncWorkerFactory: RoutineSyncWorker.Factory
-) : ChildWorkerFactory {
-    
-    override fun create(appContext: Context, workerParams: WorkerParameters): ListenableWorker {
-        return routineSyncWorkerFactory.create(appContext, workerParams)
-    }
-}
-
-interface ChildWorkerFactory {
-    fun create(appContext: Context, workerParams: WorkerParameters): ListenableWorker
-}
-
-class WorkerFactory(
-    private val routineSyncChildWorkerFactory: RoutineSyncChildWorkerFactory
-) : androidx.work.WorkerFactory() {
-    
-    override fun createWorker(
-        appContext: Context,
-        workerClassName: String,
-        workerParameters: WorkerParameters
-    ): ListenableWorker? {
-        return when (workerClassName) {
-            RoutineSyncWorker::class.java.name -> {
-                routineSyncChildWorkerFactory.create(appContext, workerParameters)
-            }
-            else -> null
-        }
-    }
+    // --- DELETE THE 'Factory' INTERFACE and ALL OTHER FACTORY CLASSES ---
 }
