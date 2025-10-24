@@ -1670,10 +1670,13 @@ fun TaskGroupRow(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        item {
+            Spacer(modifier = Modifier.width(8.dp))
+        }
         // Display all groups
         items(groups) { group ->
             val isSelected = group.id == selectedGroupId
@@ -1800,6 +1803,10 @@ fun TaskGroupRow(
                     modifier = Modifier.size(16.dp)
                 )
             }
+        }
+
+        item {
+            Spacer(modifier = Modifier.width(8.dp))
         }
     }
 }
